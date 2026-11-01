@@ -1,0 +1,54 @@
+<section class="hero">
+  <div>
+    <h1>Financial standing</h1>
+    <p>Assets / liabilities snapshots (net worth).</p>
+  </div>
+  <button type="button" class="btn primary" (click)="showForm.set(!showForm())">
+    {{ showForm() ? 'Close' : 'Add snapshot' }}
+  </button>
+</section>
+
+@if (showForm()) {
+  <form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
+    <label>Snapshot date <input type="date" formControlName="snapshot_date" /></label>
+    <label>Total assets <input type="number" step="0.01" formControlName="total_assets" /></label>
+    <label>Current assets <input type="number" step="0.01" formControlName="current_assets" /></label>
+    <label>Fixed assets <input type="number" step="0.01" formControlName="fixed_assets" /></label>
+    <label>Total liabilities <input type="number" step="0.01" formControlName="total_liabilities" /></label>
+    <label>Short-term liabilities <input type="number" step="0.01" formControlName="short_term_liabilities" /></label>
+    <label>Long-term liabilities <input type="number" step="0.01" formControlName="long_term_liabilities" /></label>
+    <label class="wide">Notes <input formControlName="notes" /></label>
+    <button type="submit" class="btn primary">Save</button>
+  </form>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Assets</th>
+          <th>Liabilities</th>
+          <th>Net worth</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of items(); track s.id) {
+          <tr>
+            <td>{{ s.snapshot_date }}</td>
+            <td>{{ s.total_assets }}</td>
+            <td>{{ s.total_liabilities }}</td>
+            <td [class.neg]="netWorth(s) < 0">{{ netWorth(s) | number: '1.2-2' }}</td>
+            <td>{{ s.notes || '—' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="muted">No snapshots yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

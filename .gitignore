@@ -1,0 +1,12 @@
+/.metadata/
+# The mobile app is its own git repository
+/mobile/
+# Local Eclipse Tomcat config and generated build output
+/Servers/
+/build/
+
+# Production server secrets and data (see docs/deploy/oracle.md)
+deploy/.env
+deploy/backups/
+# Data exported from a local database to move it to the server
+data.json

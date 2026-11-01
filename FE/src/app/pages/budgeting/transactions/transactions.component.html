@@ -1,0 +1,610 @@
+<section class="hero">
+  <div>
+    <h1>Transactions</h1>
+  </div>
+  <div class="actions">
+    <input type="month" [(ngModel)]="month" (ngModelChange)="reload()" />
+    <button type="button" class="btn ghost" (click)="openImport()" [disabled]="uploading()">
+      {{ uploading() ? 'Importing…' : 'Import statement' }}
+    </button>
+    <button type="button" class="btn primary" (click)="toggleAddForm()">
+      {{ showForm() ? 'Close form' : 'Add transaction' }}
+    </button>
+  </div>
+</section>
+
+@if (unassignedCount() > 0) {
+  <div class="alert-banner">
+    <div>
+      <strong>{{ unassignedCount() }} transaction(s)</strong> need a merchant (subcategory).
+      <a routerLink="/budgeting/config/merchant-links">Add merchant links</a>
+      for automatic matching on import.
+    </div>
+    <div class="banner-actions">
+      <button type="button" class="btn primary" (click)="openAssignModal()">Assign merchants</button>
+      <a
+        class="btn ghost"
+        routerLink="/budgeting/transactions/assign"
+        [queryParams]="{ month: month }"
+      >
+        Open full page
+      </a>
+    </div>
+  </div>
+}
+
+@if (showForm()) {
+  <form class="panel add-form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="top-fields">
+      <label>
+        Date <span class="req">*</span>
+        <input type="date" formControlName="date" />
+      </label>
+      <label class="category-first">
+        Category <span class="req">*</span>
+        <select formControlName="category_id" (change)="onCategoryChange()">
+          <option value="">— Select category —</option>
+          @for (g of groups(); track g.id) {
+            <option [value]="g.id">{{ g.name }}</option>
+          }
+          <optgroup label="Other">
+            <option [value]="commitmentCategory">Commitment payment</option>
+            <option [value]="incomeCategory">Income</option>
+            <option [value]="transferCategory">Transfer</option>
+          </optgroup>
+        </select>
+      </label>
+    </div>
+
+    @if (showRestOfForm) {
+      <div class="item">
+        @if (isCommitment) {
+          <label class="span-commitment">
+            Commitment <span class="req">*</span>
+            <select formControlName="commitment_id" (change)="onCommitmentChange()">
+              <option value="">Select commitment…</option>
+              @for (c of payableCommitments(); track c.id) {
+                <option [value]="c.id">
+                  {{ c.name }} — next {{ c.next_due_amount }} ({{ c.next_due_date || 'n/a' }})
+                </option>
+              }
+            </select>
+          </label>
+          @if (!payableCommitments().length) {
+            <div class="hint warn span-commitment">
+              No commitments with an outstanding payment.
+              <a routerLink="/budgeting/commitments">Manage commitments</a>
+            </div>
+          }
+        }
+
+        @if (isExpenseCategory) {
+          <label>
+            Merchant (subcategory)
+            <select formControlName="merchant" (change)="onFormMerchantChange()">
+              <option [value]="unassigned">Unassigned</option>
+              @for (s of subcategoriesForGroup(selectedCategory); track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select>
+          </label>
+          @if (!subcategoriesForGroup(selectedCategory).length) {
+            <div class="hint warn span-commitment">
+              No subcategories under this category.
+              <a routerLink="/budgeting/config/type-maps">Manage categories</a>
+            </div>
+          }
+        }
+
+        @if (isIncome) {
+          <label>
+            Description <span class="req">*</span>
+            <input formControlName="income_description" placeholder="e.g. Salary, Freelance" />
+          </label>
+        }
+
+        <label>
+          Account <span class="req">*</span>
+          <select formControlName="account_id">
+            <option value="">— Select account —</option>
+            @for (a of accounts(); track a.id) {
+              <option [value]="a.id">
+                {{ a.name }}@if (a.is_default_for_expenses) { (default for expenses) }
+              </option>
+            }
+          </select>
+        </label>
+        @if (!accounts().length) {
+          <div class="hint span-commitment">
+            No accounts yet.
+            <a routerLink="/budgeting/config/accounts">Add accounts</a>
+          </div>
+        }
+        @if (isTransfer) {
+          <label>
+            To account <span class="req">*</span>
+            <select formControlName="to_account_id">
+              <option value="">— Select account —</option>
+              @for (a of accounts(); track a.id) {
+                @if (a.id !== form.controls.account_id.value) {
+                  <option [value]="a.id">{{ a.name }}</option>
+                }
+              }
+            </select>
+          </label>
+        }
+        @if (!isCommitment) {
+          <label>
+            Status
+            <select formControlName="status">
+              <option value="settled">Settled</option>
+              <option value="pending">Pending</option>
+            </select>
+          </label>
+        }
+
+        @if (isExpenseCategory) {
+          <label>
+            Personal budget
+            <select formControlName="budget_id">
+              <option value="">— None —</option>
+              @for (b of personalBudgets(); track b.id) {
+                <option [value]="b.id">{{ b.name }}{{ b.in_plan ? ' (plan sub-budget)' : '' }}</option>
+              }
+            </select>
+            @if (subBudgetName(form.controls.budget_id.value); as name) {
+              <small class="muted">Counts only in "{{ name }}", not in your category budgets.</small>
+            }
+          </label>
+        }
+
+        <label>
+          Time
+          <input type="time" formControlName="time" />
+        </label>
+        <label>
+          Amount <span class="req">*</span>
+          <input type="number" step="0.01" formControlName="amount" />
+        </label>
+        <label>
+          Currency <span class="req">*</span>
+          <select formControlName="currency">
+            @for (cur of currencyOptions(); track cur.code) {
+              <option [value]="cur.code">{{ cur.code }} — {{ cur.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="note">
+          Note
+          @if (isExpenseCategory && formMerchantUnassigned) {
+            <span class="req">*</span>
+          }
+          <input
+            formControlName="note"
+            [placeholder]="isExpenseCategory && formMerchantUnassigned ? 'Describe this expense (required)' : 'Optional'"
+          />
+        </label>
+      </div>
+
+      @if (isExpenseCategory && formMerchantUnassigned) {
+        <div class="hint warn">
+          Merchant is <strong>Unassigned</strong> — enter a note describing this expense.
+        </div>
+      }
+
+      @if (isCommitment && form.controls.commitment_id.value) {
+        <div class="hint">
+          Amount is filled from the next installment and can still be edited before saving.
+          Saving marks that installment as paid.
+        </div>
+      }
+
+      <div class="footer">
+        <button class="btn primary" type="submit">Save transaction</button>
+      </div>
+    }
+  </form>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Category</th>
+          <th>Merchant / description</th>
+          <th>Account</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Currency</th>
+          <th>Note</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (t of items(); track t.id) {
+          <tr [class.unassigned-row]="isUnassigned(t)">
+            <td data-label="Date">{{ t.date }}</td>
+            <td data-label="Time">{{ t.time || '—' }}</td>
+            <td data-label="Category">{{ sourceLabel(t) }}</td>
+            <td data-label="Merchant">
+              {{ merchantLabel(t) }}
+              @if (isUnassigned(t)) {
+                <span class="pill warn">unassigned</span>
+              }
+            </td>
+            <td data-label="Account">
+              {{ transactionAccountLabel(t) }}
+              @if (t.to_account_id) { → {{ accountName(t.to_account_id) || 'account' }} }
+            </td>
+            <td data-label="Type">
+              <span class="pill">{{ t.direction }}</span>
+              @if (t.status === 'pending') { <span class="pill warn">pending</span> }
+            </td>
+            <td data-label="Amount">{{ t.amount }}</td>
+            <td data-label="Currency">{{ t.currency || 'USD' }}</td>
+            <td data-label="Note">{{ t.note || '—' }}</td>
+            <td class="row-actions" data-label="">
+              <button type="button" class="btn ghost" (click)="openEdit(t)">Edit</button>
+              <button type="button" class="btn ghost danger" (click)="remove(t.id)">Delete</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="10" class="muted">No transactions for this month.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (editing(); as t) {
+  <div class="modal-backdrop" (click)="closeEdit()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Edit transaction">
+    <header class="modal-head">
+      <div>
+        <h2>Edit transaction</h2>
+      </div>
+      <button type="button" class="icon-close" (click)="closeEdit()" aria-label="Close">×</button>
+    </header>
+    <form class="modal-body edit-form" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+      <label>Date <span class="req">*</span> <input type="date" formControlName="date" /></label>
+      <label>Time <span class="req">*</span> <input type="time" formControlName="time" /></label>
+      @if (editIsExpense) {
+        <label class="span-2">
+          Category <span class="req">*</span>
+          <select formControlName="category_id" (change)="onEditGroupChange()">
+            <option value="">— Select category —</option>
+            @for (g of groups(); track g.id) {
+              <option [value]="g.id">{{ g.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="span-2">
+          Merchant (subcategory) <span class="req">*</span>
+          <select formControlName="merchant" (change)="onEditMerchantChange()">
+            <option [value]="unassigned">Unassigned</option>
+            @if (editSelectedGroup) {
+              <option [value]="sameAsDescription">Same as description</option>
+            }
+            @for (s of subcategoriesForGroup(editSelectedGroup); track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </label>
+        @if (editMerchantUnassigned) {
+          <div class="hint warn span-2">
+            Merchant is unassigned — select a subcategory under the parent category.
+          </div>
+        } @else if (editUsesSameAsDescription) {
+          <div class="hint span-2">
+            Keeps the bank description as the merchant and creates a subcategory under the selected category if needed.
+          </div>
+        }
+        <label class="span-2">
+          Personal budget
+          <select formControlName="budget_id">
+            <option value="">— None —</option>
+            @for (b of personalBudgets(); track b.id) {
+              <option [value]="b.id">{{ b.name }}{{ b.in_plan ? ' (plan sub-budget)' : '' }}</option>
+            }
+          </select>
+          @if (subBudgetName(editForm.controls.budget_id.value); as name) {
+            <small class="muted">Counts only in "{{ name }}", not in your category budgets.</small>
+          }
+        </label>
+      }
+      <label>Amount <span class="req">*</span> <input type="number" step="0.01" formControlName="amount" /></label>
+      <label>
+        Currency <span class="req">*</span>
+        <select formControlName="currency">
+          @for (cur of currencyOptions(); track cur.code) {
+            <option [value]="cur.code">{{ cur.code }} — {{ cur.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Type <span class="req">*</span>
+        <select formControlName="direction" (change)="onEditDirectionChange()">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+          <option value="transfer">Transfer</option>
+        </select>
+      </label>
+      @if (editIsIncome) {
+        <label class="span-2">
+          Description <span class="req">*</span>
+          <input formControlName="income_description" placeholder="e.g. Salary" />
+        </label>
+      }
+      <label class="span-2">
+        Account <span class="req">*</span>
+        <select formControlName="account_id">
+          <option value="">— Select account —</option>
+          @for (a of accounts(); track a.id) {
+            <option [value]="a.id">
+              {{ a.name }}@if (a.is_default_for_expenses) { (default for expenses) }
+            </option>
+          }
+        </select>
+      </label>
+      @if (editForm.controls.direction.value === 'transfer') {
+        <label class="span-2">
+          To account
+          <select formControlName="to_account_id">
+            <option value="">— Not set (older two-row transfer) —</option>
+            @for (a of accounts(); track a.id) {
+              @if (a.id !== editForm.controls.account_id.value) {
+                <option [value]="a.id">{{ a.name }}</option>
+              }
+            }
+          </select>
+        </label>
+      }
+      <label>
+        Status
+        <select formControlName="status">
+          <option value="settled">Settled</option>
+          <option value="pending">Pending</option>
+        </select>
+      </label>
+      <label class="span-2">
+        Note
+        <input formControlName="note" placeholder="Optional" />
+      </label>
+      <footer class="modal-foot">
+        <button type="button" class="btn ghost" (click)="closeEdit()">Cancel</button>
+        <button type="submit" class="btn primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+}
+
+@if (showAssignModal()) {
+  <div class="modal-backdrop" (click)="closeAssignModal()"></div>
+  <div class="modal assign-modal" role="dialog" aria-modal="true" aria-label="Assign merchants">
+    <header class="modal-head">
+      <div>
+        <h2>Assign merchants</h2>
+        <p class="muted">{{ unassignedCount() }} unassigned expense(s) for {{ month }}</p>
+      </div>
+      <button type="button" class="icon-close" (click)="closeAssignModal()" aria-label="Close">×</button>
+    </header>
+
+    <div class="modal-body">
+      <p class="intro">
+        Pick a parent category and subcategory for each transaction.
+        Choose <strong>Same as description</strong> when no merchant exists yet — the bank text becomes the subcategory.
+        Account is not required here; you can set it later when editing the transaction.
+      </p>
+
+      <div class="assign-list">
+        @for (draft of assignmentDrafts(); track draft.txnId) {
+          @if (transactionById(draft.txnId); as t) {
+            <article class="assign-card">
+              <div class="assign-meta">
+                <strong>{{ t.description || '—' }}</strong>
+                <span class="pill">{{ t.date }}</span>
+                <span class="pill">{{ t.amount }} {{ t.currency || 'USD' }}</span>
+              </div>
+              <div class="assign-row">
+                <label>
+                  Category
+                  <select
+                    [ngModel]="draft.group_id"
+                    (ngModelChange)="updateAssignmentDraft(draft.txnId, { group_id: $event })"
+                    [ngModelOptions]="{ standalone: true }"
+                  >
+                    <option value="">Select…</option>
+                    @for (g of groups(); track g.id) {
+                      <option [value]="g.id">{{ g.name }}</option>
+                    }
+                  </select>
+                </label>
+                <label>
+                  Subcategory
+                  <select
+                    [ngModel]="draft.category_id"
+                    (ngModelChange)="updateAssignmentDraft(draft.txnId, { category_id: $event })"
+                    [ngModelOptions]="{ standalone: true }"
+                    [disabled]="!draft.group_id"
+                  >
+                    <option value="">Select…</option>
+                    @if (draft.group_id) {
+                      <option [value]="sameAsDescription">Same as description</option>
+                    }
+                    @for (s of subcategoriesForGroup(draft.group_id); track s.id) {
+                      <option [value]="s.id">{{ s.name }}</option>
+                    }
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  class="btn primary"
+                  (click)="saveAssignment(draft)"
+                  [disabled]="!draft.group_id || !draft.category_id || draft.saving"
+                >
+                  {{ draft.saving ? 'Saving…' : 'Assign' }}
+                </button>
+              </div>
+              @if (draft.category_id === sameAsDescription) {
+                <p class="samples">Creates a subcategory from the bank description under the selected category.</p>
+              }
+            </article>
+          }
+        }
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <a
+        class="btn ghost"
+        routerLink="/budgeting/transactions/assign"
+        [queryParams]="{ month: month }"
+        (click)="closeAssignModal()"
+      >
+        Open full page
+      </a>
+      <button type="button" class="btn ghost" (click)="closeAssignModal()">Do later</button>
+      @if (assignmentReadyCount() > 0) {
+        <button
+          type="button"
+          class="btn primary"
+          (click)="saveAllAssignments()"
+          [disabled]="assigningAll()"
+        >
+          {{ assigningAll() ? 'Assigning…' : 'Assign all filled (' + assignmentReadyCount() + ')' }}
+        </button>
+      }
+    </footer>
+  </div>
+}
+
+@if (showUnmatchedModal()) {
+  <div class="modal-backdrop" (click)="closeUnmatchedModal()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Link unmatched merchants">
+    <header class="modal-head">
+      <div>
+        <h2>Link unmatched merchants</h2>
+        @if (importSummary(); as s) {
+          <p class="muted">
+            Imported {{ s.created }} · matched {{ s.matched }} ·
+            {{ remainingUnmatched().length }} merchant(s) still need a category.
+          </p>
+        }
+      </div>
+      <button type="button" class="icon-close" (click)="closeUnmatchedModal()" aria-label="Close">×</button>
+    </header>
+
+    <div class="modal-body">
+      <p class="intro">
+        These bank descriptions did not match any keyword → subcategory link.
+        Set a keyword and subcategory so future imports classify automatically.
+      </p>
+
+      <div class="unmatched-list">
+        @for (row of pendingLinks(); track row.merchant; let i = $index) {
+          <article class="unmatched-card" [class.saved]="row.saved">
+            <header>
+              <strong>{{ row.merchant }}</strong>
+              <span class="pill">{{ row.count }} txn(s)</span>
+              @if (row.saved) {
+                <span class="pill ok">linked</span>
+              }
+            </header>
+            @if (row.sample_descriptions.length) {
+              <p class="samples">{{ row.sample_descriptions.join(' · ') }}</p>
+            }
+            @if (!row.saved) {
+              <div class="link-row">
+                <label>
+                  Keyword
+                  <input
+                    [ngModel]="row.keyword"
+                    (ngModelChange)="updatePending(i, { keyword: $event })"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </label>
+                <label>
+                  Subcategory
+                  <select
+                    [ngModel]="row.category_id"
+                    (ngModelChange)="updatePending(i, { category_id: $event })"
+                    [ngModelOptions]="{ standalone: true }"
+                  >
+                    <option value="">Select…</option>
+                    @for (c of categories(); track c.id) {
+                      <option [value]="c.id">{{ c.group_name }} — {{ c.name }}</option>
+                    }
+                  </select>
+                </label>
+                <button type="button" class="btn primary" (click)="saveLink(i)">Save link</button>
+              </div>
+            }
+          </article>
+        }
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button type="button" class="btn ghost" (click)="closeUnmatchedModal()">Do later</button>
+      <button type="button" class="btn primary" (click)="saveAllReady()">Save all filled</button>
+    </footer>
+  </div>
+}
+
+@if (showImport()) {
+  <div class="modal-backdrop" (click)="closeImport()"></div>
+  <div class="modal import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="import-title">Import bank statement</h2>
+        <p class="muted">CSV or Excel (.xlsx) with Date, Description and Amount (or Debit / Credit) columns.</p>
+      </div>
+      <button type="button" class="icon-close" (click)="closeImport()" aria-label="Close">×</button>
+    </header>
+    <div class="modal-body import-form">
+      <label>
+        File <span class="req">*</span>
+        <input type="file" accept=".csv,.xlsx" (change)="onImportFile($event)" [disabled]="uploading()" />
+      </label>
+      <label>
+        Date format
+        <select [(ngModel)]="importDateFormat" name="importDateFormat">
+          @for (f of dateFormatOptions; track f.code) {
+            <option [value]="f.code">{{ f.label }}</option>
+          }
+        </select>
+        <small class="muted">Most Lebanese and Saudi banks use day first. Auto-detect falls back to your country.</small>
+      </label>
+      <label>
+        Statement currency
+        <select [(ngModel)]="importCurrency" name="importCurrency">
+          @for (cur of currencyOptions(); track cur.code) {
+            <option [value]="cur.code">{{ cur.code }} — {{ cur.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Account
+        <select [(ngModel)]="importAccountId" name="importAccountId">
+          <option value="">No account</option>
+          @for (acc of accounts(); track acc.id) {
+            <option [value]="acc.id">{{ acc.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn ghost" (click)="closeImport()" [disabled]="uploading()">Cancel</button>
+      <button type="button" class="btn primary" (click)="runImport()" [disabled]="uploading() || !importFile">
+        {{ uploading() ? 'Importing…' : 'Import' }}
+      </button>
+    </footer>
+  </div>
+}

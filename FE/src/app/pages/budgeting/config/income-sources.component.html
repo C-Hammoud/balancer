@@ -1,0 +1,122 @@
+<section class="hero">
+  <div>
+    <h1>Accounts</h1>
+    <p>
+      Bank accounts, credit cards, and wallets. Mark one as the default for expenses to pre-fill it on new expense transactions.
+    </p>
+  </div>
+  <button type="button" class="btn primary" (click)="openAdd()">Add account</button>
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Balance{{ balanceCurrency() ? ' (' + balanceCurrency() + ')' : '' }}</th>
+          <th>Order</th>
+          <th>Status</th>
+          <th>Default</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of items(); track s.id) {
+          <tr>
+            <td data-label="Name">{{ s.name }}</td>
+            <td data-label="Type">{{ accountTypeLabel(s.account_type) }}</td>
+            <td data-label="Balance" [class.neg]="isNegative(balances()[s.id])">
+              @if (balances()[s.id]; as b) {
+                {{ +b.total | number: '1.2-2' }}
+                @if (currencyBreakdown(b)) {
+                  <small class="muted breakdown">{{ currencyBreakdown(b) }}</small>
+                }
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td data-label="Order">{{ s.order }}</td>
+            <td data-label="Status">
+              <span class="pill" [class.ok]="s.is_active" [class.warn]="!s.is_active">
+                {{ s.is_active ? 'active' : 'inactive' }}
+              </span>
+            </td>
+            <td data-label="Default">
+              @if (s.is_default_for_expenses) {
+                <span class="pill ok">expenses</span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td class="actions" data-label="">
+              <button type="button" class="btn ghost" (click)="openEdit(s)">Edit</button>
+              <button type="button" class="btn ghost danger" (click)="remove(s)">Delete</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="muted">
+              No accounts yet.
+              <button type="button" class="linkish" (click)="openAdd()">Add your first account</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()"></div>
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="modalMode() === 'add' ? 'Add account' : 'Edit account'"
+  >
+    <header class="modal-head">
+      <h2>{{ modalMode() === 'add' ? 'Add account' : 'Edit account' }}</h2>
+      <button type="button" class="icon-close" (click)="closeModal()" aria-label="Close">×</button>
+    </header>
+
+    <form class="modal-body" [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Account name
+        <input formControlName="name" placeholder="e.g. Chase Checking" />
+      </label>
+      <label>
+        Type
+        <select formControlName="account_type">
+          @for (t of accountTypes; track t.value) {
+            <option [value]="t.value">{{ t.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Order
+        <input type="number" formControlName="order" />
+      </label>
+      <label class="check">
+        <input type="checkbox" formControlName="is_active" />
+        Active
+      </label>
+      <label class="check">
+        <input type="checkbox" formControlName="is_default_for_expenses" />
+        Default for expenses
+      </label>
+      <div class="row-actions">
+        <button type="submit" class="btn primary">
+          {{ modalMode() === 'add' ? 'Add account' : 'Save account' }}
+        </button>
+        @if (modalMode() === 'edit') {
+          <button type="button" class="btn ghost danger" (click)="removeFromModal()">Delete account</button>
+        }
+        <button type="button" class="btn ghost" (click)="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}

@@ -1,0 +1,43 @@
+<section class="panel risk-card">
+  <header>
+    <h2>Financial risk</h2>
+    <a routerLink="/budgeting/risk" class="open-link">Details →</a>
+  </header>
+
+  @if (report(); as r) {
+    <div class="body">
+      <div class="gauge" [class]="'gauge ' + r.level" [style.--deg]="scoreDeg() + 'deg'">
+        <div class="gauge-inner">
+          <strong>{{ r.score ?? '—' }}</strong>
+          <span>of 100</span>
+        </div>
+      </div>
+      <div class="summary">
+        <p class="level" [class]="'level ' + r.level">{{ levelLabel() }}</p>
+        <dl>
+          <div><dt>Cash available</dt><dd>{{ money(r.inputs['liquid']) }}</dd></div>
+          <div><dt>Monthly income</dt><dd>{{ money(r.inputs['monthly_income']) }}</dd></div>
+          <div><dt>Installments this month</dt><dd>{{ money(r.inputs['installments_month']) }}</dd></div>
+        </dl>
+      </div>
+      <div class="attention">
+        @for (f of attention(); track f.key) {
+          <a routerLink="/budgeting/risk" class="item" [class]="'item ' + f.status">
+            <span class="pill" [class]="'pill ' + f.status">{{ statusLabel(f) }}</span>
+            <span>{{ f.label }}</span>
+          </a>
+        } @empty {
+          @if (r.missing.length) {
+            <p class="muted">{{ r.missing.length }} check(s) need more data. <a routerLink="/budgeting/risk">See what to add</a></p>
+          } @else {
+            <p class="muted">All checks look fine.</p>
+          }
+        }
+      </div>
+    </div>
+  } @else if (failed()) {
+    <p class="muted">Could not load your risk score.</p>
+  } @else {
+    <p class="muted">Loading…</p>
+  }
+</section>

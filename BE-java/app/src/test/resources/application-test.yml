@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:finance-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+app:
+  datastore: jpa
+  debug: true
+  secret-key: test-secret-key-for-compat-0123456789abcdef
+  password-hash-iterations: 1000
+  seed-defaults: false
+  jobs:
+    enabled: false
+  # Never reach a real mail server from tests, even when BE/.env (imported by
+  # application.yml) has SMTP settings: no host = emails are logged, not sent.
+  email:
+    host: ""
+    # Tests check notification emails whatever NOTIFICATION_EMAILS_ENABLED says in BE/.env.
+    notifications-enabled: true

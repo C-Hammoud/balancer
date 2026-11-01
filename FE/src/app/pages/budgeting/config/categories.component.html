@@ -1,0 +1,111 @@
+<section class="hero">
+  <div>
+    <h1>Categories &amp; subcategories</h1>
+    <p>
+      Parent categories group many subcategories. Budgets and expense-type maps target subcategories.
+      <a routerLink="/budgeting/config/type-maps">Manage type maps</a>
+    </p>
+  </div>
+</section>
+
+<div class="layout">
+  <section class="panel">
+    <h2>{{ editingGroupId() ? 'Edit category' : 'Add category' }}</h2>
+    <form class="form stack" [formGroup]="groupForm" (ngSubmit)="saveGroup()">
+      <label>
+        Category name
+        <input formControlName="name" placeholder="e.g. Food" />
+      </label>
+      <label>
+        Order
+        <input type="number" formControlName="order" />
+      </label>
+      <div class="row-actions">
+        <button type="submit" class="btn primary">
+          {{ editingGroupId() ? 'Update category' : 'Add category' }}
+        </button>
+        @if (editingGroupId()) {
+          <button type="button" class="btn ghost" (click)="cancelEditGroup()">Cancel</button>
+        }
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>{{ editingCatId() ? 'Edit subcategory' : 'Add subcategory' }}</h2>
+    <form class="form stack" [formGroup]="categoryForm" (ngSubmit)="saveCategory()">
+      <label>
+        Parent category
+        <select formControlName="group_id">
+          <option value="">Select…</option>
+          @for (g of data()?.groups || []; track g.id) {
+            <option [value]="g.id">{{ g.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Subcategory name
+        <input formControlName="name" placeholder="e.g. Groceries" />
+      </label>
+      <label class="check">
+        <input type="checkbox" formControlName="include_in_reports" />
+        Include in reports
+      </label>
+      <label>
+        Order
+        <input type="number" formControlName="order" />
+      </label>
+      <div class="row-actions">
+        <button type="submit" class="btn primary">
+          {{ editingCatId() ? 'Update subcategory' : 'Add subcategory' }}
+        </button>
+        @if (editingCatId()) {
+          <button type="button" class="btn ghost" (click)="cancelEditCategory()">Cancel</button>
+        }
+      </div>
+    </form>
+  </section>
+</div>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (data(); as d) {
+    <div class="grid">
+      @for (g of d.groups; track g.id) {
+        <section class="panel tree">
+          <header>
+            <div>
+              <h2>{{ g.name }}</h2>
+              <small class="muted">Category · order {{ g.order }}</small>
+            </div>
+            <div class="row-actions">
+              <button type="button" class="btn ghost" (click)="startEditGroup(g)">Edit</button>
+              <button type="button" class="btn ghost danger" (click)="removeGroup(g)">Delete</button>
+            </div>
+          </header>
+          <ul>
+            @for (c of catsForGroup(g.id); track c.id) {
+              <li>
+                <div>
+                  <strong>{{ c.name }}</strong>
+                  @if (!c.include_in_reports) {
+                    <span class="muted"> · hidden from reports</span>
+                  }
+                </div>
+                <div class="row-actions">
+                  <button type="button" class="btn ghost" (click)="startEditCategory(c)">Edit</button>
+                  <button type="button" class="btn ghost danger" (click)="removeCategory(c)">Delete</button>
+                </div>
+              </li>
+            } @empty {
+              <li class="muted empty">No subcategories yet — add some above.</li>
+            }
+          </ul>
+        </section>
+      } @empty {
+        <p class="muted">No categories yet. Add a parent category first.</p>
+      }
+    </div>
+  }
+}

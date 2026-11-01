@@ -1,0 +1,96 @@
+# Production stack for one server (see docs/deploy/oracle.md).
+#   cd /opt/balancer && docker compose -f deploy/docker-compose.yml up -d --build
+# Settings come from deploy/.env (copy deploy/.env.example). Only the web server is reachable from
+# outside (ports 80/443); the database and Redis are private to these containers.
+name: balancer
+
+x-api-env: &api-env
+  DATA_STORE: postgres
+  DATABASE_URL: postgres://${POSTGRES_USER:-balancer}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}@db:5432/${POSTGRES_DB:-balancer}
+  REDIS_URL: redis://redis:6379/0
+  STATIC_ROOT: /app/staticfiles
+  BACKUP_DIR: /backups
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-balancer}
+      POSTGRES_USER: ${POSTGRES_USER:-balancer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Cache only: nothing needs to survive a restart.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ../BE
+    restart: unless-stopped
+    env_file: .env
+    environment: *api-env
+    volumes:
+      - static:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  scheduler:
+    build: ../BE
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *api-env
+      RUN_MIGRATIONS: "0"
+    command: ["python", "manage.py", "run_scheduler"]
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build: ../FE
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv/static:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  static:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,374 @@
+<a class="back" routerLink="/budgeting/budgets">← Back to budgets</a>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (budget(); as b) {
+    <section class="hero">
+      <div>
+        <h1>{{ b.name }}</h1>
+        @if (b.description) {
+          <p>{{ b.description }}</p>
+        }
+        <p class="muted">{{ b.start_date }} – {{ b.end_date }} · {{ b.currency }}</p>
+        @if (b.access_role && b.access_role !== 'owner' && b.owner) {
+          <p class="muted">Shared with you · Owner: {{ b.owner.name }}</p>
+        }
+        @if (b.access_role && b.access_role !== 'owner') {
+          <span class="pill share-role">{{ roleLabel(b.access_role) }}</span>
+        }
+      </div>
+      <div class="hero-actions">
+        <span class="pill" [class]="b.status">{{ statusLabel(b.status) }}</span>
+        @if (b.in_plan) {
+          <a class="pill in-plan" routerLink="/budgeting/plan" title="Part of your monthly plan">In plan</a>
+        }
+        @if (canShare() && (b.status === 'active' || b.status === 'draft')) {
+          <button type="button" class="btn ghost" (click)="togglePlan()">
+            {{ b.in_plan ? 'Remove from plan' : 'Add to plan' }}
+          </button>
+        }
+        @if (canEdit()) {
+          <button type="button" class="btn ghost" (click)="showEdit.set(!showEdit())">Edit</button>
+        }
+        @if (canShare()) {
+          <button type="button" class="btn ghost" (click)="toggleShare()">Share</button>
+        }
+        @if (canShare()) {
+          <button type="button" class="btn ghost" (click)="showClone.set(!showClone())">Clone</button>
+        }
+        @if (canEdit() && b.status !== 'archived') {
+          <button type="button" class="btn ghost" (click)="archiveBudget()">Archive</button>
+        }
+      </div>
+    </section>
+
+    <div class="stats">
+      <article class="stat">
+        <span>Total budget</span>
+        <strong>{{ b.total_amount }} {{ b.currency }}</strong>
+      </article>
+      <article class="stat">
+        <span>Spent</span>
+        <strong>{{ b.spent }} {{ b.currency }}</strong>
+      </article>
+      <article class="stat">
+        <span>Remaining</span>
+        <strong [class.neg]="+b.remaining < 0">{{ b.remaining }} {{ b.currency }}</strong>
+      </article>
+      <article class="stat">
+        <span>Used</span>
+        <strong>{{ b.percent_used | number: '1.0-1' }}%</strong>
+        <div class="bar"><div class="fill" [style.width.%]="pctUsed()"></div></div>
+      </article>
+    </div>
+
+    @if (showShare() && canShare()) {
+      <form class="panel form" [formGroup]="shareForm" (ngSubmit)="submitShare()">
+        <h2>Share budget</h2>
+        <label>
+          Email
+          <input formControlName="email" type="email" (blur)="lookupEmail()" placeholder="user@example.com" />
+        </label>
+        @if (lookupResult(); as lookup) {
+          @if (lookup.found) {
+            <p class="hint ok">This email has an account.</p>
+            <p class="hint">They will receive in-app and email notifications.</p>
+          } @else if (!lookup.found) {
+            <p class="hint info">No account yet — we will send an invitation email to create an account and access this budget.</p>
+          }
+        }
+        <fieldset class="perm">
+          <legend>Permission</legend>
+          <label class="check">
+            <input type="radio" formControlName="role" value="viewer" />
+            Viewer — view only
+          </label>
+          <label class="check">
+            <input type="radio" formControlName="role" value="editor" />
+            Editor — can edit budget and transactions
+          </label>
+        </fieldset>
+        <div class="row">
+          <button type="button" class="btn ghost" (click)="toggleShare()">Cancel</button>
+          <button type="submit" class="btn primary" [disabled]="sharing()">
+            {{ sharing() ? 'Sending…' : (lookupResult()?.found ? 'Share' : 'Send invitation') }}
+          </button>
+        </div>
+      </form>
+    }
+
+    @if (canShare() && access(); as acc) {
+      <section class="panel">
+        <header class="sec-head">
+          <h2>Manage access</h2>
+          <button type="button" class="btn ghost" (click)="toggleShare()">+ Add person</button>
+        </header>
+        <div class="access-list">
+          <div class="access-row owner">
+            <div>
+              <strong>{{ acc.owner.name }}</strong>
+              <span class="muted">{{ acc.owner.email }}</span>
+            </div>
+            <span class="pill">Owner</span>
+          </div>
+          @for (m of acc.members; track m.id) {
+            <div class="access-row">
+              <div>
+                <strong>{{ m.name }}</strong>
+                <span class="muted">{{ m.email }}</span>
+              </div>
+              <div class="access-actions">
+                <select [value]="m.role" (change)="changeMemberRole(m.id, $any($event.target).value)">
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                </select>
+                <button type="button" class="btn ghost" (click)="removeMember(m.id)">Remove</button>
+              </div>
+            </div>
+          }
+          @for (inv of acc.pending_invites || []; track inv.id) {
+            <div class="access-row pending">
+              <div>
+                <strong>{{ inv.email }}</strong>
+                <span class="muted">Invitation sent — pending signup</span>
+              </div>
+              <div class="access-actions">
+                <span class="pill share-role">{{ roleLabel(inv.role) }}</span>
+                <button type="button" class="btn ghost" (click)="cancelInvite(inv.id)">Cancel</button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (showEdit() && canEdit()) {
+      <form class="panel form" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <h2>Edit budget</h2>
+        <label>Name <input formControlName="name" /></label>
+        <label>Description <textarea formControlName="description" rows="2"></textarea></label>
+        <label>
+          Currency
+          <select formControlName="currency">
+            @for (cur of currencyOptions(); track cur.code) {
+              <option [value]="cur.code">{{ cur.code }}</option>
+            }
+          </select>
+        </label>
+        <div class="row">
+          <label>Start <input type="date" formControlName="start_date" /></label>
+          <label>End <input type="date" formControlName="end_date" /></label>
+        </div>
+        <label>Amount <input type="number" step="0.01" formControlName="total_amount" /></label>
+        <label>
+          Status
+          <select formControlName="status">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
+        <label>Project / category <input formControlName="project_tag" /></label>
+        <label>Notes <textarea formControlName="notes" rows="2"></textarea></label>
+        <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+      </form>
+    }
+
+    @if (showClone() && canShare()) {
+      <form class="panel form" [formGroup]="cloneForm" (ngSubmit)="cloneBudget()">
+        <h2>Clone budget</h2>
+        <p class="hint">Creates a new budget with the same category structure. Transactions are not copied.</p>
+        <label>Name <input formControlName="name" /></label>
+        <div class="row">
+          <label>Start <input type="date" formControlName="start_date" /></label>
+          <label>End <input type="date" formControlName="end_date" /></label>
+        </div>
+        <label>
+          Status
+          <select formControlName="status">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+          </select>
+        </label>
+        <button type="submit" class="btn primary" [disabled]="cloning()">{{ cloning() ? 'Cloning…' : 'Create clone' }}</button>
+      </form>
+    }
+
+    <section class="panel add-category">
+      <header class="sec-head">
+        <div>
+          <h2>Budget categories</h2>
+          <p class="muted">Allocated: {{ b.categories_allocated_total || '0' }} {{ b.currency }}</p>
+        </div>
+        @if (canEdit()) {
+          <button type="button" class="btn ghost" (click)="showCategoryForm() ? cancelCategoryWizard() : openCategoryWizard()">
+            {{ showCategoryForm() ? 'Cancel' : 'Add category' }}
+          </button>
+        }
+      </header>
+
+      @if (showCategoryForm() && canEdit()) {
+        <div class="category-wizard">
+          <p class="hint">Step 1 — select a parent category and set its maximum utilization for this budget.</p>
+          <div class="wizard-row">
+            <select [(ngModel)]="newGroupId" (ngModelChange)="onNewGroupChange()">
+              <option value="">Select category</option>
+              @for (g of availableGroups(); track g.id) {
+                <option [value]="g.id">{{ g.name }}</option>
+              }
+            </select>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              [(ngModel)]="newGroupForecast"
+              placeholder="Max utilization"
+            />
+            <button type="button" class="btn primary" (click)="saveNewGroupBudget()" [disabled]="!newGroupId">
+              Continue
+            </button>
+          </div>
+          @if (!availableGroups().length && !newGroupId) {
+            <p class="hint muted">All categories are already on this budget, or none are configured yet.</p>
+          }
+
+          @if (showSubStep() && newGroupId) {
+            <div class="sub-step">
+              <h3>Step 2 — subcategories (optional)</h3>
+              <p class="hint">
+                Split utilization across subcategories for finer tracking. Leave blank to use only the category total.
+              </p>
+              @if (subDrafts().length) {
+                <ul class="sub-list">
+                  @for (s of subDrafts(); track s.category_id; let i = $index) {
+                    <li>
+                      <span>{{ s.category_name }}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        [ngModel]="s.allocated_amount"
+                        (ngModelChange)="updateSubDraft(i, $event)"
+                        placeholder="Amount"
+                      />
+                    </li>
+                  }
+                </ul>
+                <div class="wizard-row sub-actions">
+                  <button type="button" class="btn primary" [disabled]="savingSubs()" (click)="saveOptionalSubBudgets()">
+                    {{ savingSubs() ? 'Saving…' : 'Save category budgets' }}
+                  </button>
+                  <button type="button" class="btn ghost" [disabled]="savingSubs()" (click)="skipSubBudgets()">
+                    Skip — category total only
+                  </button>
+                </div>
+              } @else {
+                <p class="muted">This category has no subcategories yet.</p>
+                <button type="button" class="btn primary" [disabled]="savingSubs()" (click)="skipSubBudgets()">
+                  Save category
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <div class="table-wrap stack-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Allocated</th>
+              <th>Spent</th>
+              <th>Remaining</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cat of b.categories || []; track cat.id) {
+              <tr class="group-row" [class.is-collapsed]="hasSubs(cat) && !isExpanded(cat.id)">
+                <td data-label="Category">
+                  <div class="category-cell">
+                    @if (hasSubs(cat)) {
+                      <button
+                        type="button"
+                        class="expand-btn"
+                        (click)="toggleGroup(cat.id)"
+                        [attr.aria-expanded]="isExpanded(cat.id)"
+                      >
+                        <span class="chev" [class.open]="isExpanded(cat.id)">▸</span>
+                      </button>
+                    } @else {
+                      <span class="expand-spacer" aria-hidden="true"></span>
+                    }
+                    <strong>{{ cat.name }}</strong>
+                    @if (hasSubs(cat)) {
+                      <span class="sub-count">{{ cat.sub_categories!.length }} sub{{ cat.sub_categories!.length === 1 ? '' : 's' }}</span>
+                    }
+                  </div>
+                </td>
+                <td data-label="Allocated">{{ cat.allocated_amount }} {{ b.currency }}</td>
+                <td data-label="Spent">{{ cat.spent }} {{ b.currency }}</td>
+                <td data-label="Remaining" [class.neg]="+cat.remaining < 0">{{ cat.remaining }} {{ b.currency }}</td>
+                <td data-label="">
+                  @if (cat.id !== '_uncategorized_' && canEdit()) {
+                    <button type="button" class="btn ghost" (click)="deleteCategory(cat)">Remove</button>
+                  }
+                </td>
+              </tr>
+              @if (hasSubs(cat) && isExpanded(cat.id)) {
+                @for (sub of cat.sub_categories || []; track sub.id) {
+                  <tr class="sub-row">
+                    <td data-label="Category"><span class="sub-indent">{{ sub.name }}</span></td>
+                    <td data-label="Allocated">{{ sub.allocated_amount }} {{ b.currency }}</td>
+                    <td data-label="Spent">{{ sub.spent }} {{ b.currency }}</td>
+                    <td data-label="Remaining" [class.neg]="+sub.remaining < 0">{{ sub.remaining }} {{ b.currency }}</td>
+                    <td data-label=""></td>
+                  </tr>
+                }
+              }
+            } @empty {
+              <tr><td colspan="5" class="muted">No categories yet. Add a category above.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="sec-head">
+        <div>
+          <h2>Transactions</h2>
+          <p class="muted">Expenses linked to this budget are counted toward spending.</p>
+        </div>
+        <a class="btn ghost" routerLink="/budgeting/transactions">Manage transactions</a>
+      </header>
+      <div class="table-wrap stack-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of transactions(); track t.id) {
+              <tr>
+                <td data-label="Date">{{ t.date }}</td>
+                <td data-label="Description">{{ t.description || t.note || '—' }}</td>
+                <td data-label="Category">{{ categoryName(t.budget_category_id) }}</td>
+                <td data-label="Amount">{{ t.amount }} {{ t.currency }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="muted">No transactions linked to this budget yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

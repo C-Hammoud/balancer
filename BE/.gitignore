@@ -1,0 +1,33 @@
+# Python
+*.py[cod]
+__pycache__/
+env/
+venv/
+*.env
+
+# Django
+*.log
+*.pot
+*.pyc
+
+# VSCode or IDE
+.vscode/
+.idea/
+
+# Docker
+*.env
+
+# Database
+/resources/
+/resources/finance-tracker-firebase_key.json
+/resources/.env
+
+.cursor/
+# Secrets and local data: never commit
+.env
+finance-tracker-firebase_key.json
+*firebase*key*.json
+*service-account*.json
+db.sqlite3
+db.sqlite3-journal
+.pytest_cache/

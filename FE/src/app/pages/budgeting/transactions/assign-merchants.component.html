@@ -1,0 +1,104 @@
+<section class="hero">
+  <div>
+    <h1>Assign merchants</h1>
+    <p>
+      Pick a parent category and subcategory for each unassigned expense.
+      Choose <strong>Same as description</strong> when the merchant is not listed yet.
+      Account is optional here — set it later on the transaction if needed.
+    </p>
+  </div>
+  <div class="actions">
+    <label>
+      Month
+      <input type="month" [(ngModel)]="month" (ngModelChange)="onMonthChange()" />
+    </label>
+    <a class="btn ghost" routerLink="/budgeting/transactions" [queryParams]="{ month: month }">
+      Back to transactions
+    </a>
+    @if (assignmentReadyCount() > 0) {
+      <button
+        type="button"
+        class="btn primary"
+        (click)="saveAllAssignments()"
+        [disabled]="assigningAll()"
+      >
+        {{ assigningAll() ? 'Assigning…' : 'Assign all filled (' + assignmentReadyCount() + ')' }}
+      </button>
+    }
+  </div>
+</section>
+
+<p class="hint">
+  Need automatic matching on CSV import?
+  <a routerLink="/budgeting/config/merchant-links">Set up merchant links</a>
+  under Setup.
+</p>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else if (!unassignedTransactions().length) {
+  <div class="panel empty">
+    <p>No unassigned expenses for {{ month }}.</p>
+    <a class="btn primary" routerLink="/budgeting/transactions" [queryParams]="{ month: month }">
+      Return to transactions
+    </a>
+  </div>
+} @else {
+  <div class="assign-list">
+    @for (draft of assignmentDrafts(); track draft.txnId) {
+      @if (transactionById(draft.txnId); as t) {
+        <article class="assign-card panel">
+          <div class="assign-meta">
+            <strong>{{ t.description || '—' }}</strong>
+            <span class="pill">{{ t.date }}</span>
+            <span class="pill">{{ t.amount }} {{ t.currency || 'USD' }}</span>
+            @if (t.note) {
+              <span class="samples">{{ t.note }}</span>
+            }
+          </div>
+          <div class="assign-row">
+            <label>
+              Category
+              <select
+                [ngModel]="draft.group_id"
+                (ngModelChange)="updateAssignmentDraft(draft.txnId, { group_id: $event })"
+              >
+                <option value="">Select…</option>
+                @for (g of groups(); track g.id) {
+                  <option [value]="g.id">{{ g.name }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Subcategory (merchant)
+              <select
+                [ngModel]="draft.category_id"
+                (ngModelChange)="updateAssignmentDraft(draft.txnId, { category_id: $event })"
+                [disabled]="!draft.group_id"
+              >
+                <option value="">Select…</option>
+                @if (draft.group_id) {
+                  <option [value]="sameAsDescription">Same as description</option>
+                }
+                @for (s of subsForGroup(draft.group_id); track s.id) {
+                  <option [value]="s.id">{{ s.name }}</option>
+                }
+              </select>
+            </label>
+            <button
+              type="button"
+              class="btn primary"
+              (click)="saveAssignment(draft)"
+              [disabled]="!draft.group_id || !draft.category_id || draft.saving"
+            >
+              {{ draft.saving ? 'Saving…' : 'Assign' }}
+            </button>
+          </div>
+          @if (draft.category_id === sameAsDescription) {
+            <p class="samples">Creates a subcategory from the bank description under the selected category.</p>
+          }
+        </article>
+      }
+    }
+  </div>
+}

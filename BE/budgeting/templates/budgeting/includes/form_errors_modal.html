@@ -1,0 +1,24 @@
+{% comment %}Include when form.errors is set. Usage: {% include "budgeting/includes/form_errors_modal.html" with form=form %}{% endcomment %}
+<div class="modal fade" id="formErrorsModal" tabindex="-1" aria-labelledby="formErrorsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title text-danger" id="formErrorsModalLabel">
+          <i class="fas fa-exclamation-circle me-2"></i>Please correct the following
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <ul class="mb-0 list-unstyled">
+          {% for field in form %}
+            {% for error in field.errors %}<li class="text-danger mb-1"><i class="fas fa-angle-right me-1"></i>{{ error }}</li>{% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}<li class="text-danger mb-1"><i class="fas fa-angle-right me-1"></i>{{ error }}</li>{% endfor %}
+        </ul>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>

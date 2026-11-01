@@ -1,0 +1,18 @@
+# Build output
+target/
+*.class
+
+# Local H2 database created by the default configuration
+data/
+
+# Secrets and local configuration
+.env
+*.env
+*firebase*key*.json
+*service-account*.json
+
+# Logs / IDE
+*.log
+.idea/
+*.iml
+.vscode/

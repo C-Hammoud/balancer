@@ -1,0 +1,109 @@
+<header class="topbar">
+  <div class="topbar-main">
+    <a routerLink="/dashboard" class="brand">Finance Tracker</a>
+
+    <app-notification-bell class="mobile-bell" />
+
+    <button
+      type="button"
+      class="menu-toggle"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="menuOpen()"
+      aria-label="Toggle navigation"
+    >
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav desktop-nav" aria-label="Main">
+      @for (item of primary; track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: !!item.exact }"
+        >{{ item.label }}</a>
+      }
+
+      @for (group of navGroups(); track group.label) {
+        <div class="nav-group" [class.open]="openGroup() === group.label">
+          <button type="button" class="nav-group-btn" (click)="toggleGroup(group.label)">
+            {{ group.label }}
+            <span class="chev" aria-hidden="true">▾</span>
+          </button>
+          <div class="dropdown">
+            @for (item of group.items; track item.path) {
+              <a
+                [routerLink]="item.path"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+              >{{ item.label }}</a>
+            }
+          </div>
+        </div>
+      }
+
+      <a routerLink="/budgeting/alerts" routerLinkActive="active" class="alerts-link">
+        Alerts
+        @if (alertCount() > 0) {
+          <span class="badge">{{ alertCount() }}</span>
+        }
+      </a>
+    </nav>
+
+    <div class="user desktop-user">
+      <app-notification-bell />
+      <a routerLink="/support" class="help-link" title="Help & support">Help</a>
+      <a routerLink="/profile" class="username profile-link">{{ user()?.username || 'User' }}</a>
+      <button type="button" class="btn ghost" (click)="logout()">Logout</button>
+    </div>
+  </div>
+</header>
+
+@if (menuOpen()) {
+  <div class="drawer-backdrop" (click)="closeMenu()"></div>
+  <aside class="drawer" role="dialog" aria-label="Navigation menu">
+    <div class="drawer-head">
+      <a routerLink="/profile" class="drawer-profile" (click)="closeMenu()">
+        {{ user()?.username || 'User' }}
+      </a>
+      <button type="button" class="icon-close" (click)="closeMenu()" aria-label="Close">×</button>
+    </div>
+    <nav class="drawer-nav">
+      <p class="nav-section">Main</p>
+      <a routerLink="/profile" routerLinkActive="active" (click)="closeMenu()">Profile</a>
+      <a routerLink="/support" routerLinkActive="active" (click)="closeMenu()">Help &amp; support</a>
+      @for (item of primary; track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: !!item.exact }"
+          (click)="closeMenu()"
+        >{{ item.label }}</a>
+      }
+      <a routerLink="/budgeting/alerts" routerLinkActive="active" class="alerts-link" (click)="closeMenu()">
+        Alerts
+        @if (alertCount() > 0) {
+          <span class="badge">{{ alertCount() }}</span>
+        }
+      </a>
+
+      @for (group of navGroups(); track group.label) {
+        <p class="nav-section">{{ group.label }}</p>
+        @for (item of group.items; track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }"
+            (click)="closeMenu()"
+          >{{ item.label }}</a>
+        }
+      }
+    </nav>
+    <button type="button" class="btn primary drawer-logout" (click)="logout()">Logout</button>
+  </aside>
+}
+
+<main class="page">
+  <router-outlet />
+</main>
+
+<app-commitment-due-prompt />

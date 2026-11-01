@@ -1,0 +1,234 @@
+<section class="hero">
+  <div>
+    <h1>Dashboard</h1>
+  </div>
+  <div class="filters">
+    <p class="main-currency">
+      Main currency:
+      <strong>{{ reportCurrency }}</strong>
+      <a routerLink="/profile" class="change-link">Change in profile</a>
+    </p>
+    <label>
+      Year
+      <select [(ngModel)]="year" (ngModelChange)="onYearChange()">
+        @for (y of years; track y) {
+        <option [ngValue]="y">{{ y }}</option>
+        }
+      </select>
+    </label>
+  </div>
+</section>
+
+@if (showIncomePrompt()) {
+<div class="setup-banner">
+  <div>
+    <strong>Set up accounts?</strong>
+    <p>Add bank accounts, cards, or wallets so transactions can record which account they were done from.</p>
+  </div>
+  <div class="banner-actions">
+    <a class="btn primary" routerLink="/budgeting/config/accounts">Add accounts</a>
+    <button type="button" class="btn ghost" (click)="dismissIncomePrompt()">Not now</button>
+  </div>
+</div>
+}
+
+<app-risk-summary />
+
+<section class="panel year-panel">
+  <header>
+    <h2>{{ year }} overview</h2>
+    @if (yearly(); as y) {
+    <span class="muted">Net {{ fmt(y.net) }}</span>
+    }
+  </header>
+
+  @if (loadingYear()) {
+  <p class="muted">Loading year…</p>
+  } @else {
+  @if (yearly(); as y) {
+  <div class="stats year-stats">
+    <article class="stat">
+      <span>Year income</span>
+      <strong>{{ fmt(y.income_total) }}</strong>
+    </article>
+    <article class="stat">
+      <span>Year expense</span>
+      <strong>{{ fmt(y.expense_total) }}</strong>
+    </article>
+    <article class="stat">
+      <span>Year net</span>
+      <strong [class.neg]="+y.net < 0">{{ fmt(y.net) }}</strong>
+    </article>
+  </div>
+
+  <div class="month-chart" role="list">
+    @for (row of y.months; track row.month) {
+    <button type="button" class="month-col" role="listitem" [class.active]="month === row.month"
+      (click)="selectMonth(row.month)" [title]="row.month_name + ': expense ' + fmt(row.expense_total)">
+      <div class="bar-track">
+        <div class="bar" [style.height.%]="barHeight(row)"></div>
+      </div>
+      <span class="m-label">{{ row.month_short }}</span>
+      <span class="m-val">{{ fmt(row.expense_total) }}</span>
+    </button>
+    }
+  </div>
+  <p class="hint muted">Tap a month to see details below.</p>
+  } @else {
+  <p class="muted">Could not load yearly data.</p>
+  }
+  }
+</section>
+
+<section class="panel month-panel">
+  <header class="month-head">
+    <div>
+      <h2>Monthly statistics</h2>
+    </div>
+    <div>
+      <h2>{{ monthLabel() }} {{ year }}</h2>
+    </div>
+    <label class="month-pick">
+      Month
+      <select [(ngModel)]="month" (ngModelChange)="reloadMonth()">
+        @for (m of months; track m.v) {
+        <option [ngValue]="m.v">{{ m.n }}</option>
+        }
+      </select>
+    </label>
+  </header>
+
+  @if (loadingMonth()) {
+  <p class="muted">Loading month…</p>
+  } @else {
+  <div class="stats">
+    <article class="stat">
+      <span>Income</span>
+      <strong>{{ fmt(budget()?.income_total) }}</strong>
+    </article>
+    <article class="stat">
+      <span>Expense</span>
+      <strong>{{ fmt(budget()?.expense_total) }}</strong>
+    </article>
+    <article class="stat">
+      <span>Budget util</span>
+      <strong>
+        {{ budget()?.report?.overall_util ? (budget()?.report?.overall_util + '%') : '—' }}
+      </strong>
+    </article>
+    <article class="stat">
+      <span>Remaining</span>
+      <strong [class.neg]="+(budget()?.report?.remaining || 0) < 0">
+        {{ fmt(budget()?.report?.remaining) }}
+      </strong>
+    </article>
+  </div>
+
+  <div class="grid">
+    <section class="subpanel">
+      <header>
+        <h3>Spend by category</h3>
+        <a routerLink="/budgeting/transactions">Transactions</a>
+      </header>
+      @if (spendByCategory().length) {
+      <ul class="list">
+        @for (row of spendByCategory(); track row.category_id) {
+        <li>
+          <span>{{ row.category_name }}</span>
+          <span>{{ fmt(row.actual) }} ({{ spendPercent(row) }}%)</span>
+        </li>
+        }
+      </ul>
+      } @else {
+      <p class="muted">No expenses this month. <a routerLink="/budgeting/transactions">Add a transaction</a></p>
+      }
+    </section>
+
+    <section class="subpanel">
+      <header>
+        <h3>Alerts</h3>
+        <a routerLink="/budgeting/alerts">Manage</a>
+      </header>
+      @if (budget()?.open_alerts?.length) {
+      <ul class="list">
+        @for (a of budget()!.open_alerts; track a.id) {
+        <li>
+          <span>
+            <em [class]="a.severity === 'CRITICAL' ? 'pill danger' : 'pill warn'">{{ a.severity }}</em>
+            {{ a.title }}
+          </span>
+          @if (a.category_id === unmappedId) {
+          <a routerLink="/budgeting/config/merchant-links">Link merchants</a>
+          }
+        </li>
+        }
+      </ul>
+      } @else {
+      <p class="muted">No open alerts.</p>
+      }
+    </section>
+  </div>
+
+  <div class="table-wrap">
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Forecast</th>
+          <th>Actual</th>
+          <th>Util</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of categoryRows(); track r.category_id) {
+        <tr [class.unmapped-row]="r.category_id === unmappedId">
+          <td data-label="Category">
+            @if (r.category_id === unmappedId) {
+            <a routerLink="/budgeting/config/merchant-links">
+              {{ r.category_name }}
+            </a>
+            } @else {
+            {{ r.category_name }}
+            }
+          </td>
+          <td data-label="Forecast">{{ fmt(r.forecast) }}</td>
+          <td data-label="Actual">{{ fmt(r.actual) }}</td>
+          <td data-label="Util">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
+          <td data-label="Status"><span class="pill" [class]="r.status">{{ r.status }}</span></td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="5" class="muted">No budget rows. Set forecasts under Monthly forecasts.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+</section>
+
+<section class="panel report-panel no-print-hide">
+  <header>
+    <h2>Reports</h2>
+  </header>
+  <p class="muted report-intro">
+    Download a CSV summary or print this dashboard for {{ year }}
+    @if (reportScope === 'month') {
+    / {{ monthLabel() }}
+    }
+    (amounts in {{ reportCurrency }}).
+  </p>
+  <div class="report-actions">
+    <label class="scope">
+      Scope
+      <select [(ngModel)]="reportScope">
+        <option value="year">Full year</option>
+        <option value="month">Selected month</option>
+      </select>
+    </label>
+    <button type="button" class="btn primary" (click)="downloadReport()">Download CSV</button>
+    <button type="button" class="btn ghost" (click)="printReport()">Print</button>
+    <a class="btn ghost" routerLink="/budgeting/utilization">Open utilization</a>
+  </div>
+</section>

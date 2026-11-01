@@ -1,0 +1,44 @@
+# Each area has its own upstream URL; all default to BACKEND_URL (one backend today).
+# Point an area at Django or at a separated service by setting its variable.
+backend:
+  default: ${BACKEND_URL:http://localhost:8000}
+  access: ${ACCESS_URL:${backend.default}}
+  finance: ${FINANCE_URL:${backend.default}}
+  notifications: ${NOTIFICATIONS_URL:${backend.default}}
+
+server:
+  port: ${GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: finance-tracker-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 5000
+            response-timeout: 60s
+          routes:
+            - id: access
+              uri: ${backend.access}
+              predicates:
+                - Path=/api/v1/auth/**,/api/v1/meta/**
+            - id: notifications
+              uri: ${backend.notifications}
+              predicates:
+                - Path=/api/v1/notifications/**
+            - id: finance
+              uri: ${backend.finance}
+              predicates:
+                - Path=/api/v1/budgeting/**
+            - id: default
+              uri: ${backend.default}
+              predicates:
+                - Path=/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

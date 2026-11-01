@@ -1,0 +1,58 @@
+# Runs on every push / pull request once the repo is on GitHub.
+# Backend tests on SQLite (like local development) and on PostgreSQL 17 (like production),
+# plus a production build of the web app.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: balancer
+          POSTGRES_USER: balancer
+          POSTGRES_PASSWORD: balancer
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U balancer" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: BE
+    env:
+      DJANGO_DEBUG: "1"
+      DATA_STORE: sqlite
+      DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://balancer:balancer@localhost:5432/balancer' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: BE/requirements*.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python -m pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: FE/package-lock.json
+      - run: npm ci
+      - run: npx ng build --configuration production

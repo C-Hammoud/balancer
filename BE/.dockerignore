@@ -1,0 +1,17 @@
+# Never copy secrets, local data or environments into the image.
+.env
+*.env
+venv/
+.venv/
+env/
+db.sqlite3
+*.sqlite3
+*firebase_key*.json
+data.json
+staticfiles/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log
+tests/
+sample_data/

@@ -1,0 +1,148 @@
+<a class="back" routerLink="/budgeting/commitments">← Back to commitments</a>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (commitment(); as c) {
+  <section class="hero">
+    <div>
+      <h1>{{ c.name }}</h1>
+      <p>{{ c.frequency }} · {{ c.term_months }} months · started {{ c.start_date || '—' }}</p>
+    </div>
+    <div class="progress-block">
+      <div class="bar"><div class="fill" [style.width.%]="progressPct()"></div></div>
+      <span>{{ c.payments_completed || 0 }}/{{ c.payments_total || 0 }} payments completed</span>
+    </div>
+  </section>
+
+  <div class="stats">
+    <article class="stat">
+      <span>Principal</span>
+      <strong>{{ c.amount }} {{ c.currency || 'USD' }}</strong>
+    </article>
+    <article class="stat">
+      <span>Installment</span>
+      <strong>{{ c.payment_amount }} {{ c.currency || 'USD' }}</strong>
+    </article>
+    <article class="stat">
+      <span>Remaining</span>
+      <strong>{{ c.remaining_principal }} {{ c.currency || 'USD' }}</strong>
+    </article>
+    <article class="stat">
+      <span>Next due</span>
+      <strong>{{ c.next_due_date || '—' }}</strong>
+      @if (c.next_due_amount) {
+        <small>{{ c.next_due_amount }} {{ c.currency || 'USD' }}</small>
+      }
+    </article>
+  </div>
+
+  <form class="panel reminder" [formGroup]="reminderForm" (ngSubmit)="saveReminders()">
+    <label class="check">
+      <input type="checkbox" formControlName="reminder_enabled" />
+      Email reminder before due date
+    </label>
+    <label>
+      Days before due
+      <input type="number" formControlName="reminder_days_before" min="0" max="90" />
+    </label>
+    <button type="submit" class="btn primary">Save reminders</button>
+    <button type="button" class="btn ghost" (click)="regenerate()">Regenerate schedule</button>
+  </form>
+
+  <section class="panel">
+    <header class="sec-head">
+      <div>
+        <h2>Payment schedule</h2>
+        <p class="muted">Each installment has a due date and a payment date (when you mark it paid).</p>
+      </div>
+      <div class="tabs">
+        <button type="button" class="btn" [class.primary]="filter === 'upcoming'" (click)="filter = 'upcoming'">Outstanding</button>
+        <button type="button" class="btn" [class.primary]="filter === 'paid'" (click)="filter = 'paid'">Paid</button>
+        <button type="button" class="btn" [class.primary]="filter === 'all'" (click)="filter = 'all'">All</button>
+      </div>
+    </header>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Due date</th>
+            <th>Payment date</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of filteredSchedule(); track line.id) {
+            <tr [class.overdue]="line.is_overdue" [class.paid]="line.status === 'paid'">
+              <td>{{ line.sequence }}</td>
+              <td>
+                <input
+                  type="date"
+                  class="date-input"
+                  [value]="line.due_date || ''"
+                  (change)="onDueDateChange(line, $event)"
+                />
+                @if (line.status === 'outstanding' && line.days_until_due !== null) {
+                  <small>
+                    @if (line.is_overdue) {
+                      {{ -line.days_until_due! }} day(s) overdue
+                    } @else if (line.days_until_due === 0) {
+                      due today
+                    } @else {
+                      in {{ line.days_until_due }} day(s)
+                    }
+                  </small>
+                }
+              </td>
+              <td>
+                @if (line.status === 'paid') {
+                  <input
+                    type="date"
+                    class="date-input"
+                    [value]="paymentDate(line) || ''"
+                    (change)="onPaymentDateChange(line, $event)"
+                  />
+                } @else if (payingId() === line.id) {
+                  <form class="inline-pay" [formGroup]="payForm" (ngSubmit)="confirmPay(line)">
+                    <input type="date" formControlName="payment_date" />
+                    <button type="submit" class="btn primary">Save</button>
+                    <button type="button" class="btn ghost" (click)="cancelPay()">Cancel</button>
+                  </form>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td>{{ line.amount }}</td>
+              <td>
+                <span
+                  class="pill"
+                  [class.ok]="line.status === 'paid'"
+                  [class.danger]="line.is_overdue"
+                  [class.warn]="line.status === 'outstanding' && !line.is_overdue"
+                >
+                  {{ line.is_overdue ? 'overdue' : line.status }}
+                </span>
+              </td>
+              <td class="actions">
+                @if (line.status === 'outstanding') {
+                  @if (payingId() !== line.id) {
+                    <button type="button" class="btn primary" (click)="startPay(line)">Mark paid</button>
+                  }
+                } @else {
+                  <button type="button" class="btn ghost" (click)="undoPaid(line)">Undo</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="muted">No payments in this filter.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  }
+}

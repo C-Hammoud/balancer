@@ -1,0 +1,159 @@
+<section class="hero">
+  <div>
+    <h1>Categories</h1>
+    <p>Organize budget categories and their subcategories (merchants).</p>
+  </div>
+  <button type="button" class="btn primary" (click)="openAdd()">Add category</button>
+</section>
+
+@if (fromUnmapped()) {
+  <div class="banner warn">
+    You have unmapped transactions.
+    <a routerLink="/budgeting/config/merchant-links">Add merchant links</a>
+    or assign merchants when editing transactions.
+  </div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="cards">
+    @for (g of groups(); track g.id) {
+      <article class="card">
+        <header>
+          <div>
+            <h2>
+              {{ g.name }}
+              @if (g.is_shared) {
+                <span class="shared-pill" title="Shared default category">Shared</span>
+              }
+            </h2>
+            <small class="muted">{{ catsForGroup(g.id).length }} subcategories</small>
+          </div>
+          <button type="button" class="btn ghost" (click)="openEdit(g)">
+            {{ g.can_edit === false ? 'Manage' : 'Edit' }}
+          </button>
+        </header>
+        <ul class="subs">
+          @for (c of previewSubs(g.id); track c.id) {
+            <li>
+              <span>{{ c.name }}</span>
+            </li>
+          } @empty {
+            <li class="muted">No subcategories yet</li>
+          }
+        </ul>
+        @if (extraSubCount(g.id); as extra) {
+          @if (extra > 0) {
+            <button type="button" class="more" (click)="openEdit(g)">+{{ extra }} more — manage</button>
+          }
+        }
+      </article>
+    } @empty {
+      <div class="empty panel">
+        <p>No categories yet.</p>
+        <button type="button" class="btn primary" (click)="openAdd()">Add your first category</button>
+      </div>
+    }
+  </div>
+}
+
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()"></div>
+  <div class="modal" role="dialog" aria-modal="true" [attr.aria-label]="modalMode() === 'add' ? 'Add category' : 'Edit category'">
+    <header class="modal-head">
+      <h2>{{ modalMode() === 'add' ? 'Add category' : 'Edit category' }}</h2>
+      <button type="button" class="icon-close" (click)="closeModal()" aria-label="Close">×</button>
+    </header>
+
+    <div class="modal-body">
+      @if (editingGroup()?.can_edit === false) {
+        <div class="block shared-note">
+          <h3>{{ editingGroup()?.name }} <span class="shared-pill">Shared</span></h3>
+          <p class="muted">
+            This is a shared default category, so its name cannot be changed here.
+            You can add your own subcategories to it below.
+          </p>
+        </div>
+      } @else {
+      <form class="block" [formGroup]="groupForm" (ngSubmit)="saveCategory()">
+        <h3>Category</h3>
+        <div class="row">
+          <label>
+            Name
+            <input formControlName="name" placeholder="e.g. Food" />
+          </label>
+          <label class="order">
+            Order
+            <input type="number" formControlName="order" />
+          </label>
+        </div>
+        <div class="row-actions">
+          <button type="submit" class="btn primary">
+            {{ modalMode() === 'add' ? 'Create category' : 'Save category' }}
+          </button>
+          @if (modalMode() === 'edit') {
+            <button type="button" class="btn ghost danger" (click)="deleteCategory()">Delete category</button>
+          }
+        </div>
+      </form>
+      }
+
+      @if (editingGroup(); as g) {
+        <section class="block">
+          <h3>Subcategories</h3>
+          <ul class="sub-list">
+            @for (c of editingSubs(); track c.id) {
+              <li>
+                <div>
+                  <strong>{{ c.name }}</strong>
+                  @if (!c.include_in_reports) {
+                    <span class="muted"> · hidden</span>
+                  }
+                </div>
+                <div class="row-actions">
+                  @if (c.can_edit === false) {
+                    <span class="shared-pill" title="Shared default subcategory">Shared</span>
+                  } @else {
+                    <button type="button" class="btn ghost" (click)="startEditSub(c)">Edit</button>
+                    <button type="button" class="btn ghost danger" (click)="removeSub(c)">Delete</button>
+                  }
+                </div>
+              </li>
+            } @empty {
+              <li class="muted">No subcategories yet.</li>
+            }
+          </ul>
+
+          <form class="sub-form" [formGroup]="subForm" (ngSubmit)="saveSub()">
+            <h4>{{ editingSubId() ? 'Edit subcategory' : 'Add subcategory' }}</h4>
+            <div class="row">
+              <label>
+                Name
+                <input formControlName="name" placeholder="e.g. Groceries" />
+              </label>
+              <label class="order">
+                Order
+                <input type="number" formControlName="order" />
+              </label>
+            </div>
+            <label class="check">
+              <input type="checkbox" formControlName="include_in_reports" />
+              Include in reports
+            </label>
+            <div class="row-actions">
+              <button type="submit" class="btn primary">
+                {{ editingSubId() ? 'Update subcategory' : 'Add subcategory' }}
+              </button>
+              @if (editingSubId()) {
+                <button type="button" class="btn ghost" (click)="cancelEditSub()">Cancel</button>
+              }
+            </div>
+          </form>
+        </section>
+      } @else {
+        <p class="muted tip">Create the category first, then add its subcategories here.</p>
+      }
+    </div>
+  </div>
+}

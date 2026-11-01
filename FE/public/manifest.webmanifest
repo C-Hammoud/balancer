@@ -1,0 +1,17 @@
+{
+  "name": "Finance Tracker",
+  "short_name": "Finance",
+  "description": "Personal finance and budget tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6f4",
+  "theme_color": "#0f3d3e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

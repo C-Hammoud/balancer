@@ -1,0 +1,103 @@
+<section class="hero">
+  <div>
+    <h1>Planned items</h1>
+    <p>
+      Money you expect to come in or go out — rent, subscriptions, a one-off bill. The risk check uses them
+      to project this month's cash flow.
+    </p>
+  </div>
+</section>
+
+<form class="panel planned-form" [formGroup]="form" (ngSubmit)="submit()">
+  <label>Name <input formControlName="name" placeholder="e.g. Rent" /></label>
+  <label>
+    Type
+    <select formControlName="kind">
+      <option value="expense">Money out</option>
+      <option value="income">Money in</option>
+    </select>
+  </label>
+  <label>Amount <input type="number" step="any" min="0" formControlName="amount" /></label>
+  <label>
+    Currency
+    <select formControlName="currency">
+      <option value="USD">USD</option>
+      <option value="LBP">LBP</option>
+      <option value="SAR">SAR</option>
+    </select>
+  </label>
+  <label>
+    How often
+    <select formControlName="frequency">
+      @for (f of frequencies; track f.value) {
+        <option [value]="f.value">{{ f.label }}</option>
+      }
+    </select>
+  </label>
+  <label>First date <input type="date" formControlName="start_date" /></label>
+  <label>Until (optional) <input type="date" formControlName="end_date" /></label>
+  <label>
+    Account
+    <select formControlName="account_id">
+      <option value="">—</option>
+      @for (a of accounts(); track a.id) {
+        <option [value]="a.id">{{ a.name }}</option>
+      }
+    </select>
+  </label>
+  <label class="check"><input type="checkbox" formControlName="is_essential" /> Essential</label>
+  <label class="check"><input type="checkbox" formControlName="is_active" /> Active</label>
+  <div class="form-actions">
+    <button type="submit" class="btn primary">{{ editingId() ? 'Save changes' : 'Add planned item' }}</button>
+    @if (editingId()) {
+      <button type="button" class="btn ghost" (click)="cancelEdit()">Cancel</button>
+    }
+  </div>
+</form>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <p class="muted totals">
+    Recurring per month: <strong>{{ +totals().income | number: '1.2-2' }}</strong> in ·
+    <strong>{{ +totals().expense | number: '1.2-2' }}</strong> out ({{ totals().currency }})
+  </p>
+  <div class="panel table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>How often</th>
+          <th>Dates</th>
+          <th>Account</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (i of items(); track i.id) {
+          <tr [class.inactive]="!i.is_active">
+            <td>
+              {{ i.name }}
+              @if (i.is_essential) { <span class="pill">essential</span> }
+              @if (!i.is_active) { <span class="pill warn">paused</span> }
+            </td>
+            <td>{{ i.kind === 'income' ? 'In' : 'Out' }}</td>
+            <td>{{ +i.amount | number: '1.2-2' }} {{ i.currency }}</td>
+            <td>{{ frequencyLabel(i.frequency) }}</td>
+            <td>{{ i.start_date }}{{ i.end_date ? ' → ' + i.end_date : '' }}</td>
+            <td>{{ accountName(i.account_id) || '—' }}</td>
+            <td class="row-actions">
+              <button type="button" class="btn ghost" (click)="edit(i)">Edit</button>
+              <button type="button" class="btn ghost" (click)="toggleActive(i)">{{ i.is_active ? 'Pause' : 'Resume' }}</button>
+              <button type="button" class="btn ghost danger" (click)="remove(i)">Delete</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="7" class="muted">No planned items yet. Add your rent or a regular bill above.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

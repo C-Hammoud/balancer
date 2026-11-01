@@ -1,0 +1,106 @@
+<section class="hero">
+  <div>
+    <h1>Budget overview</h1>
+    <p>Forecast vs actual, open alerts, and quick links to utilization management.</p>
+  </div>
+  <div class="actions">
+    <select [(ngModel)]="year" (ngModelChange)="reload()">
+      @for (y of years; track y) {
+        <option [ngValue]="y">{{ y }}</option>
+      }
+    </select>
+    <select [(ngModel)]="month" (ngModelChange)="reload()">
+      @for (m of months; track m.v) {
+        <option [ngValue]="m.v">{{ m.n }}</option>
+      }
+    </select>
+  </div>
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (dash(); as d) {
+    <div class="stats">
+      <article class="stat">
+        <span>Forecast</span>
+        <strong>{{ d.report.total_forecast }}</strong>
+      </article>
+      <article class="stat">
+        <span>Actual</span>
+        <strong>{{ d.report.total_actual }}</strong>
+      </article>
+      <article class="stat">
+        <span>Remaining</span>
+        <strong [class.neg]="+(d.report.remaining || 0) < 0">{{ d.report.remaining }}</strong>
+      </article>
+      <article class="stat">
+        <span>Utilization</span>
+        <strong>{{ d.report.overall_util ? d.report.overall_util + '%' : '—' }}</strong>
+        @if (d.report.overall_util) {
+          <div class="bar">
+            <div class="fill" [class]="d.report.overall_status" [style.width.%]="utilWidth(d.report.overall_util)"></div>
+          </div>
+        }
+      </article>
+    </div>
+
+    <div class="quick">
+      <a class="btn primary" routerLink="/budgeting/utilization">Manage utilization</a>
+      <a class="btn ghost" routerLink="/budgeting/budgets">My budgets</a>
+      <a class="btn ghost" routerLink="/budgeting/monthly-forecasts">Monthly forecasts</a>
+      <a class="btn ghost" routerLink="/budgeting/config/thresholds">Thresholds</a>
+      <a class="btn ghost" routerLink="/budgeting/alerts">Alerts ({{ d.open_alerts.length }})</a>
+    </div>
+
+    <section class="panel">
+      <header>
+        <h2>Top categories</h2>
+        <span class="muted">Income {{ d.income_total }} · Expense {{ d.expense_total }}</span>
+      </header>
+      <div class="table-wrap">
+        <table class="stack-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Forecast</th>
+              <th>Actual</th>
+              <th>Util</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of d.report.rows; track r.category_id) {
+              <tr [class.unmapped-row]="r.category_id === unmappedId">
+                <td data-label="Category">
+                  @if (r.category_id === unmappedId) {
+                    <a routerLink="/budgeting/config/merchant-links">
+                      {{ r.category_name }}
+                    </a>
+                    <small>{{ r.group_name }} · link merchants or assign on transactions</small>
+                  } @else {
+                    {{ r.category_name }} <small>{{ r.group_name }}</small>
+                  }
+                </td>
+                <td data-label="Forecast">{{ r.forecast }}</td>
+                <td data-label="Actual">{{ r.actual }}</td>
+                <td data-label="Util">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
+                <td data-label="Status">
+                  @if (r.category_id === unmappedId) {
+                    <a class="btn ghost" routerLink="/budgeting/config/merchant-links">
+                      Merchant links
+                    </a>
+                  } @else {
+                    <span class="pill" [class]="r.status">{{ r.status }}</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="muted">No budget rows yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

@@ -1,0 +1,79 @@
+{% extends 'expenses/base.html' %}
+{% block title %}Utilization thresholds{% endblock %}
+{% block content %}
+<div class="container mt-4 animate__animated animate__fadeIn">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div>
+      <h3 class="page-title mb-1">Utilization thresholds</h3>
+      <div class="page-subtitle">Warn and critical % levels trigger in-app alerts and optional email. Leave category blank for a global default.</div>
+    </div>
+  </div>
+
+  <div class="glass-card p-4 mb-4">
+    <h5 class="mb-3">Add / update threshold</h5>
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <label class="form-label">Category</label>
+        {{ form.category_id }}
+        <div class="form-text">{{ form.category_id.help_text }}</div>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Warn %</label>
+        {{ form.warn_pct }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Critical %</label>
+        {{ form.critical_pct }}
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check mb-2">
+          {{ form.email_enabled }}
+          <label class="form-check-label" for="{{ form.email_enabled.id_for_label }}">Email</label>
+        </div>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Save</button>
+      </div>
+      {% if form.errors %}
+      <div class="col-12 text-danger small">{{ form.errors }}</div>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="glass-card p-3">
+    <div class="table-responsive">
+      <table class="table expense-table mb-0">
+        <thead>
+          <tr>
+            <th>Scope</th>
+            <th>Warn %</th>
+            <th>Critical %</th>
+            <th>Email</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in thresholds %}
+          <tr>
+            <td>{{ t.category_name }}</td>
+            <td>{{ t.warn_pct }}</td>
+            <td>{{ t.critical_pct }}</td>
+            <td>{% if t.email_enabled %}Yes{% else %}No{% endif %}</td>
+            <td class="text-end">
+              <form method="post" action="{% url 'budgeting:config_thresholds_delete' t.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-muted text-center py-4">No custom thresholds. Defaults are 80% warn / 100% critical with email on.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="mt-3"><a href="{% url 'budgeting:dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to dashboard</a></p>
+</div>
+{% endblock %}

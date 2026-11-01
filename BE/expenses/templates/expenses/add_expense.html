@@ -1,0 +1,271 @@
+{% extends 'expenses/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container my-5" style="max-width: 700px;">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div>
+      <h2 class="page-title mb-1">Add New Expense</h2>
+      <div class="page-subtitle">Record one or more expenses in a single entry</div>
+    </div>
+  </div>
+  <div class="card shadow-sm animate__animated animate__fadeInUp">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="id_date" class="form-label">Date</label>
+          {{ date_form.date|add_class:"form-control" }}
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-12">
+            <label for="id_country" class="form-label">Country</label>
+            <select id="id_country" name="country" class="form-select">
+              {% for code, name in country_choices %}
+                <option value="{{ code }}" {% if code == default_country %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {{ items.management_form }}
+        <div id="items-container">
+          {% for item_form in items %}
+          <div class="card mb-3 expense-row">
+            <div class="card-header bg-light expense-header d-flex justify-content-between align-items-center">
+              <span class="expense-header-text">Type: -</span>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" aria-label="Remove">
+                <i class="fa fa-xmark"></i>
+              </button>
+            </div>
+            <div class="card-body expense-body">
+              <div class="mb-3">
+                <label class="form-label">Amount & Currency</label>
+                <div class="input-group">
+                  {{ item_form.amount|add_class:"form-control" }}
+                  {{ item_form.currency|add_class:"form-select" }}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Type</label>
+                {{ item_form.consumption_type|add_class:"form-select type-select" }}
+              </div>
+
+              <div class="mb-3 note-wrapper">
+                <label class="form-label">Note</label>
+                {{ item_form.note|add_class:"form-control note-field"|attr:"rows:2" }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div id="empty-form" class="d-none">
+          <div class="card mb-3 expense-row">
+            <div class="card-header bg-light expense-header d-flex justify-content-between align-items-center">
+              <span class="expense-header-text">Type: -</span>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" aria-label="Remove">
+                <i class="fa fa-xmark"></i>
+              </button>
+            </div>
+            <div class="card-body expense-body">
+              <div class="mb-3">
+                <label class="form-label">Amount & Currency</label>
+                <div class="input-group">
+                  {{ items.empty_form.amount|add_class:"form-control" }}
+                  {{ items.empty_form.currency|add_class:"form-select" }}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Type</label>
+                {{ items.empty_form.consumption_type|add_class:"form-select type-select" }}
+              </div>
+
+              <div class="mb-3 note-wrapper">
+                <label class="form-label">Note</label>
+                {{ items.empty_form.note|add_class:"form-control note-field"|attr:"rows:2" }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary w-50" id="add-row-btn">Add another</button>
+          <button type="submit" class="btn btn-primary w-50">Add Expenses</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  let lastExpandedRow = null;
+
+  function setRowExpanded(row) {
+    if (lastExpandedRow && lastExpandedRow !== row) {
+      const prevBody = lastExpandedRow.querySelector('.expense-body');
+      if (prevBody) {
+        prevBody.style.display = 'none';
+      }
+      const prevHeaderText = lastExpandedRow.querySelector('.expense-header-text');
+      if (prevHeaderText) {
+        prevHeaderText.style.visibility = 'visible';
+      }
+    }
+    const body = row.querySelector('.expense-body');
+    if (body) {
+      body.style.display = 'block';
+    }
+    const headerText = row.querySelector('.expense-header-text');
+    if (headerText) {
+      headerText.style.visibility = 'hidden';
+    }
+    lastExpandedRow = row;
+  }
+
+  function updateTotalForms(delta) {
+    const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+    if (!totalFormsInput) return;
+    const current = parseInt(totalFormsInput.value, 10);
+    if (Number.isNaN(current)) return;
+    totalFormsInput.value = Math.max(0, current + delta);
+  }
+
+  function initRow(row) {
+    const typeSelect = row.querySelector('.type-select');
+    const noteWrapper = row.querySelector('.note-wrapper');
+    const noteField = row.querySelector('.note-field');
+    if (!typeSelect || !noteWrapper || !noteField) return;
+
+    const headerText = row.querySelector('.expense-header-text');
+    const amountInput = row.querySelector('input[name$="-amount"]');
+    const currencySelect = row.querySelector('select[name$="-currency"]');
+    function updateHeader() {
+      if (!headerText) return;
+      const typeValue = typeSelect.value || '-';
+      const amountValue = amountInput && amountInput.value ? amountInput.value : '-';
+      const currencyValue = currencySelect && currencySelect.value ? currencySelect.value : '-';
+      headerText.textContent = `${typeValue}: ${amountValue} ${currencyValue}`.trim();
+    }
+
+    noteWrapper.style.display = 'block';
+    noteField.disabled = false;
+    updateHeader();
+    typeSelect.addEventListener('change', updateHeader);
+    if (amountInput) amountInput.addEventListener('input', updateHeader);
+    if (currencySelect) currencySelect.addEventListener('change', updateHeader);
+
+    const inputs = row.querySelectorAll('input, select, textarea');
+    inputs.forEach((input) => {
+      input.addEventListener('focus', () => setRowExpanded(row));
+    });
+
+    const header = row.querySelector('.expense-header');
+    if (header) {
+      header.style.cursor = 'pointer';
+      header.addEventListener('click', () => setRowExpanded(row));
+    }
+
+    const removeBtn = row.querySelector('.remove-row-btn');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const rows = document.querySelectorAll('.expense-row');
+        if (rows.length <= 1) return;
+        if (lastExpandedRow === row) {
+          lastExpandedRow = null;
+        }
+        row.remove();
+        updateTotalForms(-1);
+        const remainingRows = document.querySelectorAll('.expense-row');
+        if (remainingRows.length > 0) {
+          setRowExpanded(remainingRows[0]);
+        }
+      });
+    }
+  }
+
+  // document.addEventListener('DOMContentLoaded', () => {
+  //   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  //   const curSelect = document.getElementById('id_currency');
+  //   const zoneMap = {
+  //     'Asia/Beirut': 'LBP',
+  //     'Asia/Riyadh': 'SAR',
+  //   };
+  //   if (curSelect) {
+  //     curSelect.value = zoneMap[tz] || 'USD';
+  //   }
+  // });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const rows = document.querySelectorAll('.expense-row');
+    rows.forEach(initRow);
+    const firstRow = document.querySelector('.expense-row');
+    if (firstRow) {
+      document.querySelectorAll('.expense-body').forEach((body) => {
+        body.style.display = 'none';
+      });
+      setRowExpanded(firstRow);
+    }
+
+    // Currency auto select
+    const curSelects = document.querySelectorAll('select[name$="-currency"]');
+    const zoneToCurrency = {
+      'Asia/Beirut': 'LBP',
+      'Asia/Riyadh': 'SAR',
+    };
+    const currencyValue = zoneToCurrency[tz] || 'USD';
+    curSelects.forEach((select) => {
+      if (select) {
+        select.value = currencyValue;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    // Country auto select
+    const countrySelect = document.getElementById('id_country');
+    const zoneToCountry = {
+      'Asia/Beirut': 'LB',   // Lebanon
+      'Asia/Riyadh': 'SA',   // Saudi Arabia
+    };
+    if (countrySelect) {
+      const countryCode = zoneToCountry[tz];
+      if (countryCode) {
+        countrySelect.value = countryCode;
+      }
+    }
+    const addRowBtn = document.getElementById('add-row-btn');
+    const itemsContainer = document.getElementById('items-container');
+    const emptyForm = document.getElementById('empty-form');
+    const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+
+    if (addRowBtn && itemsContainer && emptyForm && totalFormsInput) {
+      addRowBtn.addEventListener('click', () => {
+        const formIndex = parseInt(totalFormsInput.value, 10);
+        const html = emptyForm.innerHTML.replaceAll('__prefix__', formIndex);
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        const row = temp.firstElementChild;
+        if (row) {
+          itemsContainer.appendChild(row);
+          totalFormsInput.value = formIndex + 1;
+          initRow(row);
+          const currencySelect = row.querySelector('select[name$="-currency"]');
+          if (currencySelect) {
+            currencySelect.value = currencyValue;
+            currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          setRowExpanded(row);
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

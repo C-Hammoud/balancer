@@ -1,0 +1,105 @@
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  color: #0f3d3e;
+}
+
+.hero p { margin: 0.25rem 0 0; color: #5b6b6b; }
+
+.actions, .filters {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.filters { margin-bottom: 0.85rem; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.stat {
+  background: #fff;
+  border: 1px solid rgba(15, 61, 62, 0.08);
+  border-radius: 0.85rem;
+  padding: 1rem;
+}
+
+.stat span { display: block; color: #6a7a7a; font-size: 0.85rem; margin-bottom: 0.35rem; }
+.stat strong { font-size: 1.25rem; color: #0f3d3e; }
+.neg { color: #b33a1a !important; }
+
+.panel {
+  background: #fff;
+  border: 1px solid rgba(15, 61, 62, 0.08);
+  border-radius: 0.85rem;
+  padding: 0.5rem 1rem;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 0.65rem 0.35rem;
+  border-bottom: 1px solid #eef2f1;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+td small { display: block; color: #7a8a8a; }
+
+.util { display: flex; align-items: center; gap: 0.45rem; min-width: 130px; }
+.bar { flex: 1; height: 8px; background: #eef2f1; border-radius: 999px; overflow: hidden; }
+.fill { height: 100%; background: #1a5c5e; }
+.fill.ok { background: #2f8f5b; }
+.fill.warn { background: #d4a017; }
+.fill.critical, .fill.over { background: #c45c26; }
+
+.pill {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  background: #e8f1f0;
+  color: #1a5c5e;
+}
+.pill.warn { background: #fff1db; color: #9a5b00; }
+.pill.critical, .pill.over { background: #fde8e4; color: #8a2f1d; }
+.pill.ok { background: #e4f5ea; color: #1d6b3a; }
+
+.unmapped-row td {
+  background: rgba(255, 241, 219, 0.35);
+}
+
+.unmapped-row a {
+  color: #9a5b00;
+  font-weight: 600;
+}
+
+.notice {
+  background: #e8f1f0;
+  color: #0f3d3e;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .stats { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .stats { grid-template-columns: 1fr; }
+}

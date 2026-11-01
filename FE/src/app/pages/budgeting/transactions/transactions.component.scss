@@ -1,0 +1,244 @@
+.form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+.add-form {
+  padding: 1.1rem;
+}
+.add-form .top-fields {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.add-form .category-first select {
+  font-weight: 600;
+}
+.add-form .item {
+  display: grid;
+  grid-template-columns: 1.2fr 0.85fr 1fr 0.75fr 1.2fr;
+  gap: 0.75rem;
+  align-items: end;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #eef2f1;
+  margin-bottom: 0.85rem;
+}
+.add-form .item .span-commitment {
+  grid-column: 1 / -1;
+}
+.add-form .footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.add-form .hint {
+  margin-bottom: 0.75rem;
+}
+.form .span-2 { grid-column: span 2; }
+label { display: grid; gap: 0.3rem; font-size: 0.88rem; }
+.row-actions {
+  display: flex;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.edit-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.5rem 0 0;
+}
+.edit-form .span-2 { grid-column: 1 / -1; }
+.edit-form .modal-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding: 0;
+  border: none;
+}
+.table-wrap { padding: 0.4rem 1rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 0.7rem 0.35rem;
+  border-bottom: 1px solid #eef2f1;
+  font-size: 0.9rem;
+}
+.notice {
+  background: #e8f1f0;
+  color: #0f3d3e;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.hint {
+  grid-column: 1 / -1;
+  font-size: 0.88rem;
+  color: #9a5b00;
+  background: #fff1db;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+}
+.hint a { color: #1a5c5e; }
+.hint.warn { border: 1px solid rgba(154, 91, 0, 0.25); }
+.hint.span-2,
+.form .span-2 { grid-column: span 2; }
+.edit-form .span-2 { grid-column: 1 / -1; }
+
+.alert-banner a { color: #1a5c5e; font-weight: 600; }
+
+.assign-modal {
+  width: min(820px, calc(100vw - 1.5rem));
+}
+
+.assign-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.assign-card {
+  border: 1px solid #eef2f1;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  background: #fafcfb;
+}
+
+.assign-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.assign-meta strong {
+  color: #0f3d3e;
+  flex: 1 1 100%;
+}
+
+.assign-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr auto;
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.assign-card .samples,
+.assign-row + .samples,
+.modal-body .samples.span-row {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #5b6b6b;
+  grid-column: 1 / -1;
+}
+
+.unassigned-row td { background: rgba(255, 241, 219, 0.4); }
+.unassigned-row .pill.warn {
+  margin-left: 0.35rem;
+  background: #fff1db;
+  color: #9a5b00;
+}
+
+.upload.disabled { opacity: 0.6; pointer-events: none; }
+
+.intro {
+  margin: 0 0 0.85rem;
+  color: #5b6b6b;
+  font-size: 0.92rem;
+}
+
+.unmatched-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.unmatched-card {
+  border: 1px solid #eef2f1;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  background: #fafcfb;
+}
+.unmatched-card.saved {
+  opacity: 0.75;
+  background: #eef8f1;
+}
+
+.unmatched-card header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+.unmatched-card strong {
+  color: #0f3d3e;
+}
+
+.samples {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  color: #7a8a8a;
+}
+
+.link-row {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr auto;
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.pill.ok {
+  background: #e4f5ea;
+  color: #1d6b3a;
+}
+
+@media (max-width: 900px) {
+  .form { grid-template-columns: 1fr; }
+  .add-form .top-fields,
+  .add-form .item { grid-template-columns: 1fr; }
+  .link-row { grid-template-columns: 1fr; }
+  .assign-row { grid-template-columns: 1fr; }
+  .edit-form { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .add-form .footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-form .footer .btn {
+    width: 100%;
+  }
+
+  .edit-form .modal-foot {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .edit-form .modal-foot .btn {
+    width: 100%;
+  }
+}
+
+.import-modal {
+  width: min(480px, calc(100vw - 1.5rem));
+}
+
+.import-form {
+  display: grid;
+  gap: 0.85rem;
+
+  label {
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  small {
+    font-size: 0.8rem;
+  }
+}

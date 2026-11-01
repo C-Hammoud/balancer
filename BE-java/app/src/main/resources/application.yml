@@ -1,0 +1,89 @@
+# Environment variable names match BE/finance_tracker/settings.py, so the Django .env works as-is.
+spring:
+  application:
+    name: finance-tracker
+  config:
+    # Reuse the Django backend's BE/.env (same DJANGO_SECRET_KEY, so existing logins and emailed
+    # links stay valid), whether started from BE-java/ or BE-java/app/. A .env next to the app
+    # (listed last) overrides it.
+    import:
+      - "optional:file:../BE/.env[.properties]"
+      - "optional:file:../../BE/.env[.properties]"
+      - "optional:file:../.env[.properties]"
+      - "optional:file:.env[.properties]"
+  datasource:
+    # Any JDBC database: set DATABASE_URL (e.g. jdbc:postgresql://localhost:5432/finance) plus
+    # DATABASE_USERNAME / DATABASE_PASSWORD. Default: a local H2 file database.
+    url: ${DATABASE_URL:jdbc:h2:file:./data/finance-tracker;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;AUTO_SERVER=TRUE}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    # PostgreSQL scripts also serve H2 (PostgreSQL mode). MySQL: classpath:db/migration/mysql
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration/postgresql}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+server:
+  port: ${PORT:8000}
+  error:
+    whitelabel:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  # jpa (relational, via spring.datasource) or firestore. "sqlite" is accepted as jpa.
+  datastore: ${DATA_STORE:jpa}
+  debug: ${DJANGO_DEBUG:false}
+  secret-key: ${DJANGO_SECRET_KEY:}
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  api-public-url: ${API_PUBLIC_URL:http://127.0.0.1:8000/api/v1}
+  mobile-app-scheme: ${MOBILE_APP_SCHEME:financetracker}
+  require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:true}
+  exchange-rates-json: ${EXCHANGE_RATES:}
+  exchange-rates-as-of: ${EXCHANGE_RATES_AS_OF:2026-10-18}
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  jwt:
+    access-token-lifetime: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:60}m
+    refresh-token-lifetime: ${JWT_REFRESH_TOKEN_LIFETIME_DAYS:7}d
+    signing-key: ${JWT_SIGNING_KEY:}
+  email:
+    # EMAIL_ENABLED=0 / false: emails are written to the log instead of being sent.
+    enabled: ${EMAIL_ENABLED:true}
+    # NOTIFICATION_EMAILS_ENABLED=0: verification/reset/invite emails are still sent; alerts,
+    # reminders, plan suggestions and setup nudges are only written to the log.
+    notifications-enabled: ${NOTIFICATION_EMAILS_ENABLED:true}
+    host: ${EMAIL_HOST:}
+    port: ${EMAIL_PORT:587}
+    username: ${EMAIL_HOST_USER:}
+    password: ${EMAIL_HOST_PASSWORD:}
+    use-tls: ${EMAIL_USE_TLS:true}
+    from: ${DEFAULT_FROM_EMAIL:noreply@financetracker.local}
+    app-name: ${EMAIL_APP_NAME:Finance Tracker}
+    support-email: ${SUPPORT_EMAIL:}
+    brand-primary: "${EMAIL_BRAND_PRIMARY:#0f3d3e}"
+    brand-accent: "${EMAIL_BRAND_ACCENT:#1a7f7a}"
+  throttle:
+    auth-login: ${THROTTLE_AUTH_LOGIN:10/min}
+    auth-register: ${THROTTLE_AUTH_REGISTER:5/hour}
+    auth-email: ${THROTTLE_AUTH_EMAIL:5/hour}
+    user-lookup: ${THROTTLE_USER_LOOKUP:30/hour}
+  import-limits:
+    max-bytes: ${TRANSACTION_IMPORT_MAX_BYTES:5242880}
+    max-rows: ${TRANSACTION_IMPORT_MAX_ROWS:5000}
+  firebase:
+    key-path: ${FIREBASE_KEY_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    storage-bucket: ${FIREBASE_STORAGE_BUCKET:}
+  jobs:
+    enabled: ${JOBS_ENABLED:true}

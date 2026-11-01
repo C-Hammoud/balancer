@@ -1,0 +1,56 @@
+<section class="hero">
+  <div>
+    <h1>Utilization thresholds</h1>
+    <p>Warn / critical % levels that drive in-app alerts and email. Blank category = global default.</p>
+  </div>
+</section>
+
+<form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
+  <label>
+    Category
+    <select formControlName="category_id">
+      <option value="">— Global default —</option>
+      @for (c of categories(); track c.id) {
+        <option [value]="c.id">{{ c.group_name }} — {{ c.name }}</option>
+      }
+    </select>
+  </label>
+  <label>Warn % <input type="number" formControlName="warn_pct" /></label>
+  <label>Critical % <input type="number" formControlName="critical_pct" /></label>
+  <label class="check">
+    <input type="checkbox" formControlName="email_enabled" />
+    Email alerts
+  </label>
+  <button type="submit" class="btn primary">Save threshold</button>
+</form>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Scope</th>
+          <th>Warn %</th>
+          <th>Critical %</th>
+          <th>Email</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (t of items(); track t.id) {
+          <tr>
+            <td>{{ t.category_name }}</td>
+            <td>{{ t.warn_pct }}</td>
+            <td>{{ t.critical_pct }}</td>
+            <td>{{ t.email_enabled ? 'Yes' : 'No' }}</td>
+            <td><button type="button" class="btn ghost danger" (click)="remove(t.id)">Delete</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="muted">No custom thresholds. Defaults are 80% / 100% with email on.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

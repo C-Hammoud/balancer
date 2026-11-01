@@ -1,0 +1,99 @@
+<section class="hero">
+  <div>
+    <h1>Commitments</h1>
+    <p>Loans and recurring obligations — open a commitment to see due dates, payment dates, and progress.</p>
+  </div>
+  <button type="button" class="btn primary" (click)="toggleForm()">
+    {{ showForm() ? 'Close' : 'Add commitment' }}
+  </button>
+</section>
+
+@if (showForm()) {
+  <form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
+    <label>Name <input formControlName="name" /></label>
+    <label>Principal <input type="number" step="0.01" formControlName="amount" /></label>
+    <label>
+      Currency <span class="req">*</span>
+      <select formControlName="currency">
+        @for (cur of currencyOptions(); track cur.code) {
+          <option [value]="cur.code">{{ cur.code }} — {{ cur.label }}</option>
+        }
+      </select>
+    </label>
+    <label>Start date <input type="date" formControlName="start_date" /></label>
+    <label>Term (months) <input type="number" formControlName="term_months" /></label>
+    <label>
+      Frequency
+      <select formControlName="frequency">
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="yearly">Yearly</option>
+      </select>
+    </label>
+    <label>Payment amount <input type="number" step="0.01" formControlName="payment_amount" /></label>
+    <label>Balloon <input type="number" step="0.01" formControlName="balloon" /></label>
+    <label class="check">
+      <input type="checkbox" formControlName="reminder_enabled" />
+      Email payment reminders
+    </label>
+    <label>
+      Remind (days before due)
+      <input type="number" formControlName="reminder_days_before" min="0" max="90" />
+    </label>
+    <button type="submit" class="btn primary">Save &amp; open</button>
+  </form>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Progress</th>
+          <th>Payment</th>
+          <th>Next due</th>
+          <th>Remaining</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of items(); track c.id) {
+          <tr class="clickable" (click)="open(c)">
+            <td>
+              <strong>{{ c.name }}</strong>
+              <small>{{ c.frequency }} · {{ c.term_months }} mo</small>
+            </td>
+            <td>
+              <div class="progress">
+                <div class="bar"><div class="fill" [style.width.%]="progressPct(c)"></div></div>
+                <span>{{ c.payments_completed || 0 }}/{{ c.payments_total || 0 }} paid</span>
+              </div>
+              @if ((c.overdue_count || 0) > 0) {
+                <span class="pill danger">{{ c.overdue_count }} overdue</span>
+              }
+            </td>
+            <td>{{ c.payment_amount }} {{ c.currency || 'USD' }}</td>
+            <td>
+              @if (c.next_due_date) {
+                {{ c.next_due_date }}
+                <small>{{ c.next_due_amount }} {{ c.currency || 'USD' }}</small>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td>{{ c.remaining_principal }} {{ c.currency || 'USD' }}</td>
+            <td class="actions">
+              <a class="btn ghost" [routerLink]="['/budgeting/commitments', c.id]" (click)="$event.stopPropagation()">Open</a>
+              <button type="button" class="btn ghost danger" (click)="remove(c, $event)">Delete</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted">No commitments yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

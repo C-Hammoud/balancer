@@ -1,0 +1,38 @@
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.section-head h2 { margin: 0; font-size: 1.05rem; color: var(--ink); }
+.sub-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  align-items: end;
+  margin-bottom: 0.75rem;
+}
+.sub-form label, .months { display: grid; gap: 0.25rem; font-size: 0.85rem; }
+.per-month, .form-actions { grid-column: 1 / -1; margin: 0; }
+.sub-list { list-style: none; margin: 0; padding: 0; }
+.sub-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #eef2f1;
+}
+.sub-list li:last-child { border-bottom: 0; }
+.sub-main { flex: 1; display: grid; gap: 0.2rem; min-width: 0; }
+.months input { width: 4.5rem; }
+.progress { height: 6px; background: #e8eeed; border-radius: 3px; overflow: hidden; max-width: 20rem; }
+.progress span { display: block; height: 100%; background: var(--accent); }
+.progress span.over { background: #b33a1a; }
+.existing { margin-top: 0.75rem; }
+.existing summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .sub-form { grid-template-columns: 1fr; }
+  .sub-list li { flex-wrap: wrap; }
+}

@@ -1,0 +1,37 @@
+@if (current(); as alert) {
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="commitment-due-title">
+    <header>
+      <h2 id="commitment-due-title">Commitment payment due</h2>
+      <p class="lead">
+        <strong>{{ commitmentLabel(alert) }}</strong>
+        — {{ alert.actual }} due on {{ alert.due_date | slice: 0 : 10 }}
+      </p>
+    </header>
+
+    <div class="body">
+      <p>Add this payment to <strong>expenses</strong> and <strong>budget utilization</strong>?</p>
+      <label>
+        Budget category <span class="req">*</span>
+        <select [(ngModel)]="categoryId">
+          <option value="">Select category…</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.id">{{ c.group_name }} — {{ c.name }}</option>
+          }
+        </select>
+      </label>
+      <p class="hint">
+        Choosing Yes records the transaction, marks the installment paid, and counts it toward utilization.
+        Choosing No skips adding it to expenses (the due alert is cleared).
+      </p>
+    </div>
+
+    <footer>
+      <button type="button" class="btn ghost" (click)="dismissCurrent()" [disabled]="saving()">Not now</button>
+      <button type="button" class="btn ghost" (click)="skip()" [disabled]="saving()">No, skip</button>
+      <button type="button" class="btn primary" (click)="confirmAdd()" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : 'Yes, add transaction' }}
+      </button>
+    </footer>
+  </div>
+}

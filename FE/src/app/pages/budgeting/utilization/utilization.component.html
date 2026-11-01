@@ -1,0 +1,115 @@
+<section class="hero">
+  <div>
+    <h1>Utilization management</h1>
+    <p>
+      Amounts in <strong>{{ reportCurrency }}</strong>
+      (<a routerLink="/profile">main currency</a>).
+    </p>
+  </div>
+  <div class="actions">
+    <select [(ngModel)]="year" (ngModelChange)="reload()">
+      @for (y of years; track y) {
+        <option [ngValue]="y">{{ y }}</option>
+      }
+    </select>
+    <select [(ngModel)]="month" (ngModelChange)="reload()">
+      @for (m of months; track m.v) {
+        <option [ngValue]="m.v">{{ m.n }}</option>
+      }
+    </select>
+    <a class="btn ghost" routerLink="/budgeting/config/thresholds">Edit thresholds</a>
+  </div>
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (report(); as r) {
+    <div class="stats">
+      <article class="stat">
+        <span>Overall util</span>
+        <strong>{{ r.overall_util ? r.overall_util + '%' : '—' }}</strong>
+        <span class="pill" [class]="r.overall_status">{{ r.overall_status }}</span>
+      </article>
+      <article class="stat">
+        <span>Total forecast</span>
+        <strong>{{ fmt(r.total_forecast) }}</strong>
+      </article>
+      <article class="stat">
+        <span>Total actual</span>
+        <strong>{{ fmt(r.total_actual) }}</strong>
+      </article>
+      <article class="stat">
+        <span>Remaining</span>
+        <strong [class.neg]="+(r.remaining || 0) < 0">{{ fmt(r.remaining) }}</strong>
+      </article>
+    </div>
+
+    <div class="filters">
+      <button type="button" class="btn" [class.primary]="filter === 'all'" (click)="filter = 'all'">All</button>
+      <button type="button" class="btn" [class.primary]="filter === 'ok'" (click)="filter = 'ok'">OK</button>
+      <button type="button" class="btn" [class.primary]="filter === 'warn'" (click)="filter = 'warn'">Warn</button>
+      <button type="button" class="btn" [class.primary]="filter === 'critical'" (click)="filter = 'critical'">Critical</button>
+      <button type="button" class="btn" [class.primary]="filter === 'over'" (click)="filter = 'over'">Over</button>
+    </div>
+
+    <section class="panel table-wrap">
+      <table class="stack-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Forecast</th>
+            <th>Actual</th>
+            <th>Remaining</th>
+            <th>Variance</th>
+            <th>Thresholds</th>
+            <th>Utilization</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.category_id) {
+            <tr [class.unmapped-row]="row.category_id === unmappedId">
+              <td data-label="Category">
+                @if (row.category_id === unmappedId) {
+                  <a routerLink="/budgeting/config/merchant-links">
+                    {{ row.category_name }}
+                  </a>
+                  <small>{{ row.group_name }} · link merchants or assign on transactions</small>
+                } @else {
+                  {{ row.category_name }} <small>{{ row.group_name }}</small>
+                }
+              </td>
+              <td data-label="Forecast">{{ fmt(row.forecast) }}</td>
+              <td data-label="Actual">{{ fmt(row.actual) }}</td>
+              <td data-label="Remaining" [class.neg]="+(row.remaining || 0) < 0">{{ fmt(row.remaining) }}</td>
+              <td data-label="Variance" [class.neg]="+(row.variance || 0) > 0">{{ fmt(row.variance) }}</td>
+              <td data-label="Thresholds" class="muted">{{ row.warn_pct }}% / {{ row.critical_pct }}%</td>
+              <td data-label="Utilization">
+                @if (row.utilization_pct) {
+                  <div class="util">
+                    <div class="bar">
+                      <div class="fill" [class]="row.status" [style.width.%]="utilWidth(row.utilization_pct)"></div>
+                    </div>
+                    <span>{{ row.utilization_pct }}%</span>
+                  </div>
+                } @else { — }
+              </td>
+              <td data-label="Status">
+                @if (row.category_id === unmappedId) {
+                  <a class="btn ghost" routerLink="/budgeting/config/merchant-links">
+                    Merchant links
+                  </a>
+                } @else {
+                  <span class="pill" [class]="row.status">{{ row.status }}</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="muted">No rows for this filter.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+}

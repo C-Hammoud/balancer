@@ -1,0 +1,44 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Finance Tracker</p>
+    <h1>Create account</h1>
+    <p class="sub">Start tracking spend and budgets.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Username
+        <input formControlName="username" />
+      </label>
+      <label>
+        Email
+        <input type="email" formControlName="email" />
+      </label>
+      <div class="row">
+        <label>
+          First name
+          <input formControlName="first_name" />
+        </label>
+        <label>
+          Last name
+          <input formControlName="last_name" />
+        </label>
+      </div>
+      <label>
+        Password
+        <input type="password" formControlName="password" />
+      </label>
+      <label>
+        Confirm password
+        <input type="password" formControlName="password_confirm" />
+      </label>
+      <button class="btn primary" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Creating…' : 'Create account' }}
+      </button>
+    </form>
+
+    <p class="footer">
+      Already have an account?
+      <a routerLink="/login">Sign in</a>
+    </p>
+  </div>
+</div>

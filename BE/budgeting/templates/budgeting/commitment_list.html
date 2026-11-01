@@ -1,0 +1,50 @@
+{% extends 'expenses/base.html' %}
+{% block title %}Commitments — Budgeting{% endblock %}
+{% block content %}
+<div class="container mt-4 animate__animated animate__fadeIn">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h3 class="page-title mb-1">📄 Commitments (Loans)</h3>
+        <div class="page-subtitle">Loans with schedules; remaining principal</div>
+      </div>
+      <a href="{% url 'budgeting:commitment_add' %}" class="btn btn-primary shadow-sm px-4 rounded-pill"><i class="fas fa-plus me-1"></i>Add</a>
+    </div>
+  </div>
+  <div class="glass-card p-3">
+    <div class="table-responsive">
+      <table class="table expense-table mb-0">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th class="text-end">Amount</th>
+        <th>Start</th>
+        <th>Term (mo)</th>
+        <th class="text-end">Payment</th>
+        <th class="text-end">Remaining</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in commitments %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td class="text-end">{{ c.amount|floatformat:2 }} SAR</td>
+        <td>{{ c.start_date|date:"Y-m-d" }}</td>
+        <td>{{ c.term_months }}</td>
+        <td class="text-end">{{ c.payment_amount|floatformat:2 }}</td>
+        <td class="text-end">{{ c.remaining|floatformat:2 }}</td>
+        <td>
+          <a href="{% url 'budgeting:commitment_edit' c.pk %}" class="icon-btn" aria-label="Edit"><i class="fa fa-pen"></i></a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-muted text-center py-4">No commitments. Add loans and manage schedule lines in Firebase.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+    </div>
+  </div>
+  <p class="mt-3"><a href="{% url 'budgeting:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to dashboard</a></p>
+</div>
+{% endblock %}

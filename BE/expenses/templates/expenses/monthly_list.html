@@ -1,0 +1,318 @@
+{% extends 'expenses/base.html' %}
+{% block extrahead %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 animate__animated animate__fadeIn">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h3 class="page-title mb-1">🗓️ Monthly Expense List</h3>
+        <div class="page-subtitle">Filter by month and year, then review details</div>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <form class="row g-2 m-0" method="get">
+          <div class="col-auto">
+            <select class="form-select form-select-sm year-pill" name="month" onchange="this.form.submit()">
+              {% for num, name in months %}
+                <option value="{{ num }}" {% if selected_month == num %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <select class="form-select form-select-sm year-pill" name="year" onchange="this.form.submit()">
+              {% for y in years %}
+                <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+        <div class="text-end">
+          <div class="text-muted small">Total (USD)</div>
+          <div class="fw-semibold">${{ total_usd|floatformat:2 }}</div>
+        </div>
+        <a class="btn btn-outline-secondary btn-sm shadow-sm" href="{% url 'dashboard_pdf' %}?month={{ selected_month }}&year={{ selected_year }}&scope=month">
+          <i class="fa fa-file-download me-1"></i> Download Report
+        </a>
+        <button class="btn btn-outline-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#monthlyBreakdownModal">
+          <i class="fa fa-chart-pie me-1"></i> Monthly Breakdown
+        </button>
+        <button class="btn btn-outline-success btn-sm shadow-sm" id="calcSelectedBtn" type="button">
+          <i class="fa fa-calculator me-1"></i> Calc Selected
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-block d-md-none">
+    {% for exp in expenses %}
+    <div class="glass-card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <input class="form-check-input expense-select" type="checkbox" data-amount="{{ exp.amount_usd|floatformat:2 }}">
+          <span class="fw-semibold">{{ exp.date }}</span>
+        </div>
+        <span class="type-tag">{{ exp.consumption_type }}</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="text-muted small">Amount</div>
+        <div class="fw-semibold">{{ exp.amount|floatformat:2 }} <span class="badge-currency {% if exp.currency == 'USD' %}usd{% endif %}">{{ exp.currency }}</span></div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-1">
+        <div class="text-muted small">USD</div>
+        <div class="fw-semibold">${{ exp.amount_usd|floatformat:2 }}</div>
+      </div>
+      <div class="mt-2">
+        <span class="country-pill">{{ exp.country|default:"-" }}</span>
+      </div>
+      {% if exp.note %}<div class="mt-2 text-muted small">{{ exp.note }}</div>{% endif %}
+      <div class="mt-3 d-flex gap-2">
+        <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#editModal{{ exp.pk }}" aria-label="Edit">
+          <i class="fa fa-pen"></i>
+        </button>
+        <button class="icon-btn delete" data-bs-toggle="modal" data-bs-target="#deleteModal{{ exp.pk }}" aria-label="Delete">
+          <i class="fa fa-trash"></i>
+        </button>
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-center py-3">No expenses found for this period.</p>
+    {% endfor %}
+  </div>
+
+  <div class="d-none d-md-block">
+    <div class="glass-card p-3">
+      <div class="table-responsive">
+        <table class="table expense-table mb-0">
+          <thead>
+          <tr>
+            <th style="width: 36px;">
+              <input class="form-check-input" type="checkbox" id="selectAllExpenses">
+            </th>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Country</th>
+            <th>Amount (Orig)</th>
+            <th>Currency</th>
+            <th>Amount (USD)</th>
+            <th>Note</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for exp in expenses %}
+          <tr>
+            <td>
+              <input class="form-check-input expense-select" type="checkbox" data-amount="{{ exp.amount_usd|floatformat:2 }}">
+            </td>
+            <td>{{ exp.date }}</td>
+            <td><span class="type-tag">{{ exp.consumption_type }}</span></td>
+            <td><span class="country-pill">{{ exp.country|default:"-" }}</span></td>
+            <td class="text-end">{{ exp.amount|floatformat:2 }}</td>
+            <td><span class="badge-currency {% if exp.currency == 'USD' %}usd{% endif %}">{{ exp.currency }}</span></td>
+            <td class="text-end">${{ exp.amount_usd|floatformat:2 }}</td>
+            <td>{{ exp.note|default:"-" }}</td>
+            <td>
+              <button class="icon-btn me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ exp.pk }}" aria-label="Edit">
+                <i class="fa fa-pen"></i>
+              </button>
+              <button class="icon-btn delete" data-bs-toggle="modal" data-bs-target="#deleteModal{{ exp.pk }}" aria-label="Delete">
+                <i class="fa fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center">No expenses found for this period.</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <form class="d-flex align-items-center gap-2" method="get">
+          <input type="hidden" name="month" value="{{ selected_month }}">
+          <input type="hidden" name="year" value="{{ selected_year }}">
+          <select class="form-select form-select-sm" name="page_size" onchange="this.form.submit()">
+            <option value="10" {% if page_size == "10" %}selected{% endif %}>10</option>
+            <option value="50" {% if page_size == "50" %}selected{% endif %}>50</option>
+            <option value="all" {% if page_size == "all" %}selected{% endif %}>All</option>
+          </select>
+        </form>
+        {% if expenses.has_previous %}
+          <a href="?month={{ selected_month }}&year={{ selected_year }}&page_size={{ page_size }}&page={{ expenses.previous_page_number }}" class="btn btn-outline-secondary btn-sm">Previous</a>
+        {% else %}
+          <span></span>
+        {% endif %}
+
+        <span>Page {{ expenses.number }} of {{ expenses.paginator.num_pages }}</span>
+
+        {% if expenses.has_next %}
+          <a href="?month={{ selected_month }}&year={{ selected_year }}&page_size={{ page_size }}&page={{ expenses.next_page_number }}" class="btn btn-outline-secondary btn-sm">Next</a>
+        {% else %}
+          <span></span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+  <div class="modal fade" id="monthlyBreakdownModal" tabindex="-1" aria-labelledby="monthlyBreakdownLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="monthlyBreakdownLabel">Monthly Breakdown ({{ selected_month_name }} {{ selected_year }})</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <canvas id="monthlyPieChart" class="w-100" style="max-height:420px;"></canvas>
+          <div class="mt-4">
+            <h6 class="mb-2">Expense Breakdown</h6>
+            <div class="table-responsive">
+              <table class="table expense-table mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Type</th>
+                  <th>Amount (USD)</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for label, value, percent in breakdown %}
+                  <tr>
+                    <td><i class="fa fa-tag me-1"></i>{{ label }}</td>
+                    <td>${{ value|floatformat:2 }}</td>
+                    <td>{{ percent }}%</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="3" class="text-center text-muted">No expenses to break down.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            id="downloadMonthlyImage"
+            type="button"
+            class="btn btn-outline-success"
+            data-username="{{ request.user.username }}"
+            data-date="{% now 'Y-m-d' %}"
+            data-month="{{ selected_month_name }}"
+            data-year="{{ selected_year }}"
+          >
+            <i class="fa fa-download me-1"></i> Download Image
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% for exp in expenses %}
+    {% include 'expenses/edit_expense.html' with expense=exp %}
+    {% include 'expenses/confirm_delete.html' with expense=exp %}
+  {% endfor %}
+{% endblock %}
+
+{% block extrascript %}
+<script>
+  let monthlyPie = null;
+  const monthlyModalEl = document.getElementById('monthlyBreakdownModal');
+  if (monthlyModalEl) {
+    monthlyModalEl.addEventListener('shown.bs.modal', () => {
+      if (monthlyPie) {
+        monthlyPie.destroy();
+      }
+      const pieCtx = document.getElementById('monthlyPieChart').getContext('2d');
+      monthlyPie = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: {{ labels|safe }},
+          datasets: [{
+            data: {{ values|safe }},
+            backgroundColor: ['#36a2eb','#ff6384','#ffcd56','#4bc0c0','#9966ff','#ff9f40'],
+            borderColor: '#fff',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  return ctx.label + ': $' + ctx.parsed.toFixed(2);
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+  }
+
+  const downloadBtn = document.getElementById('downloadMonthlyImage');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      const modalContent = document.querySelector('#monthlyBreakdownModal .modal-content');
+      if (!modalContent || typeof html2canvas === 'undefined') {
+        return;
+      }
+      const username = downloadBtn.dataset.username || 'user';
+      const dateText = downloadBtn.dataset.date || '';
+      const monthName = downloadBtn.dataset.month || 'month';
+      const yearText = downloadBtn.dataset.year || 'year';
+
+      html2canvas(modalContent, { backgroundColor: '#ffffff', scale: 2 }).then((canvas) => {
+        const ctx = canvas.getContext('2d');
+        const watermark = `Generated by: ${username} • ${dateText}`;
+        ctx.font = '16px Inter, Arial, sans-serif';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.textAlign = 'right';
+        ctx.fillText(watermark, canvas.width - 20, canvas.height - 20);
+
+        const link = document.createElement('a');
+        link.download = `monthly_breakdown_${monthName}_${yearText}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    });
+  }
+
+  function computeSelectedTotal() {
+    const checks = document.querySelectorAll('.expense-select:checked');
+    let sum = 0;
+    checks.forEach((el) => {
+      const amt = parseFloat(el.dataset.amount || '0');
+      if (!Number.isNaN(amt)) sum += amt;
+    });
+    return sum;
+  }
+
+  const calcBtn = document.getElementById('calcSelectedBtn');
+  if (calcBtn) {
+    calcBtn.addEventListener('click', () => {
+      const total = computeSelectedTotal();
+      calcBtn.innerHTML = `<i class="fa fa-calculator me-1"></i> $${total.toFixed(2)}`;
+    });
+  }
+
+  const selectAll = document.getElementById('selectAllExpenses');
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      const checks = document.querySelectorAll('.expense-select');
+      checks.forEach((el) => {
+        el.checked = selectAll.checked;
+      });
+    });
+  }
+</script>
+{% endblock %}

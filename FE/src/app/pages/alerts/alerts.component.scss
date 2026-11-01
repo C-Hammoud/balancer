@@ -1,0 +1,281 @@
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  color: #0f3d3e;
+}
+
+.hero p {
+  margin: 0.25rem 0 0;
+  color: #5b6b6b;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid rgba(15, 61, 62, 0.08);
+  border-radius: 0.85rem;
+  padding: 0.5rem 1rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.75rem 0.4rem;
+  border-bottom: 1px solid #eef2f1;
+  font-size: 0.92rem;
+  vertical-align: top;
+}
+
+td strong {
+  display: block;
+  color: #0f3d3e;
+}
+
+td small {
+  display: block;
+  color: #7a8a8a;
+  margin-top: 0.2rem;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #e8f1f0;
+  color: #1a5c5e;
+}
+
+.pill.warn {
+  background: #fff1db;
+  color: #9a5b00;
+}
+
+.pill.danger {
+  background: #fde8e4;
+  color: #8a2f1d;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.unmapped-row td {
+  background: rgba(255, 241, 219, 0.35);
+}
+
+@media (max-width: 760px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.settings {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.settings-intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.tabs {
+  margin-bottom: 0.75rem;
+}
+
+.tabs .count {
+  display: inline-block;
+  min-width: 1.4rem;
+  margin-left: 0.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.4rem;
+  text-align: center;
+  background: rgba(15, 61, 62, 0.08);
+}
+
+.tabs .btn.primary .count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
+  align-items: flex-end;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.toolbar label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: #5b6b6b;
+}
+
+.toolbar .search {
+  flex: 1 1 14rem;
+}
+
+.toolbar input,
+.toolbar select,
+select.snooze {
+  border: 1px solid #c9d5d4;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  color: #0f3d3e;
+}
+
+.toolbar .search input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bulk-bar {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  background: #e8f1f0;
+  border: 1px solid rgba(26, 92, 94, 0.2);
+}
+
+.bulk-bar strong {
+  margin-right: auto;
+  color: #0f3d3e;
+}
+
+.list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem 0.5rem;
+}
+
+.select-col {
+  width: 2rem;
+}
+
+.select-col input {
+  width: 1.05rem;
+  height: 1.05rem;
+  cursor: pointer;
+}
+
+tr.selected td {
+  background: rgba(26, 92, 94, 0.05);
+}
+
+td small.state {
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
+.empty .btn {
+  margin-left: 0.5rem;
+}
+
+.pay-modal {
+  width: min(460px, calc(100vw - 1.5rem));
+}
+
+.pay-form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.pay-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: #314242;
+}
+
+.pay-form select,
+.pay-form input {
+  border: 1px solid #c9d5d4;
+  border-radius: 0.55rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  background: #fff;
+}
+
+.pay-form .hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .toolbar label {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  .toolbar .search {
+    flex-basis: 100%;
+  }
+
+  select.snooze {
+    flex: 1 1 calc(50% - 0.25rem);
+  }
+
+  .stack-table td.select-col {
+    justify-content: flex-start;
+  }
+}

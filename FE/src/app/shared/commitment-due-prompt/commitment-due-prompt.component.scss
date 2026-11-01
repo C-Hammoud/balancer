@@ -1,0 +1,95 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 61, 62, 0.45);
+  z-index: 1300;
+}
+
+.modal {
+  position: fixed;
+  z-index: 1301;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, calc(100vw - 1.5rem));
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 20px 50px rgba(15, 61, 62, 0.28);
+  padding: 1.1rem 1.2rem 1rem;
+}
+
+header h2 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  color: #0f3d3e;
+  font-size: 1.2rem;
+}
+
+.lead {
+  margin: 0.45rem 0 0;
+  color: #5b6b6b;
+  font-size: 0.95rem;
+}
+
+.body {
+  margin: 1rem 0;
+}
+
+.body p {
+  margin: 0 0 0.75rem;
+  color: #314242;
+  font-size: 0.95rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: #314242;
+  margin-bottom: 0.65rem;
+}
+
+select {
+  border: 1px solid #c9d5d4;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+}
+
+.hint {
+  font-size: 0.82rem !important;
+  color: #7a8a8a !important;
+}
+
+.req {
+  color: #b33a1d;
+}
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #eef2f1;
+}
+
+@media (max-width: 520px) {
+  .modal {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  footer {
+    flex-direction: column;
+  }
+
+  footer .btn {
+    width: 100%;
+  }
+}

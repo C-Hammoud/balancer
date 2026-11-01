@@ -1,0 +1,36 @@
+# Web server: serves the Angular app and forwards the API to Django.
+# SITE_ADDRESS=:80            -> plain HTTP on the server's IP (no domain yet)
+# SITE_ADDRESS=app.example.com -> automatic HTTPS certificate from Let's Encrypt (needs a domain
+#                                pointing at this server and ports 80 + 443 open)
+{
+	email {$ACME_EMAIL:admin@example.com}
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# Django admin assets (collected by the API container into the shared "static" volume).
+	handle /static/* {
+		root * /srv
+		file_server
+	}
+
+	@backend path /api/* /healthz /healthz/ /admin /admin/*
+	handle @backend {
+		reverse_proxy api:8000
+	}
+
+	# Angular app: unknown paths fall back to index.html (client-side routes).
+	handle {
+		root * /srv/app
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

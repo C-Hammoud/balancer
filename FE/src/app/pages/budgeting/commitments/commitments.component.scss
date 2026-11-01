@@ -1,0 +1,100 @@
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+.hero h1 { margin: 0; font-family: "Fraunces", Georgia, serif; color: #0f3d3e; }
+.hero p { margin: 0.25rem 0 0; color: #5b6b6b; }
+
+.panel {
+  background: #fff;
+  border: 1px solid rgba(15, 61, 62, 0.08);
+  border-radius: 0.85rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+label { display: grid; gap: 0.3rem; font-size: 0.88rem; }
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+input, select {
+  border: 1px solid #c9d5d4;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.table-wrap { overflow-x: auto; padding: 0.4rem 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 0.7rem 0.35rem;
+  border-bottom: 1px solid #eef2f1;
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+td strong { display: block; color: #0f3d3e; }
+td small { display: block; color: #7a8a8a; margin-top: 0.15rem; }
+
+tr.active td { background: rgba(232, 241, 240, 0.55); }
+tr.overdue td { background: rgba(253, 232, 228, 0.35); }
+tr.paid td { color: #5b6b6b; }
+
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: rgba(232, 241, 240, 0.45); }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.btn.danger { color: #8a2f1d; }
+
+.progress {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 120px;
+}
+.progress .bar {
+  height: 0.4rem;
+  background: #e8f1f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress .fill {
+  height: 100%;
+  background: #2f8f5b;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  background: #e8f1f0;
+  color: #1a5c5e;
+}
+.pill.danger { background: #fde8e4; color: #8a2f1d; }
+
+.muted { color: #7a8a8a; }
+
+@media (max-width: 900px) {
+  .form { grid-template-columns: 1fr; }
+  .hero { flex-direction: column; align-items: flex-start; }
+}

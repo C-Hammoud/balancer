@@ -1,0 +1,4456 @@
+{
+  "info": {
+    "_postman_id": "eb2fc6b6-45e9-5a67-ab4e-aeb95d79be4c",
+    "name": "Finance Tracker - Java backend",
+    "description": "Manual tests for the Spring Boot backend in BE-java (same API as the Django backend).\n\n1. Start the app: `cd BE-java` then `.\\mvnw.cmd -pl app spring-boot:run` (port from PORT in BE/.env, 2919 by default here). Through the gateway use http://localhost:8080/api/v1.\n2. Select the 'Finance Tracker - Java (local)' environment or edit the baseUrl collection variable.\n3. Run '01 Auth / Register', verify the email (see that request's notes) and run 'Login'. The access token is saved and sent as Bearer on every request.\n4. Run the folders in order: each request saves the ids the next ones need.\n\nTip: for quick local testing set REQUIRE_EMAIL_VERIFICATION=0 in BE-java/.env so Register returns tokens directly. Change username/email variables to register a second user (e.g. for sharing).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Today's date, YYYY-MM and year/month for the requests that use them.",
+          "const d = new Date();",
+          "const pad = n => String(n).padStart(2, '0');",
+          "const today = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());",
+          "pm.collectionVariables.set('today', today);",
+          "pm.collectionVariables.set('monthStr', today.slice(0, 7));",
+          "if (!pm.collectionVariables.get('year')) pm.collectionVariables.set('year', String(d.getFullYear()));",
+          "if (!pm.collectionVariables.get('month')) pm.collectionVariables.set('month', String(d.getMonth() + 1));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:2919/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "postman_user",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "postman_user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "Tr1cky-horse-77",
+      "type": "string"
+    },
+    {
+      "key": "shareEmail",
+      "value": "friend@example.com",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verifyUid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verifyToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resetUid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resetToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "firebaseIdToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "year",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "month",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "today",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "monthStr",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "groupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accountId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "commitmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lineId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "alertId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dueAlertId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "merchantLinkId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "thresholdId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "personalBudgetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clonedBudgetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pbCategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "memberId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inviteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pbNotificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "streamId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "planId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 System",
+      "description": "",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                ""
+              ]
+            },
+            "description": "No authentication, no side effects.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Auth (access manager)",
+      "description": "",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register",
+                ""
+              ]
+            },
+            "description": "With REQUIRE_EMAIL_VERIFICATION=1 (default) the response asks you to verify the email first: open the link from the email (or from the app log when EMAIL_HOST is not set), or run 'Verify email (POST)' with the uid/token from that link. With REQUIRE_EMAIL_VERIFICATION=0 the response already contains tokens.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"password\": \"{{password}}\",\n  \"password_confirm\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.access; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('accessToken', v); } catch (e) {}",
+                  "try { const v = (function(j){ return j.refresh; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                ""
+              ]
+            },
+            "description": "Saves accessToken/refreshToken. Unverified email -> 400 {detail:'...', code:'email_not_verified'}. 10 attempts per minute per client.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j.access; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('accessToken', v); } catch (e) {}",
+                  "try { const v = (function(j){ return j.refresh; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/?tz=Asia/Beirut&locale=en-LB",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "tz",
+                  "value": "Asia/Beirut"
+                },
+                {
+                  "key": "locale",
+                  "value": "en-LB"
+                }
+              ]
+            },
+            "description": "Profile + locale preferences + setup/notification settings. tz/locale/country hints create preferences on first call."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('userId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Meta (currencies, countries, exchange rates)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/meta/?tz=Asia/Beirut&locale=en-LB",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "meta",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "tz",
+                  "value": "Asia/Beirut"
+                },
+                {
+                  "key": "locale",
+                  "value": "en-LB"
+                }
+              ]
+            },
+            "description": "Requires login. `suggested` uses the query hints; `saved_preferences` appears for signed-in users."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                ""
+              ]
+            },
+            "description": "Partial update. Changing the email marks it unverified and sends a new link.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"timezone\": \"Asia/Beirut\",\n  \"country\": \"LB\",\n  \"default_currency\": \"USD\",\n  \"phone\": \"+961 70 000 000\",\n  \"notify_plan_updates\": true,\n  \"savings_target_pct\": 20,\n  \"setup_status\": \"complete\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/token/refresh/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "token",
+                "refresh",
+                ""
+              ]
+            },
+            "description": "Rotation: the old refresh token is blacklisted; the new one is saved.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j.access; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('accessToken', v); } catch (e) {}",
+                  "try { const v = (function(j){ return j.refresh; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend verification email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/email-verify/resend/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "email-verify",
+                "resend",
+                ""
+              ]
+            },
+            "description": "Always the same answer. 5 per hour per client.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify email (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/email-verify/confirm/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "email-verify",
+                "confirm",
+                ""
+              ]
+            },
+            "description": "Set verifyUid / verifyToken from the emailed link (\u2026/confirm/?uid=\u2026&token=\u2026).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"{{verifyUid}}\",\n  \"token\": \"{{verifyToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Verify email (link, HTML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/email-verify/confirm/?uid={{verifyUid}}&token={{verifyToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "email-verify",
+                "confirm",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "uid",
+                  "value": "{{verifyUid}}"
+                },
+                {
+                  "key": "token",
+                  "value": "{{verifyToken}}"
+                }
+              ]
+            },
+            "description": "What the email link opens: an HTML page that hands off to the app or the web page.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Request password reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-reset",
+                ""
+              ]
+            },
+            "description": "Email or username. Always the same answer. 5 per hour per client.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Password reset landing (HTML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/open/?uid={{resetUid}}&token={{resetToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-reset",
+                "open",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "uid",
+                  "value": "{{resetUid}}"
+                },
+                {
+                  "key": "token",
+                  "value": "{{resetToken}}"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Confirm password reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/confirm/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-reset",
+                "confirm",
+                ""
+              ]
+            },
+            "description": "Set resetUid / resetToken from the reset email link.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"{{resetUid}}\",\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"{{password}}\",\n  \"password_confirm\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Firebase login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "firebase",
+                ""
+              ]
+            },
+            "description": "Needs the Firebase key configured (FIREBASE_KEY_PATH) and a real Firebase ID token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_token\": \"{{firebaseIdToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try { const v = (function(j){ return j.access; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('accessToken', v); } catch (e) {}",
+                  "try { const v = (function(j){ return j.refresh; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Categories",
+      "description": "",
+      "item": [
+        {
+          "name": "Categories and groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/categories/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "categories",
+                ""
+              ]
+            },
+            "description": "Shared defaults (read-only, is_shared=true) plus your own."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create group (parent category)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/groups/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "groups",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Group {{$randomInt}}\",\n  \"order\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('groupId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/groups/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "groups",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update group",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/groups/{{groupId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "groups",
+                "{{groupId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create subcategory",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/categories/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "categories",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Category {{$randomInt}}\",\n  \"group_id\": \"{{groupId}}\",\n  \"include_in_reports\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('categoryId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List subcategories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/categories/?group_id={{groupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "categories",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "group_id",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update subcategory",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/categories/{{categoryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "categories",
+                "{{categoryId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Accounts",
+      "description": "",
+      "item": [
+        {
+          "name": "Create account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/accounts/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "accounts",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main bank {{$randomInt}}\",\n  \"account_type\": \"bank\",\n  \"is_default_for_expenses\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('accountId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/accounts/?active=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "accounts",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "active",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List accounts (income-sources alias)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/income-sources/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "income-sources",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/accounts/{{accountId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "accounts",
+                "{{accountId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Transactions",
+      "description": "",
+      "item": [
+        {
+          "name": "Create expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                ""
+              ]
+            },
+            "description": "Without category_id the category is suggested from merchant links.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"{{today}}\",\n  \"description\": \"Spinneys\",\n  \"amount\": \"95.00\",\n  \"currency\": \"USD\",\n  \"direction\": \"expense\",\n  \"category_id\": \"{{categoryId}}\",\n  \"account_id\": \"{{accountId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('transactionId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create income",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"{{today}}\",\n  \"description\": \"Salary\",\n  \"amount\": \"3000\",\n  \"currency\": \"USD\",\n  \"direction\": \"income\",\n  \"account_id\": \"{{accountId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List transactions (month)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/?month={{monthStr}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "{{monthStr}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get transaction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/{{transactionId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                "{{transactionId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update transaction",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/{{transactionId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                "{{transactionId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"99.50\",\n  \"note\": \"Edited\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload bank statement (CSV/XLSX)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/upload/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                "upload",
+                ""
+              ]
+            },
+            "description": "Pick a file in the Body tab first. Positive amounts are income, negative are expenses; re-uploading the same file adds nothing.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Choose a .csv or .xlsx file (Date, Description, Amount)"
+                },
+                {
+                  "key": "date_format",
+                  "value": "auto",
+                  "type": "text",
+                  "description": "auto | dmy | mdy | ymd"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "type": "text"
+                },
+                {
+                  "key": "account_id",
+                  "value": "{{accountId}}",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Budgets & savings",
+      "description": "",
+      "item": [
+        {
+          "name": "Monthly budgets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/budgets/?year={{year}}&month={{month}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "budgets",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "month",
+                  "value": "{{month}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set group budget (cap)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/budgets/{{year}}/{{month}}/group/{{groupId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "budgets",
+                "{{year}}",
+                "{{month}}",
+                "group",
+                "{{groupId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forecast\": \"500\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get subcategory budget",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/budgets/{{year}}/{{month}}/{{categoryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "budgets",
+                "{{year}}",
+                "{{month}}",
+                "{{categoryId}}",
+                ""
+              ]
+            },
+            "description": "Creates a zero budget row when none exists (as in Django)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set subcategory budget",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/budgets/{{year}}/{{month}}/{{categoryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "budgets",
+                "{{year}}",
+                "{{month}}",
+                "{{categoryId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forecast\": \"100\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Savings list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/savings/?report_currency=USD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "savings",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "report_currency",
+                  "value": "USD"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set savings for month",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/savings/{{year}}/{{month}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "savings",
+                "{{year}}",
+                "{{month}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target\": \"500\",\n  \"actual\": null,\n  \"goal_status\": \"pending\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get savings for month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/savings/{{year}}/{{month}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "savings",
+                "{{year}}",
+                "{{month}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 Reports",
+      "description": "",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/dashboard/?year={{year}}&month={{month}}&report_currency=USD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "dashboard",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "month",
+                  "value": "{{month}}"
+                },
+                {
+                  "key": "report_currency",
+                  "value": "USD"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Yearly overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/yearly/?year={{year}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "yearly",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Utilization report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/utilization/?year={{year}}&month={{month}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "utilization",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "month",
+                  "value": "{{month}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 Commitments & financial standing",
+      "description": "",
+      "item": [
+        {
+          "name": "Create commitment (loan)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                ""
+              ]
+            },
+            "description": "Generates the installment schedule and may suggest an updated budget plan.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Car loan\",\n  \"amount\": \"1200\",\n  \"start_date\": \"{{today}}\",\n  \"term_months\": 12,\n  \"frequency\": \"monthly\",\n  \"payment_amount\": \"100\",\n  \"balloon\": \"0\",\n  \"currency\": \"USD\",\n  \"reminder_enabled\": true,\n  \"reminder_days_before\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('commitmentId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List commitments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get commitment (with schedule)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j.schedule && j.schedule[0] && j.schedule[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('lineId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/schedule/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                "schedule",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pay installment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/schedule/{{lineId}}/pay/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                "schedule",
+                "{{lineId}}",
+                "pay",
+                ""
+              ]
+            },
+            "description": "Records the expense transaction too.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paid_date\": \"{{today}}\",\n  \"category_id\": \"{{categoryId}}\",\n  \"account_id\": \"{{accountId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unpay installment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/schedule/{{lineId}}/unpay/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                "schedule",
+                "{{lineId}}",
+                "unpay",
+                ""
+              ]
+            },
+            "description": "Deletes the linked expense transaction."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit installment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/schedule/{{lineId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                "schedule",
+                "{{lineId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"110.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update commitment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                ""
+              ]
+            },
+            "description": "Changing schedule fields rebuilds outstanding installments; paid ones are kept.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"term_months\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Regenerate schedule",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/regenerate-schedule/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                "regenerate-schedule",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add financial standing snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/financial-standing/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "financial-standing",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"snapshot_date\": \"{{today}}\",\n  \"total_assets\": \"20000\",\n  \"current_assets\": \"5000\",\n  \"fixed_assets\": \"15000\",\n  \"total_liabilities\": \"8000\",\n  \"short_term_liabilities\": \"1000\",\n  \"long_term_liabilities\": \"7000\",\n  \"notes\": \"Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Financial standing list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/financial-standing/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "financial-standing",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 Alerts",
+      "description": "",
+      "item": [
+        {
+          "name": "Alerts (refresh now)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/?show=open&refresh=1&year={{year}}&month={{month}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "show",
+                  "value": "open"
+                },
+                {
+                  "key": "refresh",
+                  "value": "1"
+                },
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "month",
+                  "value": "{{month}}"
+                }
+              ]
+            },
+            "description": "show = open | snoozed | resolved | all. Saves the first alert id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j[0] && j[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('alertId', v); } catch (e) {}",
+                  "try { const v = (function(j){ return (j.find(a => a.alert_type === 'commitment_due') || {}).id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('dueAlertId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alert counts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/count/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "count",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Snooze alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/{{alertId}}/snooze/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "{{alertId}}",
+                "snooze",
+                ""
+              ]
+            },
+            "description": "days = 1, 3 or 7.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"days\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Unsnooze alert",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/{{alertId}}/snooze/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "{{alertId}}",
+                "snooze",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Resolve alert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/{{alertId}}/resolve/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "{{alertId}}",
+                "resolve",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Reopen alert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/{{alertId}}/reopen/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "{{alertId}}",
+                "reopen",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Bulk action",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/bulk/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "bulk",
+                ""
+              ]
+            },
+            "description": "action = resolve | reopen | snooze (with days) | unsnooze.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"reopen\",\n  \"ids\": [\n    \"{{alertId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Record commitment payment from due alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/alerts/{{dueAlertId}}/record-commitment/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "alerts",
+                "{{dueAlertId}}",
+                "record-commitment",
+                ""
+              ]
+            },
+            "description": "Uses dueAlertId (a commitment_due alert saved by 'Alerts'). {\"record_expense\": false} just resolves it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"{{categoryId}}\",\n  \"account_id\": \"{{accountId}}\",\n  \"payment_date\": \"{{today}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Merchant links, type maps, thresholds",
+      "description": "",
+      "item": [
+        {
+          "name": "Create merchant link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/merchant-links/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "merchant-links",
+                ""
+              ]
+            },
+            "description": "Categorises matching uncategorised expenses. 201 when created, 200 when the keyword existed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyword\": \"spinneys\",\n  \"category_id\": \"{{categoryId}}\",\n  \"apply_unmatched\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('merchantLinkId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List merchant links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/merchant-links/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "merchant-links",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Type maps",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/type-maps/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "type-maps",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set type map",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/type-maps/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "type-maps",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consumption_type\": \"market\",\n  \"category_id\": \"{{categoryId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create threshold",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/thresholds/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "thresholds",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"{{categoryId}}\",\n  \"warn_pct\": \"70\",\n  \"critical_pct\": \"90\",\n  \"email_enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('thresholdId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List thresholds",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/thresholds/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "thresholds",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10 Personal budgets & sharing",
+      "description": "",
+      "item": [
+        {
+          "name": "List personal budgets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/?sort=created_desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "created_desc"
+                }
+              ]
+            },
+            "description": "First call creates the default 'Monthly Expenses' budget (it cannot be deleted)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create personal budget",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vacation\",\n  \"description\": \"Summer trip\",\n  \"currency\": \"USD\",\n  \"start_date\": \"{{today}}\",\n  \"total_amount\": \"2000\",\n  \"status\": \"active\",\n  \"categories\": [\n    {\n      \"name\": \"Flights\",\n      \"allocated_amount\": \"800\"\n    },\n    {\n      \"name\": \"Hotel\",\n      \"allocated_amount\": \"900\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('personalBudgetId', v); } catch (e) {}",
+                  "try { const v = (function(j){ return j.categories && j.categories[0] && j.categories[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('pbCategoryId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Personal budgets dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/dashboard/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "dashboard",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get personal budget",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update personal budget",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"total_amount\": \"2500\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add category line (group based)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/categories/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "categories",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group_id\": \"{{groupId}}\",\n  \"allocated_amount\": \"300\",\n  \"subcategories\": [\n    {\n      \"category_id\": \"{{categoryId}}\",\n      \"allocated_amount\": \"100\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update category line",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/categories/{{pbCategoryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "categories",
+                "{{pbCategoryId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"allocated_amount\": \"850\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clone personal budget",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/clone/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "clone",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vacation copy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('clonedBudgetId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Look up email (share vs invite)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/users/lookup/?email={{shareEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "users",
+                "lookup",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{shareEmail}}"
+                }
+              ]
+            },
+            "description": "Returns only found/can_invite. 30 per hour per user."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Share / invite by email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/members/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "members",
+                ""
+              ]
+            },
+            "description": "Registered email -> member (saves memberId) + in-app notice + email; otherwise an invitation (saves inviteId). Set shareEmail to a second registered user to test the member requests.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{shareEmail}}\",\n  \"role\": \"viewer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.members && j.members[0] && j.members[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('memberId', v); } catch (e) {}",
+                  "try { const v = (function(j){ return j.pending_invites && j.pending_invites[0] && j.pending_invites[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('inviteId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/members/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "members",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change member role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/members/{{memberId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "members",
+                "{{memberId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"editor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/members/{{memberId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "members",
+                "{{memberId}}",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Cancel invite",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/invites/{{inviteId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "invites",
+                "{{inviteId}}",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Shared with me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/shared/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "shared",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Share notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/notifications/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "notifications",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j.notifications && j.notifications[0] && j.notifications[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('pbNotificationId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark share notification read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/notifications/{{pbNotificationId}}/read/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "notifications",
+                "{{pbNotificationId}}",
+                "read",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Planning",
+      "description": "",
+      "item": [
+        {
+          "name": "Create income stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/income-streams/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "income-streams",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Salary\",\n  \"amount\": \"4000\",\n  \"currency\": \"USD\",\n  \"frequency\": \"monthly\",\n  \"account_id\": \"{{accountId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('streamId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Income streams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/income-streams/?currency=USD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "income-streams",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "currency",
+                  "value": "USD"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update income stream",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/income-streams/{{streamId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "income-streams",
+                "{{streamId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"4200\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Needs / wants buckets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/buckets/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "buckets",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set buckets",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/buckets/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "buckets",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"buckets\": {\n    \"{{groupId}}\": \"needs\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview plans (both types)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/preview/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "preview",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": \"{{year}}\",\n  \"month\": \"{{month}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save suggested plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                ""
+              ]
+            },
+            "description": "plan_type = rule_50_30_20 | spending_based.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": \"{{year}}\",\n  \"month\": \"{{month}}\",\n  \"plan_type\": \"rule_50_30_20\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "try { const v = (function(j){ return j.id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('planId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/?month={{month}}&year={{year}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "{{month}}"
+                },
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get plan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/{{planId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "{{planId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit plan lines",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/{{planId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "{{planId}}",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amounts\": {\n    \"{{groupId}}\": \"300\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept plan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/{{planId}}/accept/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "{{planId}}",
+                "accept",
+                ""
+              ]
+            },
+            "description": "Writes the group budgets and the savings target for the month."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dismiss plan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/plans/{{planId}}/dismiss/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "plans",
+                "{{planId}}",
+                "dismiss",
+                ""
+              ]
+            },
+            "description": "Only a suggested plan changes status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 Notifications (inbox)",
+      "description": "",
+      "item": [
+        {
+          "name": "Inbox",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const v = (function(j){ return j[0] && j[0].id; })(pm.response.json()); if (v !== undefined && v !== null && v !== '') pm.collectionVariables.set('notificationId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unread count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/count/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "count",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read",
+                ""
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Mark all read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99 Cleanup (deletes)",
+      "description": "",
+      "item": [
+        {
+          "name": "Delete threshold",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/thresholds/{{thresholdId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "thresholds",
+                "{{thresholdId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete merchant link",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/merchant-links/{{merchantLinkId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "merchant-links",
+                "{{merchantLinkId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete income stream",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/income-streams/{{streamId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "income-streams",
+                "{{streamId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete personal budget category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/categories/{{pbCategoryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                "categories",
+                "{{pbCategoryId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete cloned personal budget",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{clonedBudgetId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{clonedBudgetId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete personal budget",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/personal-budgets/{{personalBudgetId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "personal-budgets",
+                "{{personalBudgetId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/transactions/{{transactionId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "transactions",
+                "{{transactionId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete commitment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/commitments/{{commitmentId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "commitments",
+                "{{commitmentId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete subcategory",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/categories/{{categoryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "categories",
+                "{{categoryId}}",
+                ""
+              ]
+            },
+            "description": "Also removes type maps that point at it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/groups/{{groupId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "groups",
+                "{{groupId}}",
+                ""
+              ]
+            },
+            "description": "Only works after its subcategories are deleted."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/budgeting/config/accounts/{{accountId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "budgeting",
+                "config",
+                "accounts",
+                "{{accountId}}",
+                ""
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (revoke refresh token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

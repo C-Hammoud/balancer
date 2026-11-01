@@ -1,0 +1,87 @@
+<section class="panel subs">
+  <header class="section-head">
+    <div>
+      <h2>Sub-budgets</h2>
+      <small class="muted">Trips and projects inside your plan. Their money is set aside each month, and expenses you
+        tag to them count only there.</small>
+    </div>
+    <button type="button" class="btn primary" (click)="showForm.set(!showForm())">
+      {{ showForm() ? 'Close' : 'New sub-budget' }}
+    </button>
+  </header>
+
+  @if (showForm()) {
+    <form class="sub-form" (ngSubmit)="create()">
+      <label>Name <input name="subName" [(ngModel)]="draft.name" placeholder="Trip to Istanbul" /></label>
+      <label>Total <input name="subTotal" type="number" min="0" step="any" [(ngModel)]="draft.total_amount" /></label>
+      <label>
+        Currency
+        <select name="subCurrency" [(ngModel)]="draft.currency">
+          @for (cur of currencyOptions(); track cur.code) {
+            <option [value]="cur.code">{{ cur.code }}</option>
+          }
+        </select>
+      </label>
+      <label>Starts <input name="subStart" type="date" [(ngModel)]="draft.start_date" /></label>
+      <label>Ends <input name="subEnd" type="date" [(ngModel)]="draft.end_date" /></label>
+      <label>
+        Set aside over (months)
+        <input name="subMonths" type="number" min="1" max="36" [(ngModel)]="draft.funding_months"
+               [placeholder]="defaultMonths() + ''" />
+      </label>
+      <p class="muted per-month">
+        ≈ {{ perMonth() | number: '1.0-2' }} {{ draft.currency }} per month, starting this month.
+      </p>
+      <div class="form-actions">
+        <button type="submit" class="btn primary" [disabled]="busy()">Add to plan</button>
+      </div>
+    </form>
+  }
+
+  @if (attached().length) {
+    <ul class="sub-list">
+      @for (b of attached(); track b.id) {
+        <li>
+          <div class="sub-main">
+            <a [routerLink]="['/budgeting/budgets', b.id]"><strong>{{ b.name }}</strong></a>
+            <small class="muted">
+              {{ b.total_amount | number: '1.0-2' }} {{ b.currency }}
+              @if (b.start_date) { · {{ b.start_date }}{{ b.end_date ? ' → ' + b.end_date : '' }} }
+            </small>
+            <div class="progress" [title]="'Spent ' + b.spent + ' of ' + b.total_amount">
+              <span [style.width.%]="b.percent_used > 100 ? 100 : b.percent_used" [class.over]="b.percent_used > 100"></span>
+            </div>
+            <small class="muted">Spent {{ b.spent | number: '1.0-2' }} · this month sets aside
+              {{ b.monthly_contribution | number: '1.0-2' }} {{ b.currency }}</small>
+          </div>
+          <label class="months">
+            Months
+            <input type="number" min="1" max="36" [value]="b.funding_months" #m (change)="setMonths(b, m.value)"
+                   [disabled]="busy()" />
+          </label>
+          <button type="button" class="btn ghost" (click)="detach(b)" [disabled]="busy()">Remove from plan</button>
+        </li>
+      }
+    </ul>
+  } @else if (!showForm()) {
+    <p class="muted">No sub-budgets yet. Add a trip or project to set money aside for it.</p>
+  }
+
+  @if (candidates().length) {
+    <details class="existing">
+      <summary>Add an existing budget ({{ candidates().length }})</summary>
+      <ul class="sub-list">
+        @for (b of candidates(); track b.id) {
+          <li>
+            <div class="sub-main">
+              <strong>{{ b.name }}</strong>
+              <small class="muted">{{ b.total_amount | number: '1.0-2' }} {{ b.currency }} · {{ b.status }}
+                @if (b.transactions_count) { · {{ b.transactions_count }} tagged expense(s) }</small>
+            </div>
+            <button type="button" class="btn ghost" (click)="attach(b)" [disabled]="busy()">Add to this plan</button>
+          </li>
+        }
+      </ul>
+    </details>
+  }
+</section>

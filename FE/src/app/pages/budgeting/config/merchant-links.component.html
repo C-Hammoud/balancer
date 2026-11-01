@@ -1,0 +1,59 @@
+<section class="hero">
+  <div>
+    <h1>Merchant → subcategory links</h1>
+    <p>
+      Map bank statement keywords to a subcategory under a parent category.
+      Used to auto-classify transactions on CSV import.
+    </p>
+  </div>
+</section>
+
+<form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
+  <label>Keyword <input formControlName="keyword" placeholder="e.g. STARBUCKS" /></label>
+  <label>
+    Category (parent)
+    <select formControlName="group_id" (change)="onGroupChange()">
+      <option value="">Select…</option>
+      @for (g of groups(); track g.id) {
+        <option [value]="g.id">{{ g.name }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    Subcategory (merchant)
+    <select formControlName="category_id">
+      <option value="">Select…</option>
+      @for (s of subsForGroup(form.controls.group_id.value); track s.id) {
+        <option [value]="s.id">{{ s.name }}</option>
+      }
+    </select>
+  </label>
+  <button type="submit" class="btn primary">Add link</button>
+</form>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Keyword</th>
+          <th>Subcategory</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (l of items(); track l.id) {
+          <tr>
+            <td>{{ l.keyword }}</td>
+            <td>{{ linkLabel(l) }}</td>
+            <td><button type="button" class="btn ghost danger" (click)="remove(l.id)">Delete</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="muted">No merchant links yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

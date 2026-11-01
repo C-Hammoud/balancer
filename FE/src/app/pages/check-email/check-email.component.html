@@ -1,0 +1,32 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Finance Tracker</p>
+    <h1>Check your email</h1>
+
+    @if (email) {
+      <p class="sub">
+        We sent a welcome email with a verification link to
+        <strong>{{ email }}</strong>.
+      </p>
+    } @else {
+      <p class="sub">Enter your email to resend the verification link.</p>
+    }
+
+    <p class="sub">Verify your address before signing in.</p>
+
+    <form [formGroup]="form" (ngSubmit)="resend()">
+      <label>
+        Email
+        <input type="email" formControlName="email" autocomplete="email" />
+      </label>
+      <button class="btn primary" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Sending…' : sent() ? 'Send again' : 'Resend verification email' }}
+      </button>
+    </form>
+
+    <p class="footer">
+      Already verified?
+      <a routerLink="/login">Sign in</a>
+    </p>
+  </div>
+</div>

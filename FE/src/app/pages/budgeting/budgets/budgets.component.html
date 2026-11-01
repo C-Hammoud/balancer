@@ -1,0 +1,176 @@
+<section class="hero">
+  <div>
+    <h1>My budgets</h1>
+    <p>Create and manage separate budgets for different goals — vacations, renovations, monthly expenses, and more.</p>
+  </div>
+  <div class="actions">
+    <a class="btn ghost" routerLink="/budgeting/monthly-forecasts">Monthly forecasts</a>
+    <button type="button" class="btn primary" (click)="toggleForm()">
+      {{ showForm() ? 'Close' : 'Create budget' }}
+    </button>
+  </div>
+</section>
+
+@if (dashboard(); as d) {
+  <div class="stats">
+    <article class="stat">
+      <span>Total budgets</span>
+      <strong>{{ d.total_budgets }}</strong>
+    </article>
+    <article class="stat">
+      <span>Total allocated</span>
+      <strong>{{ d.total_allocated }}</strong>
+    </article>
+    <article class="stat">
+      <span>Total spent</span>
+      <strong>{{ d.total_spent }}</strong>
+    </article>
+    <article class="stat">
+      <span>Total remaining</span>
+      <strong [class.neg]="+d.total_remaining < 0">{{ d.total_remaining }}</strong>
+    </article>
+  </div>
+}
+
+@if (notifications().length) {
+  <section class="panel notices">
+    @for (n of notifications(); track n.id) {
+      <article class="notice">
+        <div>
+          <strong>{{ n.title }}</strong>
+          <p class="muted">{{ n.message }}</p>
+        </div>
+        <button type="button" class="btn primary" (click)="dismissNotification(n)">View budget</button>
+      </article>
+    }
+  </section>
+}
+
+@if (showForm()) {
+  <form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
+    <h2>New budget</h2>
+    <label>Name <span class="req">*</span> <input formControlName="name" /></label>
+    <label>Description <textarea formControlName="description" rows="2"></textarea></label>
+    <label>
+      Currency <span class="req">*</span>
+      <select formControlName="currency">
+        @for (cur of currencyOptions(); track cur.code) {
+          <option [value]="cur.code">{{ cur.code }} — {{ cur.label }}</option>
+        }
+      </select>
+    </label>
+    <div class="row">
+      <label>Start date <span class="req">*</span> <input type="date" formControlName="start_date" /></label>
+      <label>End date <span class="req">*</span> <input type="date" formControlName="end_date" /></label>
+    </div>
+    <label>Budget amount <span class="req">*</span> <input type="number" step="0.01" formControlName="total_amount" /></label>
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="draft">Draft</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+        <option value="archived">Archived</option>
+      </select>
+    </label>
+    <label>Project / category <input formControlName="project_tag" placeholder="Optional" /></label>
+    <label>Notes <textarea formControlName="notes" rows="2"></textarea></label>
+    <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create budget' }}</button>
+  </form>
+}
+
+<section class="panel filters">
+  <div class="row">
+    <label>
+      Search
+      <input [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Budget name…" />
+    </label>
+    <label>
+      Status
+      <select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
+        @for (opt of statusOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Sort
+      <select [(ngModel)]="sort" (ngModelChange)="applyFilters()">
+        @for (opt of sortOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Period from
+      <input type="date" [(ngModel)]="periodStart" (change)="applyFilters()" />
+    </label>
+    <label>
+      Period to
+      <input type="date" [(ngModel)]="periodEnd" (change)="applyFilters()" />
+    </label>
+  </div>
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <h2 class="section-title">My budgets</h2>
+  <div class="budget-grid">
+    @for (b of budgets(); track b.id) {
+      <article class="budget-card clickable" (click)="open(b)">
+        <header>
+          <h2>{{ b.name }}</h2>
+          <span class="pill" [class]="b.status">{{ statusLabel(b.status) }}</span>
+          @if (b.in_plan) {
+            <span class="pill in-plan" title="Sub-budget of your monthly plan">In plan</span>
+          }
+        </header>
+        @if (b.description) {
+          <p class="desc">{{ b.description }}</p>
+        }
+        <p class="period muted">{{ periodLabel(b) }}</p>
+        <div class="amounts">
+          <div><span>Budget</span><strong>{{ b.total_amount }} {{ b.currency }}</strong></div>
+          <div><span>Spent</span><strong>{{ b.spent }} {{ b.currency }}</strong></div>
+          <div><span>Remaining</span><strong [class.neg]="+b.remaining < 0">{{ b.remaining }} {{ b.currency }}</strong></div>
+        </div>
+        <div class="progress">
+          <div class="bar"><div class="fill" [style.width.%]="pctWidth(b)"></div></div>
+          <span>{{ b.percent_used | number: '1.0-0' }}% used</span>
+        </div>
+        @if (b.project_tag) {
+          <small class="tag">{{ b.project_tag }}</small>
+        }
+      </article>
+    } @empty {
+      <p class="muted empty">No budgets yet. Create your first budget to get started.</p>
+    }
+  </div>
+
+  <h2 class="section-title">Shared with me</h2>
+  <div class="budget-grid">
+    @for (b of sharedWithMe(); track b.id) {
+      <article class="budget-card clickable shared" (click)="open(b)">
+        <header>
+          <h2>{{ b.name }}</h2>
+          <span class="pill share-role">{{ roleLabel(b.access_role) }}</span>
+        </header>
+        @if (b.owner) {
+          <p class="muted">Owner: {{ b.owner.name }} · {{ b.owner.email }}</p>
+        }
+        <p class="period muted">{{ periodLabel(b) }}</p>
+        <div class="amounts">
+          <div><span>Budget</span><strong>{{ b.total_amount }} {{ b.currency }}</strong></div>
+          <div><span>Spent</span><strong>{{ b.spent }} {{ b.currency }}</strong></div>
+        </div>
+        <div class="progress">
+          <div class="bar"><div class="fill" [style.width.%]="pctWidth(b)"></div></div>
+          <span>{{ b.percent_used | number: '1.0-0' }}% used</span>
+        </div>
+      </article>
+    } @empty {
+      <p class="muted empty">No budgets have been shared with you yet.</p>
+    }
+  </div>
+}

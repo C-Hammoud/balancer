@@ -1,0 +1,56 @@
+// Shared by the Admin and Help & support pages.
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.panel h2 { margin: 0; font-size: 1.05rem; color: var(--ink); }
+.filters { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; margin-bottom: 1rem; }
+.filters label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.6rem 0.4rem; border-bottom: 1px solid #eef2f1; font-size: 0.9rem; vertical-align: top; }
+td small { display: block; color: var(--muted); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: #f7faf9; }
+.pill { margin: 0 0.25rem 0.25rem 0; }
+.pill.high, .pill.closed-bad { background: #fde8e4; color: #8a2f1d; }
+.pill.warn { background: #fff1db; color: #9a5b00; }
+.pill.ok { background: #e4f5ea; color: #1d6b3a; }
+.pill.muted { background: #eef2f1; color: var(--muted); }
+.pager { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end; margin-top: 0.6rem; font-size: 0.88rem; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+.tile {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+.tile span { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.25rem; }
+.tile strong { font-size: 1.5rem; }
+.tile.alert strong { color: #b33a1a; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; margin: 0; font-size: 0.9rem; }
+dl.facts dt { color: var(--muted); }
+dl.facts dd { margin: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.thread { display: grid; gap: 0.6rem; margin-bottom: 1rem; }
+.msg { border-radius: 0.6rem; padding: 0.6rem 0.8rem; background: #f7faf9; border: 1px solid var(--line); max-width: 46rem; }
+.msg.staff { background: #e8f1f0; margin-left: auto; }
+.msg header { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; }
+.msg p { margin: 0; white-space: pre-wrap; }
+.reply { display: grid; gap: 0.5rem; }
+.reply textarea { min-height: 6rem; width: 100%; box-sizing: border-box; font: inherit; }
+.form-grid { display: grid; gap: 0.6rem; }
+.form-grid label { display: grid; gap: 0.25rem; font-size: 0.88rem; }
+.empty { color: var(--muted); padding: 0.6rem 0; }
+@media (max-width: 900px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .grid2 { grid-template-columns: 1fr; }
+}

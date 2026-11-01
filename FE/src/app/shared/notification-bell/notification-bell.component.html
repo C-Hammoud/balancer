@@ -1,0 +1,44 @@
+<button
+  type="button"
+  class="bell"
+  (click)="toggle()"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="true"
+  [attr.aria-label]="unread() ? 'Notifications, ' + unread() + ' unread' : 'Notifications'"
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </svg>
+  @if (unread() > 0) {
+    <span class="count">{{ unread() > 9 ? '9+' : unread() }}</span>
+  }
+</button>
+
+@if (open()) {
+  <div class="panel-pop" role="menu">
+    <header>
+      <strong>Notifications</strong>
+      @if (unread() > 0) {
+        <button type="button" class="link" (click)="markAll()">Mark all read</button>
+      }
+    </header>
+    @if (loading()) {
+      <p class="empty">Loading…</p>
+    } @else {
+      <ul>
+        @for (n of items(); track n.id) {
+          <li>
+            <button type="button" role="menuitem" [class.unread]="!n.is_read" (click)="openItem(n)">
+              <strong>{{ n.title }}</strong>
+              <span>{{ n.body }}</span>
+              <small>{{ n.created_at | date: 'MMM d, h:mm a' }}</small>
+            </button>
+          </li>
+        } @empty {
+          <li class="empty">No notifications yet.</li>
+        }
+      </ul>
+    }
+  </div>
+}

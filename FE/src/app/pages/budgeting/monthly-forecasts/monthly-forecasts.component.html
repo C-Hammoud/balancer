@@ -1,0 +1,163 @@
+<section class="hero">
+  <div>
+    <h1>Monthly forecasts</h1>
+    <p>Select a category, set its maximum utilization forecast, then optionally split across subcategories.</p>
+  </div>
+  <div class="actions">
+    <select [(ngModel)]="year" (ngModelChange)="reload()">
+      @for (y of years; track y) {
+        <option [ngValue]="y">{{ y }}</option>
+      }
+    </select>
+    <select [(ngModel)]="month" (ngModelChange)="reload()">
+      @for (m of months; track m.v) {
+        <option [ngValue]="m.v">{{ m.n }}</option>
+      }
+    </select>
+  </div>
+</section>
+
+<section class="panel add">
+  <h2>Add category budget</h2>
+  <p class="hint">Step 1 — select a parent category and set its maximum utilization forecast for this month.</p>
+  <div class="row">
+    <select [(ngModel)]="newGroupId" (ngModelChange)="onNewGroupChange()">
+      <option value="">Select category</option>
+      @for (g of availableGroups(); track g.id) {
+        <option [value]="g.id">{{ g.name }}</option>
+      }
+    </select>
+    <input
+      type="number"
+      step="0.01"
+      min="0.01"
+      [(ngModel)]="newGroupForecast"
+      placeholder="Max utilization"
+    />
+    <button type="button" class="btn primary" (click)="saveNewGroupBudget()" [disabled]="!newGroupId">Save &amp; continue</button>
+  </div>
+  @if (!availableGroups().length && !newGroupId) {
+    <p class="hint muted">All categories already have a forecast this month, or none are configured yet.</p>
+  }
+
+  @if (showSubStep() && newGroupId) {
+    <div class="sub-step">
+      <h3>Step 2 — subcategories (optional)</h3>
+      <p class="hint">
+        Set utilization amounts per subcategory. Leave blank to track only the category total.
+      </p>
+      @if (subDrafts().length) {
+        <ul class="sub-list">
+          @for (s of subDrafts(); track s.category_id; let i = $index) {
+            <li>
+              <span>{{ s.category_name }}</span>
+              <input
+                type="number"
+                step="0.01"
+                [ngModel]="s.forecast"
+                (ngModelChange)="updateSubDraft(i, $event)"
+                placeholder="Amount"
+              />
+            </li>
+          }
+        </ul>
+        <div class="row sub-actions">
+          <button type="button" class="btn primary" [disabled]="savingSubs()" (click)="saveOptionalSubBudgets()">
+            {{ savingSubs() ? 'Saving…' : 'Save subcategory budgets' }}
+          </button>
+          <button type="button" class="btn ghost" (click)="skipSubBudgets()">Skip — category total only</button>
+        </div>
+      } @else {
+        <p class="muted">This category has no subcategories yet.</p>
+        <button type="button" class="btn ghost" (click)="skipSubBudgets()">Done</button>
+      }
+    </div>
+  }
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <div class="table-toolbar">
+      <button type="button" class="btn ghost" (click)="expandAll()">Expand all</button>
+      <button type="button" class="btn ghost" (click)="collapseAll()">Collapse all</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Forecast</th>
+          <th>Actual</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.group_id || r.category_id) {
+          <tr class="group-row" [class.is-collapsed]="r.group_id && !isExpanded(r.group_id!)">
+            <td>
+              <div class="category-cell">
+                @if (r.group_id && hasSubs(r)) {
+                  <button
+                    type="button"
+                    class="expand-btn"
+                    (click)="toggleGroup(r.group_id!)"
+                    [attr.aria-expanded]="isExpanded(r.group_id!)"
+                    [attr.aria-label]="isExpanded(r.group_id!) ? 'Collapse subcategories' : 'Expand subcategories'"
+                  >
+                    <span class="chev" [class.open]="isExpanded(r.group_id!)">▸</span>
+                  </button>
+                } @else {
+                  <span class="expand-spacer" aria-hidden="true"></span>
+                }
+                <strong>{{ r.category_name }}</strong>
+                @if (r.group_id && hasSubs(r)) {
+                  <span class="sub-count">{{ r.sub_budgets!.length }} sub{{ r.sub_budgets!.length === 1 ? '' : 's' }}</span>
+                }
+              </div>
+            </td>
+            <td>
+              @if (r.group_id) {
+                <div class="forecast-cell">
+                  <input
+                    class="forecast"
+                    [(ngModel)]="groupForecasts[r.group_id]"
+                    [placeholder]="subSum(r)"
+                  />
+                  @if (!groupForecasts[r.group_id] && r.forecast_is_derived) {
+                    <span class="derived-hint">Sum of subs: {{ r.forecast }}</span>
+                  } @else if (groupForecasts[r.group_id] && r.forecast_from_subs) {
+                    <span class="derived-hint">Subs total: {{ r.forecast_from_subs }}</span>
+                  }
+                </div>
+              } @else {
+                {{ r.forecast }}
+              }
+            </td>
+            <td>{{ r.actual }}</td>
+            <td class="row-actions">
+              @if (r.group_id) {
+                <button type="button" class="btn ghost" (click)="saveGroup(r.group_id!)">Save</button>
+                @if (subsForGroup(r.group_id).length) {
+                  <button type="button" class="btn ghost" (click)="openSubEditor(r.group_id!)">Subcategories</button>
+                }
+              }
+            </td>
+          </tr>
+          @if (!r.group_id || isExpanded(r.group_id!)) {
+            @for (s of r.sub_budgets || []; track s.category_id) {
+              <tr class="sub-row">
+                <td><span class="sub-indent">{{ s.category_name }}</span></td>
+                <td><input class="forecast" [(ngModel)]="subForecasts[s.category_id]" placeholder="0" /></td>
+                <td>{{ s.actual }}</td>
+                <td><button type="button" class="btn ghost" (click)="saveSub(s.category_id)">Save</button></td>
+              </tr>
+            }
+          }
+        } @empty {
+          <tr><td colspan="4" class="muted">No budgets for this month yet. Add a category above.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

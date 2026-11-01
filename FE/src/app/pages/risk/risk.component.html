@@ -1,0 +1,160 @@
+<section class="hero">
+  <div>
+    <h1>Financial risk</h1>
+    <p>How exposed you are to debt and cash shortfalls, checked daily. Alerts appear in Alerts.</p>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn ghost" (click)="showSettings.set(!showSettings())">
+      {{ showSettings() ? 'Hide settings' : 'Settings' }}
+    </button>
+    <button type="button" class="btn primary" [disabled]="refreshing()" (click)="load(true)">
+      {{ refreshing() ? 'Checking…' : 'Re-check now' }}
+    </button>
+  </div>
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+}
+@if (report(); as r) {
+  <section class="panel summary">
+    <div class="gauge" [class]="'gauge ' + r.level" [style.--deg]="scoreDeg() + 'deg'">
+      <div class="gauge-inner">
+        <strong>{{ r.score ?? '—' }}</strong>
+        <span>of 100</span>
+      </div>
+    </div>
+    <div class="summary-text">
+      <h2>
+        @switch (r.level) {
+          @case ('low') { Low risk }
+          @case ('medium') { Medium risk }
+          @case ('high') { High risk }
+          @default { Not enough data yet }
+        }
+      </h2>
+      <p class="muted">
+        Higher is safer. Based on {{ r.factors.length - r.missing.length }} of {{ r.factors.length }} checks,
+        in {{ r.currency }}, as of {{ r.as_of }}.
+      </p>
+      <dl class="inputs">
+        <div><dt>Liquid balance</dt><dd>{{ r.inputs['liquid'] ?? '—' }}</dd></div>
+        <div>
+          <dt>Monthly income</dt>
+          <dd>
+            {{ r.inputs['monthly_income'] ?? '—' }}
+            @if (r.inputs['income_source'] === 'recent_average') { <small>(recent average)</small> }
+          </dd>
+        </div>
+        <div><dt>Installments this month</dt><dd>{{ r.inputs['installments_month'] ?? '—' }}</dd></div>
+        <div><dt>Average monthly spending</dt><dd>{{ r.inputs['avg_spending'] ?? '—' }}</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  @if (r.missing.length) {
+    <section class="panel notice">
+      <strong>Add data to complete your risk picture</strong>
+      <ul>
+        @for (m of r.missing; track m) { <li>{{ m }}</li> }
+      </ul>
+    </section>
+  }
+
+  <div class="columns">
+    @for (group of [{ title: 'Debt', factors: debtFactors() }, { title: 'Liquidity', factors: liquidityFactors() }]; track group.title) {
+      <section>
+        <h2 class="group-title">{{ group.title }}</h2>
+        @for (f of group.factors; track f.key) {
+          <article class="panel factor" [class]="'panel factor ' + f.status">
+            <header>
+              <h3>{{ f.label }}</h3>
+              <span class="pill" [class]="'pill ' + f.status">{{ statusLabel(f.status) }}</span>
+            </header>
+            <p class="value">{{ formatValue(f) }}</p>
+            <p class="explanation">{{ f.explanation }}</p>
+            @if (f.recommendation) {
+              <p class="recommendation">{{ f.recommendation }}</p>
+            }
+            @if (f.items.length) {
+              <ul class="items">
+                @for (item of f.items; track $index) { <li>{{ itemText(item) }}</li> }
+              </ul>
+            }
+            <footer>
+              <small class="muted">{{ thresholdText(f) }}</small>
+              @if (links[f.key]; as link) {
+                <a [routerLink]="link.path">{{ link.label }} →</a>
+              }
+            </footer>
+          </article>
+        }
+      </section>
+    }
+  </div>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2>Score over the last 90 days</h2>
+      <span class="muted">One point per day you or the daily check looked</span>
+    </header>
+    @if (history().length) {
+      <div class="history" role="img" aria-label="Risk score history">
+        @for (p of history(); track p.as_of) {
+          <div class="h-col" [title]="p.as_of + ': ' + (p.score ?? 'n/a')">
+            <div class="h-bar" [class]="'h-bar ' + p.level" [style.height.%]="barHeight(p)"></div>
+          </div>
+        }
+      </div>
+      <div class="h-axis muted">
+        <span>{{ history()[0].as_of }}</span>
+        <span>{{ history()[history().length - 1].as_of }}</span>
+      </div>
+    } @else {
+      <p class="muted">No history yet.</p>
+    }
+  </section>
+}
+
+@if (showSettings()) {
+  <form class="panel settings" [formGroup]="form" (ngSubmit)="saveSettings()">
+    <header class="panel-head">
+      <h2>Risk settings</h2>
+      <button type="button" class="btn ghost" (click)="resetDefaults()">Use all defaults</button>
+    </header>
+    <p class="muted">Leave a field empty to use the default (shown as the placeholder).</p>
+    <div class="fields">
+      @for (f of thresholdFields; track f.key) {
+        <label>
+          {{ f.label }}
+          <span class="with-suffix">
+            <input type="number" step="any" min="0" [formControlName]="f.key"
+                   [placeholder]="settings()?.defaults?.[f.key] ?? ''" />
+            <small>{{ f.suffix }}</small>
+          </span>
+        </label>
+      }
+    </div>
+
+    <fieldset>
+      <legend>Accounts that count as cash</legend>
+      <p class="muted">None selected = all active bank, wallet and other accounts. Credit cards count as debt.</p>
+      <div class="account-list">
+        @for (a of liquidAccounts(); track a.id) {
+          <label class="check">
+            <input type="checkbox" [checked]="selectedAccounts().includes(a.id)"
+                   (change)="toggleAccount(a.id, $any($event.target).checked)" />
+            {{ a.name }} <small class="muted">({{ a.account_type }})</small>
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <label class="check"><input type="checkbox" formControlName="alerts_enabled" /> Show risk alerts</label>
+    <label class="check"><input type="checkbox" formControlName="email_enabled" /> Email me about new risk alerts</label>
+
+    <div class="actions">
+      <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save settings' }}</button>
+    </div>
+  </form>
+}

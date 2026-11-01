@@ -1,0 +1,130 @@
+{% extends 'expenses/base.html' %}
+{% block title %}Expenses inquiry — Budgeting{% endblock %}
+{% block content %}
+<div class="container mt-4 animate__animated animate__fadeIn">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h3 class="page-title mb-1">💰 Expenses inquiry</h3>
+        <div class="page-subtitle">View your expense transactions only. Filter by month to see a period total.</div>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <form class="row g-2 m-0" method="get">
+          <div class="col-auto">
+            <input type="text" name="month" value="{{ month_filter|default:'' }}" placeholder="YYYY-MM" class="form-control form-control-sm year-pill" style="max-width: 7rem;">
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary btn-sm shadow-sm">Filter</button>
+          </div>
+        </form>
+        {% if month_filter %}
+        <button type="button" class="btn btn-outline-info btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#mergedMonthModal"><i class="fas fa-layer-group me-1"></i>Consumption + transactions</button>
+        {% endif %}
+        <a href="{% url 'budgeting:transaction_list' %}{% if month_filter %}?month={{ month_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm shadow-sm"><i class="fas fa-list me-1"></i>All transactions</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row gy-3 mb-3">
+    <div class="col-12 col-md-4">
+      <div class="stat-card shadow-sm p-3 h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon" style="background: rgba(220,53,69,0.12); color:#dc3545;"><i class="fas fa-wallet"></i></div>
+          <div>
+            <div class="text-muted small">Total expenses {% if month_filter %}({{ month_filter }}){% endif %}</div>
+            <div class="h4 mb-0">{{ total_expenses|floatformat:2 }} SAR</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card p-3">
+    <div class="table-responsive">
+      <table class="table expense-table mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th class="text-end">Amount (SAR)</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in transactions %}
+          <tr>
+            <td>{{ t.date|date:"Y-m-d" }}</td>
+            <td>{{ t.description|truncatewords:8 }}</td>
+            <td>{{ t.category_name|default:"—" }}</td>
+            <td class="text-end">{{ t.amount|floatformat:2 }} <span class="badge-currency">SAR</span></td>
+            <td>
+              <a href="{% url 'budgeting:transaction_edit' t.pk %}" class="icon-btn" aria-label="Edit"><i class="fa fa-pen"></i></a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-muted text-center py-4">No expense transactions{% if month_filter %} for this month{% endif %}. Add or import transactions.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if transactions.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      {% if transactions.has_previous %}
+      <a href="?page={{ transactions.previous_page_number }}{% if month_filter %}&month={{ month_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm">Previous</a>
+      {% else %}<span></span>{% endif %}
+      <span class="text-muted small">Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}</span>
+      {% if transactions.has_next %}
+      <a href="?page={{ transactions.next_page_number }}{% if month_filter %}&month={{ month_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm">Next</a>
+      {% else %}<span></span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <p class="mt-3"><a href="{% url 'budgeting:transaction_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to transactions</a></p>
+</div>
+
+{% if month_filter %}
+<div class="modal fade" id="mergedMonthModal" tabindex="-1" aria-labelledby="mergedMonthModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mergedMonthModalLabel">Consumption + transactions — {{ month_filter }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Merged view of consumptions (expenses app) and expense transactions (budgeting) for the selected month.</p>
+        <div class="table-responsive">
+          <table class="table expense-table mb-0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Source</th>
+                <th>Description / note</th>
+                <th>Type / category</th>
+                <th class="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in merged_list %}
+              <tr>
+                <td>{{ row.date|date:"Y-m-d" }}</td>
+                <td><span class="badge {% if row.source == 'Consumption' %}bg-info{% else %}bg-primary{% endif %}">{{ row.source }}</span></td>
+                <td>{{ row.description|truncatewords:10 }}</td>
+                <td>{{ row.type_category }}</td>
+                <td class="text-end">{{ row.amount|floatformat:2 }} <span class="badge-currency">{{ row.currency }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-muted text-center py-4">No consumptions or transactions for this month.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

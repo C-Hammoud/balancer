@@ -1,0 +1,154 @@
+<p><a routerLink="/admin/users">← Users</a></p>
+
+@if (data(); as d) {
+  <section class="hero">
+    <div>
+      <h1>{{ d.user.username }}</h1>
+      <p>
+        {{ d.user.name || 'No name' }} · {{ d.user.email || 'no email' }}
+        @if (d.user.is_superuser) {
+          <span class="pill">superuser</span>
+        } @else if (d.user.is_staff) {
+          <span class="pill">admin</span>
+        }
+      </p>
+    </div>
+    <div class="toolbar">
+      @for (a of actions(); track a.action) {
+        <button type="button" class="btn ghost" [class.danger]="a.action === 'deactivate'" [disabled]="busy()" (click)="run(a)">
+          {{ a.label }}
+        </button>
+      }
+      @if (canChangeRole()) {
+        <button type="button" class="btn ghost" [disabled]="busy()" (click)="toggleAdmin()">
+          {{ d.user.is_staff ? 'Remove admin role' : 'Make admin' }}
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (d.flags.length) {
+    <section class="panel">
+      <h2>Problems</h2>
+      <ul>
+        @for (f of d.flags; track f.code) {
+          <li><span [class]="'pill ' + f.severity">{{ flagLabel(f.code) }}</span> {{ f.text }}</li>
+        }
+      </ul>
+    </section>
+  }
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Account</h2>
+      <dl class="facts">
+        <dt>Status</dt><dd>{{ d.user.is_active ? 'Active' : 'Deactivated' }}</dd>
+        <dt>Signed up</dt><dd>{{ date(d.user.date_joined) }}</dd>
+        <dt>Last sign-in</dt><dd>{{ date(d.user.last_login) }}</dd>
+        <dt>Email</dt>
+        <dd>{{ d.user.email_verified ? 'Verified ' + date(d.user.email_verified_at) : 'Not verified' }}</dd>
+        <dt>Setup</dt>
+        <dd>{{ d.user.setup_status }}{{ d.user.setup_completed_at ? ' · ' + date(d.user.setup_completed_at) : '' }}</dd>
+        <dt>Sign-in method</dt><dd>{{ d.user.has_password ? 'Password' : 'Google / Firebase' }}</dd>
+      </dl>
+    </section>
+
+    <section class="panel">
+      <h2>Money summary</h2>
+      @if (d.finance_error) {
+        <p class="muted">{{ d.finance_error }}</p>
+      } @else {
+        <dl class="facts">
+          <dt>Transactions</dt><dd>{{ d.transactions_count }}</dd>
+          <dt>Commitments</dt><dd>{{ d.commitments_count }}</dd>
+          <dt>Open alerts</dt><dd>{{ d.open_alerts?.length ?? 0 }}</dd>
+          <dt>Risk</dt>
+          <dd>{{ d.risk ? d.risk.score + ' / 100 (' + d.risk.level + ', ' + d.risk.as_of + ')' : 'Not calculated yet' }}</dd>
+        </dl>
+        @if (d.accounts?.length) {
+          <table>
+            <thead><tr><th>Account</th><th>Type</th><th>Balance ({{ d.currency }})</th></tr></thead>
+            <tbody>
+              @for (a of d.accounts; track a.account_id) {
+                <tr><td>{{ a.name }}</td><td>{{ a.account_type }}</td><td>{{ a.total }}</td></tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    </section>
+  </div>
+
+  @if (d.recent_transactions?.length) {
+    <section class="panel table-wrap">
+      <h2>Last {{ d.recent_transactions?.length }} transactions</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          @for (t of d.recent_transactions; track t.id) {
+            <tr>
+              <td>{{ t.date }}</td>
+              <td>{{ t.description }}</td>
+              <td>{{ t.direction }}</td>
+              <td>{{ t.amount }} {{ t.currency }}</td>
+              <td>{{ t.status }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  @if (d.open_alerts?.length) {
+    <section class="panel">
+      <h2>Open alerts</h2>
+      <ul>
+        @for (a of d.open_alerts; track a.id) {
+          <li><span [class]="'pill ' + (a.severity === 'CRITICAL' ? 'high' : 'warn')">{{ a.severity }}</span> {{ a.title }}</li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="panel table-wrap">
+    <h2>Emails</h2>
+    <table>
+      <thead><tr><th>When</th><th>Subject</th><th>Type</th><th>Result</th></tr></thead>
+      <tbody>
+        @for (e of d.emails; track $index) {
+          <tr>
+            <td>{{ date(e.created_at) }}</td>
+            <td>{{ e.subject }}<small>{{ e.to }}</small></td>
+            <td>{{ e.kind }}</td>
+            <td>
+              <span class="pill" [class.ok]="e.status === 'sent'" [class.high]="e.status === 'failed'" [class.muted]="e.status === 'console'">
+                {{ e.status === 'console' ? 'printed only' : e.status }}
+              </span>
+              @if (e.error) { <small>{{ e.error }}</small> }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="4" class="empty">No emails recorded.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Support tickets</h2>
+      <a [routerLink]="['/admin/audit-log']" [queryParams]="{ user: d.user.id }">Audit log for this user →</a>
+    </div>
+    @for (t of d.tickets; track t.id) {
+      <p>
+        <a [routerLink]="['/admin/tickets', t.id]">#{{ t.id }} {{ t.subject }}</a>
+        <span [class]="'pill ' + statusClass(t.status)">{{ ticketStatus[t.status] }}</span>
+        <small class="muted">{{ date(t.updated_at) }}</small>
+      </p>
+    } @empty {
+      <p class="empty">No tickets.</p>
+    }
+  </section>
+} @else {
+  <p class="muted">Loading…</p>
+}

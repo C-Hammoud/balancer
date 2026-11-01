@@ -1,0 +1,62 @@
+<section class="hero">
+  <div>
+    <h1>Savings</h1>
+    <p>Monthly savings targets. Actual defaults to income − expenses − commitments.</p>
+  </div>
+  <button type="button" class="btn primary" (click)="editing.set({ year: form.value.year!, month: form.value.month!, target: '0', actual: '', goal_status: 'pending' })">
+    Add / edit month
+  </button>
+</section>
+
+@if (editing()) {
+  <form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
+    <label>Year <input type="number" formControlName="year" /></label>
+    <label>Month <input type="number" min="1" max="12" formControlName="month" /></label>
+    <label>Target <input type="number" step="0.01" formControlName="target" /></label>
+    <label>Actual (optional) <input type="number" step="0.01" formControlName="actual" /></label>
+    <label>
+      Status
+      <select formControlName="goal_status">
+        <option value="pending">Pending</option>
+        <option value="on_track">On track</option>
+        <option value="achieved">Achieved</option>
+        <option value="missed">Missed</option>
+      </select>
+    </label>
+    <div class="row">
+      <button type="submit" class="btn primary">Save</button>
+      <button type="button" class="btn ghost" (click)="editing.set(null)">Cancel</button>
+    </div>
+  </form>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Target</th>
+          <th>Actual</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of items(); track s.year + '-' + s.month) {
+          <tr>
+            <td>{{ s.year }}-{{ s.month | number: '2.0-0' }}</td>
+            <td>{{ s.target }}</td>
+            <td>{{ s.actual }}</td>
+            <td>{{ s.goal_status_display || s.goal_status }}</td>
+            <td><button type="button" class="btn ghost" (click)="edit(s)">Edit</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="muted">No savings records yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

@@ -1,0 +1,132 @@
+{% extends 'expenses/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div>
+      <h2 class="page-title mb-1">Account Settings</h2>
+      <div class="page-subtitle">Update your profile and change your password</div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="glass-card p-4 h-100">
+        <h5 class="mb-3">Profile</h5>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% for field in profile_form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              {{ field|add_class:"form-control" }}
+              {% for err in field.errors %}
+                <div class="text-danger small">{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          <button type="submit" name="save_profile" class="btn btn-primary w-100">
+            Save Profile
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="glass-card p-4 h-100">
+        <h5 class="mb-3">Change Password</h5>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% for field in password_form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              {{ field|add_class:"form-control" }}
+              {% if field.help_text %}
+                <div class="text-muted small">{{ field.help_text|safe }}</div>
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="text-danger small">{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          <div class="mb-3">
+            <div class="text-muted small mb-2">Password requirements</div>
+            <ul class="list-unstyled mb-0" id="pwRules">
+              <li class="pw-rule" data-rule="similar">
+                <i class="fa fa-circle"></i>
+                Your password can’t be too similar to your other personal information.
+              </li>
+              <li class="pw-rule" data-rule="length">
+                <i class="fa fa-circle"></i>
+                Your password must contain at least 8 characters.
+              </li>
+              <li class="pw-rule" data-rule="common">
+                <i class="fa fa-circle"></i>
+                Your password can’t be a commonly used password.
+              </li>
+              <li class="pw-rule" data-rule="numeric">
+                <i class="fa fa-circle"></i>
+                Your password can’t be entirely numeric.
+              </li>
+            </ul>
+          </div>
+          <button type="submit" name="save_password" class="btn btn-outline-primary w-100">
+            Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extrascript %}
+<script>
+  const pwInput = document.getElementById('id_new_password1');
+  const rulesEl = document.getElementById('pwRules');
+  if (pwInput && rulesEl) {
+    const personalBits = [
+      "{{ request.user.username|default:'' }}",
+      "{{ request.user.first_name|default:'' }}",
+      "{{ request.user.last_name|default:'' }}",
+      "{{ request.user.email|default:'' }}"
+    ].filter(Boolean).map(v => v.toLowerCase());
+
+    const commonList = ['password', '123456', '12345678', 'qwerty', '111111', '123123', 'admin'];
+
+    function setRule(rule, ok, neutral = false) {
+      const item = rulesEl.querySelector(`[data-rule="${rule}"]`);
+      if (!item) return;
+      item.classList.toggle('pw-ok', ok);
+      item.classList.toggle('pw-bad', !ok && !neutral);
+      const icon = item.querySelector('i');
+      if (icon) {
+        icon.className = neutral ? 'fa fa-circle' : (ok ? 'fa fa-circle-check' : 'fa fa-circle-xmark');
+      }
+    }
+
+    function evaluate() {
+      const value = pwInput.value || '';
+      const lower = value.toLowerCase();
+      if (!value) {
+        setRule('length', false, true);
+        setRule('numeric', false, true);
+        setRule('similar', false, true);
+        setRule('common', false, true);
+        return;
+      }
+      setRule('length', value.length >= 8);
+      setRule('numeric', !/^\d+$/.test(value));
+      const isSimilar = personalBits.some(bit => bit && lower.includes(bit));
+      setRule('similar', !isSimilar);
+      const isCommon = commonList.includes(lower);
+      setRule('common', !isCommon);
+    }
+
+    pwInput.addEventListener('input', evaluate);
+    evaluate();
+  }
+</script>
+{% endblock %}

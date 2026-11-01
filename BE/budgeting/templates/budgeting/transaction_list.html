@@ -1,0 +1,235 @@
+{% extends 'expenses/base.html' %}
+{% block title %}Transactions — Budgeting{% endblock %}
+{% block content %}
+<div class="container mt-4 animate__animated animate__fadeIn">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h3 class="page-title mb-1">📋 Transactions</h3>
+        <div class="page-subtitle">Add manually, upload CSV, or import from Expenses inquiry. Filter by month to review or edit.</div>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <form class="row g-2 m-0" method="get">
+          <div class="col-auto">
+            <input type="text" name="month" value="{{ month_filter|default:'' }}" placeholder="YYYY-MM" class="form-control form-control-sm year-pill" style="max-width: 7rem;">
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary btn-sm shadow-sm">Filter</button>
+          </div>
+        </form>
+        <button type="button" class="btn btn-outline-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#expensesInquiryModal"><i class="fas fa-search-dollar me-1"></i>Expenses inquiry</button>
+        <a href="{% url 'budgeting:transaction_upload' %}" class="btn btn-outline-primary btn-sm shadow-sm"><i class="fas fa-file-upload me-1"></i>Upload CSV</a>
+        <a href="{% url 'budgeting:transaction_add' %}" class="btn btn-primary shadow-sm px-4 rounded-pill"><i class="fas fa-plus me-1"></i>Add manually</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card p-3">
+    <div class="table-responsive">
+      <table class="table expense-table mb-0">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th class="text-end">Amount</th>
+        <th>Direction</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+      <tr>
+        <td>{{ t.date|date:"Y-m-d" }}</td>
+        <td>{{ t.description|truncatewords:8 }}</td>
+        <td>{{ t.category_name|default:"—" }}</td>
+        <td class="text-end">{{ t.amount|floatformat:2 }} <span class="badge-currency">SAR</span></td>
+        <td><span class="type-tag">{{ t.direction_display }}</span></td>
+        <td>
+          <a href="{% url 'budgeting:transaction_edit' t.pk %}" class="icon-btn" aria-label="Edit"><i class="fa fa-pen"></i></a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-muted text-center py-4">No transactions. <a href="{% url 'budgeting:transaction_add' %}">Add manually</a> or <a href="{% url 'budgeting:transaction_upload' %}">upload CSV</a>.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+    </div>
+    {% if transactions.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      {% if transactions.has_previous %}
+      <a href="?page={{ transactions.previous_page_number }}{% if month_filter %}&month={{ month_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm">Previous</a>
+      {% else %}<span></span>{% endif %}
+      <span class="text-muted small">Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}</span>
+      {% if transactions.has_next %}
+      <a href="?page={{ transactions.next_page_number }}{% if month_filter %}&month={{ month_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm">Next</a>
+      {% else %}<span></span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <p class="mt-3"><a href="{% url 'budgeting:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to dashboard</a></p>
+</div>
+{% endblock %}
+
+{% block modals %}
+{# Expenses inquiry modal: select month/year (only months with consumptions), then show merged list. Consumptions = expenses entered manually in the Expenses app. #}
+<div class="modal fade" id="expensesInquiryModal" tabindex="-1" aria-labelledby="expensesInquiryModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="expensesInquiryModalLabel">💰 Expenses inquiry</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Consumptions are expenses you entered manually in the <strong>Expenses</strong> app. Select a month that has consumptions; merged consumptions and budgeting transactions for that month will be shown below.</p>
+        {% if not inquiry_available_months %}
+        <p class="text-warning small mb-0">No months with consumptions found. Add consumptions in the Expenses app first.</p>
+        {% else %}
+        <form method="get" id="expensesInquiryForm" class="row g-3 mb-4" data-inquiry-year="{{ inquiry_month|slice:':4' }}" data-inquiry-month="{{ inquiry_month|slice:'5:7' }}">
+          <input type="hidden" name="inquiry_month" id="inquiryMonthValue" value="{{ inquiry_month|default:'' }}">
+          {% if month_filter %}<input type="hidden" name="month" value="{{ month_filter }}">{% endif %}
+          <div class="col-auto">
+            <label for="inquiryYear" class="form-label small mb-0">Year</label>
+            <select class="form-select form-select-sm" id="inquiryYear" style="min-width: 6rem;">
+              <option value="">—</option>
+              {% for y in inquiry_years %}
+              <option value="{{ y }}" {% if inquiry_month and inquiry_month|slice:":4" == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label for="inquiryMonth" class="form-label small mb-0">Month</label>
+            <select class="form-select form-select-sm" id="inquiryMonth" style="min-width: 8rem;" disabled>
+              <option value="">—</option>
+              <option value="01" {% if inquiry_month and inquiry_month|slice:"5:7" == "01" %}selected{% endif %}>January</option>
+              <option value="02" {% if inquiry_month and inquiry_month|slice:"5:7" == "02" %}selected{% endif %}>February</option>
+              <option value="03" {% if inquiry_month and inquiry_month|slice:"5:7" == "03" %}selected{% endif %}>March</option>
+              <option value="04" {% if inquiry_month and inquiry_month|slice:"5:7" == "04" %}selected{% endif %}>April</option>
+              <option value="05" {% if inquiry_month and inquiry_month|slice:"5:7" == "05" %}selected{% endif %}>May</option>
+              <option value="06" {% if inquiry_month and inquiry_month|slice:"5:7" == "06" %}selected{% endif %}>June</option>
+              <option value="07" {% if inquiry_month and inquiry_month|slice:"5:7" == "07" %}selected{% endif %}>July</option>
+              <option value="08" {% if inquiry_month and inquiry_month|slice:"5:7" == "08" %}selected{% endif %}>August</option>
+              <option value="09" {% if inquiry_month and inquiry_month|slice:"5:7" == "09" %}selected{% endif %}>September</option>
+              <option value="10" {% if inquiry_month and inquiry_month|slice:"5:7" == "10" %}selected{% endif %}>October</option>
+              <option value="11" {% if inquiry_month and inquiry_month|slice:"5:7" == "11" %}selected{% endif %}>November</option>
+              <option value="12" {% if inquiry_month and inquiry_month|slice:"5:7" == "12" %}selected{% endif %}>December</option>
+            </select>
+          </div>
+          <div class="col-auto d-flex align-items-end">
+            <button type="submit" class="btn btn-primary btn-sm" id="inquirySubmitBtn" disabled>Show</button>
+          </div>
+        </form>
+        {% endif %}
+        {% if inquiry_month and inquiry_merged_list is not None %}
+        <div class="mt-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Consumption + transactions — {{ inquiry_month }}</h6>
+            {% if inquiry_merged_list %}
+            <form method="post" action="{% url 'budgeting:consumption_add_all_to_transactions' %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="inquiry_month" value="{{ inquiry_month }}">
+              <button type="submit" class="btn btn-success btn-sm">Add all consumptions to transactions</button>
+            </form>
+            {% endif %}
+          </div>
+          <div class="table-responsive">
+            <table class="table expense-table mb-0">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Source</th>
+                  <th>Description / note</th>
+                  <th>Type / category</th>
+                  <th class="text-end">Amount</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in inquiry_merged_list %}
+                <tr>
+                  <td>{{ row.date|date:"Y-m-d" }}</td>
+                  <td><span class="badge {% if row.source == 'Consumption' %}bg-info{% else %}bg-primary{% endif %}">{{ row.source }}</span></td>
+                  <td>{{ row.description|truncatewords:10 }}</td>
+                  <td>{{ row.type_category }}</td>
+                  <td class="text-end">{{ row.amount|floatformat:2 }} <span class="badge-currency">{{ row.currency }}</span></td>
+                  <td>
+                    {% if row.source == 'Consumption' and row.consumption_pk %}
+                      {% if row.already_added and row.transaction_pk %}
+                        <a href="{% url 'budgeting:transaction_edit' row.transaction_pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                      {% else %}
+                        <form method="post" action="{% url 'budgeting:consumption_add_to_transaction' %}?next_month={{ inquiry_month }}" class="d-inline">
+                          {% csrf_token %}
+                          <input type="hidden" name="consumption_id" value="{{ row.consumption_pk }}">
+                          <input type="hidden" name="next_month" value="{{ inquiry_month }}">
+                          <button type="submit" class="btn btn-outline-primary btn-sm">Add to transactions</button>
+                        </form>
+                      {% endif %}
+                    {% else %}
+                    —
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-muted text-center py-4">No consumptions or transactions for this month.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% elif inquiry_month %}
+        <p class="text-muted">No consumptions or transactions for {{ inquiry_month }}.</p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extrascript %}
+<script>
+(function() {
+  var yearMonths = {{ inquiry_year_months_json|safe }};
+  var yearSelect = document.getElementById('inquiryYear');
+  var monthSelect = document.getElementById('inquiryMonth');
+  var monthValue = document.getElementById('inquiryMonthValue');
+  var submitBtn = document.getElementById('inquirySubmitBtn');
+  var modal = document.getElementById('expensesInquiryModal');
+
+  function updateMonthOptions() {
+    if (!yearSelect || !monthSelect) return;
+    var y = yearSelect.value;
+    monthSelect.innerHTML = '<option value="">—</option>';
+    monthSelect.disabled = !y;
+    if (submitBtn) submitBtn.disabled = true;
+    if (monthValue) monthValue.value = '';
+    if (!y || !yearMonths[y]) return;
+    var months = yearMonths[y];
+    var labels = {'01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December'};
+    months.forEach(function(m) { monthSelect.innerHTML += '<option value="' + m + '">' + (labels[m] || m) + '</option>'; });
+  }
+  function updateSubmit() {
+    if (!monthValue || !submitBtn) return;
+    var y = yearSelect && yearSelect.value, m = monthSelect && monthSelect.value;
+    if (y && m) { monthValue.value = y + '-' + m; submitBtn.disabled = false; } else { monthValue.value = ''; submitBtn.disabled = true; }
+  }
+  if (!yearSelect || !monthSelect) return;
+  var form = document.getElementById('expensesInquiryForm');
+  yearSelect.addEventListener('change', function() { updateMonthOptions(); });
+  monthSelect.addEventListener('change', updateSubmit);
+  updateMonthOptions();
+  if (form && form.dataset.inquiryYear && form.dataset.inquiryMonth) {
+    yearSelect.value = form.dataset.inquiryYear;
+    updateMonthOptions();
+    monthSelect.value = form.dataset.inquiryMonth;
+    updateSubmit();
+  }
+  if (modal && !modal.classList.contains('show') && {{ open_inquiry_modal|yesno:"true,false" }}) {
+    var bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+    if (bsModal) bsModal.show();
+  }
+})();
+</script>
+{% endblock %}

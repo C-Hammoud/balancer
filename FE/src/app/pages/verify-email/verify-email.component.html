@@ -1,0 +1,28 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Finance Tracker</p>
+    <h1>Email verification</h1>
+
+    @if (loading()) {
+      <div class="status loading">
+        <p class="sub">Verifying your email address…</p>
+      </div>
+    } @else if (done()) {
+      <div class="status success">
+        <p class="sub"><strong>Success!</strong> Your email is verified.</p>
+        <p class="sub">You can sign in now and start using Finance Tracker.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" (click)="goToLogin()">Continue to sign in</button>
+      </div>
+    } @else if (failed()) {
+      <div class="status error">
+        <p class="sub">{{ errorMessage() }}</p>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" routerLink="/check-email">Resend verification email</a>
+        <button type="button" class="btn primary" (click)="goToLogin()">Go to sign in</button>
+      </div>
+    }
+  </div>
+</div>

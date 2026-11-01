@@ -1,0 +1,63 @@
+{% extends 'expenses/base.html' %}
+{% block title %}Expense type → Category{% endblock %}
+{% block content %}
+<div class="container mt-4 animate__animated animate__fadeIn">
+  <div class="page-hero p-3 p-md-4 mb-4">
+    <div>
+      <h3 class="page-title mb-1">Expense type → Budget category</h3>
+      <div class="page-subtitle">Maps Finance Tracker expense types into budgeting categories for automatic actuals. {{ global_count }} global default(s) available; your rows override them.</div>
+    </div>
+  </div>
+
+  <div class="glass-card p-4 mb-4">
+    <h5 class="mb-3">Set / override mapping</h5>
+    <form method="post" class="row g-3 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <label class="form-label">Expense type</label>
+        {{ form.consumption_type }}
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Budget category</label>
+        {{ form.category_id }}
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-card p-3">
+    <div class="table-responsive">
+      <table class="table expense-table mb-0">
+        <thead>
+          <tr>
+            <th>Expense type</th>
+            <th>Mapped category</th>
+            <th>Source</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.consumption_type }}</td>
+            <td>{{ r.category_name }}</td>
+            <td>{% if r.is_override %}<span class="badge bg-primary">Your override</span>{% else %}<span class="badge bg-secondary">Global</span>{% endif %}</td>
+            <td class="text-end">
+              {% if r.is_override and r.map_pk %}
+              <form method="post" action="{% url 'budgeting:config_type_maps_clear' r.map_pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Clear override</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="mt-3"><a href="{% url 'budgeting:dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to dashboard</a></p>
+</div>
+{% endblock %}

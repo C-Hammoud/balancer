@@ -1,0 +1,88 @@
+<section class="hero">
+  <div>
+    <h1>Profile</h1>
+    <p>Your main currency drives dashboard totals, utilization reports, and defaults for new transactions.</p>
+  </div>
+  <a class="btn ghost" routerLink="/dashboard">Back to dashboard</a>
+</section>
+
+<form class="panel form" [formGroup]="form" (ngSubmit)="save()">
+  <h2>Account</h2>
+  <p class="muted username">Signed in as <strong>{{ user()?.username }}</strong></p>
+
+  @if (!emailVerified()) {
+    <div class="verify-banner">
+      <p>Your email is not verified. Check your inbox or resend the verification link.</p>
+      <button type="button" class="btn ghost" (click)="resendVerification()" [disabled]="resending()">
+        {{ resending() ? 'Sending…' : 'Resend verification email' }}
+      </button>
+    </div>
+  } @else {
+    <p class="muted ok-badge">Email verified</p>
+  }
+
+  <div class="grid">
+    <label>
+      First name
+      <input formControlName="first_name" autocomplete="given-name" />
+    </label>
+    <label>
+      Last name
+      <input formControlName="last_name" autocomplete="family-name" />
+    </label>
+    <label class="span-2">
+      Email
+      <input type="email" formControlName="email" autocomplete="email" />
+    </label>
+  </div>
+
+  <h2>Main currency</h2>
+  <p class="hint">
+    All utilization and dashboard figures are converted to this currency.
+    New transactions and expenses pre-fill with it (you can still change per entry).
+  </p>
+  <label class="currency-field">
+    Main currency <span class="req">*</span>
+    <select formControlName="default_currency">
+      @for (c of currencyOptions(); track c.code) {
+        <option [value]="c.code">{{ c.code }} — {{ c.label }}</option>
+      }
+    </select>
+  </label>
+
+  <h2>Locale (optional)</h2>
+  <p class="hint">Used for date/time defaults on new entries.</p>
+  <div class="grid">
+    <label>
+      Timezone
+      <input formControlName="timezone" placeholder="e.g. Asia/Beirut" />
+    </label>
+    <label>
+      Country code
+      <input formControlName="country" placeholder="e.g. LB, SA" maxlength="2" />
+    </label>
+  </div>
+  <button type="button" class="btn ghost" (click)="useDetectedTimezone()">Use detected timezone</button>
+
+  <h2>Budget plan</h2>
+  <p class="hint">
+    Used by <a routerLink="/budgeting/plan">Budget plan</a>. Updated plans are suggested when your income,
+    commitments or spending change.
+  </p>
+  <div class="grid">
+    <label>
+      Savings target (% of income)
+      <input type="number" min="0" max="90" formControlName="savings_target_pct" />
+    </label>
+    <label class="check">
+      <input type="checkbox" formControlName="notify_plan_updates" />
+      Email and notify me with suggested plan updates
+    </label>
+  </div>
+
+  <footer class="footer">
+    <button type="submit" class="btn primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save profile' }}
+    </button>
+  </footer>
+</form>

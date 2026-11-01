@@ -1,0 +1,296 @@
+<section class="hero">
+  <div>
+    <h1>Alerts</h1>
+    <p>Budget utilization notices, commitment due dates and financial risk.</p>
+  </div>
+  <div class="hero-actions">
+    <button type="button" class="btn ghost" (click)="reload(true)" [disabled]="loading()">Refresh</button>
+    <button
+      type="button"
+      class="btn ghost"
+      (click)="showSettings.set(!showSettings())"
+      [attr.aria-expanded]="showSettings()"
+      aria-controls="alert-settings"
+    >
+      {{ showSettings() ? 'Hide settings' : 'Alert settings' }}
+    </button>
+  </div>
+</section>
+
+@if (showSettings()) {
+  <section id="alert-settings" class="settings panel" aria-label="Alert settings">
+    <p class="muted settings-intro">
+      Alerts fire when spending reaches the warn or critical percentage of a budget.
+      Set a global default, or override it per category. Turn off email for categories you only want in-app.
+    </p>
+    <app-thresholds />
+  </section>
+}
+
+<nav class="tabs" aria-label="Alert status">
+  @for (t of tabs; track t.key) {
+    <button
+      type="button"
+      class="btn"
+      [class.primary]="show() === t.key"
+      [attr.aria-pressed]="show() === t.key"
+      (click)="setTab(t.key)"
+    >
+      {{ t.label }}
+      @if (countFor(t.key) !== null) {
+        <span class="count">{{ countFor(t.key) }}</span>
+      }
+    </button>
+  }
+</nav>
+
+<div class="toolbar panel">
+  <label class="search">
+    <span class="sr-only">Search alerts</span>
+    <input
+      type="search"
+      placeholder="Search title or description"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+  </label>
+  <label>
+    Type
+    <select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
+      <option value="all">All types</option>
+      <option value="utilization">Budget</option>
+      <option value="due">Due date</option>
+      <option value="risk">Risk</option>
+    </select>
+  </label>
+  <label>
+    Severity
+    <select [ngModel]="severityFilter()" (ngModelChange)="severityFilter.set($event)">
+      <option value="all">All</option>
+      <option value="CRITICAL">Critical</option>
+      <option value="WARN">Warning</option>
+    </select>
+  </label>
+  <label>
+    Sort
+    <select [ngModel]="sortKey()" (ngModelChange)="sortKey.set($event)">
+      <option value="newest">Newest first</option>
+      <option value="severity">Most severe first</option>
+      <option value="period">Latest period first</option>
+    </select>
+  </label>
+  @if (filtersActive()) {
+    <button type="button" class="btn ghost" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+@if (selectedVisible().length > 0) {
+  <div class="bulk-bar" role="region" aria-label="Bulk actions">
+    <strong>{{ selectedVisible().length }} selected</strong>
+    @if (show() !== 'resolved') {
+      <button type="button" class="btn primary" (click)="bulk('resolve')" [disabled]="busy()">Resolve</button>
+    }
+    @if (show() === 'open' || show() === 'all') {
+      <select class="snooze" (change)="bulkSnooze($event)" [disabled]="busy()" aria-label="Snooze selected">
+        <option value="">Snooze…</option>
+        @for (o of snoozeOptions; track o.days) {
+          <option [value]="o.days">{{ o.label }}</option>
+        }
+      </select>
+    }
+    @if (show() === 'snoozed' || show() === 'all') {
+      <button type="button" class="btn ghost" (click)="bulk('unsnooze')" [disabled]="busy()">Unsnooze</button>
+    }
+    @if (show() === 'resolved' || show() === 'all') {
+      <button type="button" class="btn ghost" (click)="bulk('reopen')" [disabled]="busy()">Reopen</button>
+    }
+    <button type="button" class="btn ghost" (click)="clearSelection()">Clear selection</button>
+  </div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="panel table-wrap">
+    <div class="list-head">
+      <span class="muted">Showing {{ visible().length }} of {{ alerts().length }}</span>
+      @if (show() !== 'resolved' && visible().length > 0) {
+        <button type="button" class="btn ghost" (click)="resolveAllVisible()" [disabled]="busy()">
+          Resolve all{{ filtersActive() ? ' shown' : '' }}
+        </button>
+      }
+    </div>
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th class="select-col">
+            <input
+              type="checkbox"
+              [checked]="allVisibleSelected()"
+              (change)="toggleAllVisible()"
+              [disabled]="visible().length === 0"
+              aria-label="Select all shown alerts"
+            />
+          </th>
+          <th>Type</th>
+          <th>Severity</th>
+          <th>Title</th>
+          <th>Period</th>
+          <th>Util</th>
+          <th>Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of visible(); track a.id) {
+          <tr [class.unmapped-row]="isUnmapped(a)" [class.selected]="isSelected(a.id)">
+            <td class="select-col" data-label="Select">
+              <input
+                type="checkbox"
+                [checked]="isSelected(a.id)"
+                (change)="toggleSelected(a.id)"
+                [attr.aria-label]="'Select ' + a.title"
+              />
+            </td>
+            <td data-label="Type">
+              <span class="pill">{{ typeLabel(a) }}</span>
+            </td>
+            <td data-label="Severity">
+              <span class="pill" [class.danger]="a.severity === 'CRITICAL'" [class.warn]="a.severity === 'WARN'">
+                {{ a.severity === 'CRITICAL' ? 'Critical' : a.severity === 'WARN' ? 'Warning' : a.severity }}
+              </span>
+            </td>
+            <td data-label="Title">
+              <strong>{{ a.title }}</strong>
+              <small>{{ a.description }}</small>
+              @switch (stateOf(a)) {
+                @case ('snoozed') {
+                  <small class="state">Snoozed until {{ a.snoozed_until | date: 'MMM d, h:mm a' }}</small>
+                }
+                @case ('resolved') {
+                  <small class="state">
+                    {{ a.resolution === 'auto' ? 'Resolved automatically (back under threshold or paid)' : 'Resolved by you' }}
+                    @if (a.resolved_at) {
+                      · {{ a.resolved_at | date: 'MMM d' }}
+                    }
+                  </small>
+                }
+              }
+            </td>
+            <td data-label="Period">{{ a.year }}-{{ a.month | number: '2.0-0' }}</td>
+            <td data-label="Util">
+              @if (isCommitmentDue(a) || isRisk(a)) {
+                —
+              } @else {
+                {{ a.utilization_pct ? a.utilization_pct + '%' : '—' }}
+              }
+            </td>
+            <td data-label="Amount">
+              @if (isRisk(a)) {
+                —
+              } @else if (isCommitmentDue(a)) {
+                {{ a.actual }}
+              } @else {
+                {{ a.actual }} / {{ a.forecast }}
+              }
+            </td>
+            <td class="actions" data-label="">
+              @switch (stateOf(a)) {
+                @case ('open') {
+                  @if (isUnmapped(a)) {
+                    <a class="btn primary" routerLink="/budgeting/config/merchant-links">Merchant links</a>
+                  }
+                  @if (isCommitmentDue(a)) {
+                    <button type="button" class="btn primary" (click)="openPay(a)" [disabled]="busy()">Pay / record</button>
+                  }
+                  @if (isRisk(a)) {
+                    <a class="btn primary" routerLink="/budgeting/risk">View risk</a>
+                  }
+                  <select class="snooze" (change)="snooze(a, $event)" [disabled]="busy()" [attr.aria-label]="'Snooze ' + a.title">
+                    <option value="">Snooze…</option>
+                    @for (o of snoozeOptions; track o.days) {
+                      <option [value]="o.days">{{ o.label }}</option>
+                    }
+                  </select>
+                  <button type="button" class="btn ghost" (click)="resolve(a)" [disabled]="busy()">Resolve</button>
+                }
+                @case ('snoozed') {
+                  <button type="button" class="btn ghost" (click)="unsnooze(a)" [disabled]="busy()">Unsnooze</button>
+                  <button type="button" class="btn ghost" (click)="resolve(a)" [disabled]="busy()">Resolve</button>
+                }
+                @case ('resolved') {
+                  <button type="button" class="btn ghost" (click)="reopen(a)" [disabled]="busy()">Reopen</button>
+                }
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="8" class="muted empty">
+              @if (filtersActive()) {
+                No alerts match these filters.
+                <button type="button" class="btn ghost" (click)="clearFilters()">Clear filters</button>
+              } @else if (show() === 'open') {
+                No open alerts. You are within budget.
+              } @else {
+                No alerts here.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (payAlert(); as alert) {
+  <div class="modal-backdrop" aria-hidden="true" (click)="closePay()"></div>
+  <div class="modal pay-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="pay-title">Record payment</h2>
+        <p class="muted">
+          <strong>{{ commitmentLabel(alert) }}</strong> — {{ alert.actual }}
+          @if (alert.due_date) {
+            due {{ alert.due_date | slice: 0 : 10 }}
+          }
+        </p>
+      </div>
+      <button type="button" class="icon-close" (click)="closePay()" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body pay-form">
+      <label>
+        Budget category <span class="req">*</span>
+        <select [(ngModel)]="payCategoryId" name="payCategory">
+          <option value="">Select category…</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.id">{{ c.group_name }} — {{ c.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Paid from account
+        <select [(ngModel)]="payAccountId" name="payAccount">
+          <option value="">No account</option>
+          @for (acc of accounts(); track acc.id) {
+            <option [value]="acc.id">{{ acc.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Payment date
+        <input type="date" [(ngModel)]="payDate" name="payDate" />
+      </label>
+      <p class="hint muted">
+        Adds an expense transaction, marks this installment paid, counts it toward the budget of the
+        chosen category, and resolves the alert.
+      </p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn ghost" (click)="closePay()" [disabled]="paying()">Cancel</button>
+      <button type="button" class="btn primary" (click)="confirmPay()" [disabled]="paying()">
+        {{ paying() ? 'Saving…' : 'Record payment' }}
+      </button>
+    </div>
+  </div>
+}
