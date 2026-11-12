@@ -7,6 +7,7 @@ Run every background job on its own interval, forever (the `scheduler` container
 Intervals (minutes) can be overridden with SCHEDULE_<JOB>_MINUTES, e.g. SCHEDULE_BUDGET_ALERTS_MINUTES=15.
 A failing job is logged and retried on its next turn; it never stops the other jobs.
 The nightly backup runs `pg_dump` into BACKUP_DIR when DATABASE_URL points to PostgreSQL.
+BACKUP_ENABLED=0 turns it off where the host backs up the database and the disk is temporary (Render).
 """
 from __future__ import annotations
 
@@ -46,6 +47,8 @@ def interval_minutes(name: str, default: int) -> int:
 
 def backup_database() -> str:
     """pg_dump the PostgreSQL database into BACKUP_DIR (gzipped) and keep the newest BACKUP_KEEP files."""
+    if os.environ.get("BACKUP_ENABLED", "1") == "0":
+        return "skipped (BACKUP_ENABLED=0)"
     url = os.environ.get("DATABASE_URL", "")
     if not url.startswith(("postgres://", "postgresql://")):
         return "skipped (not PostgreSQL)"

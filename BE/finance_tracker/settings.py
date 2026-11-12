@@ -46,6 +46,9 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "10.0.2.2"]
 _hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
 if _hosts:
     ALLOWED_HOSTS.extend(h.strip() for h in _hosts.split(",") if h.strip())
+# Render sets this to the service's public hostname.
+if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
 # Allow emulator / LAN hosts during local development
 if DEBUG and "*" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("*")
@@ -114,6 +117,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+# Serves the Django admin's CSS/JS where no web server does it for us (Render).
+if not DEBUG:
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 ROOT_URLCONF = "finance_tracker.urls"
 

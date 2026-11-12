@@ -34,6 +34,12 @@ def test_a_failing_job_does_not_stop_the_rest(caplog, monkeypatch):
     assert any(m.startswith("risk ok") for m in messages)
 
 
+def test_backup_can_be_switched_off(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgres://u:p@db/x")
+    monkeypatch.setenv("BACKUP_ENABLED", "0")
+    assert run_scheduler.backup_database() == "skipped (BACKUP_ENABLED=0)"
+
+
 def test_interval_override(monkeypatch):
     monkeypatch.setenv("SCHEDULE_BUDGET_ALERTS_MINUTES", "5")
     assert run_scheduler.interval_minutes("budget_alerts", 30) == 5

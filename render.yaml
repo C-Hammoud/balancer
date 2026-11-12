@@ -1,0 +1,98 @@
+# Render Blueprint: creates the database, the API and the web app (see docs/deploy/render.md).
+# If Render gives a service a different address than the names below, update the addresses here
+# (or in the service's Environment tab) and redeploy.
+databases:
+  - name: balancer-db
+    plan: 0.1c-256mb
+    region: frankfurt
+    postgresMajorVersion: "17"
+    databaseName: balancer
+    user: balancer
+    # Only services inside Render can connect. Add your IP in the dashboard to connect from your PC.
+    ipAllowList: []
+
+services:
+  - type: web
+    name: balancer-api
+    runtime: docker
+    plan: 0.5c-512mb
+    region: frankfurt
+    dockerfilePath: ./BE/Dockerfile
+    dockerContext: ./BE
+    healthCheckPath: /healthz/
+    buildFilter:
+      paths:
+        - BE/**
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATA_STORE
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: balancer-db
+          property: connectionString
+      - key: WEB_CONCURRENCY
+        value: "2"
+      # The background jobs run inside this service; Render backs up the database itself.
+      - key: RUN_SCHEDULER_IN_PROCESS
+        value: "1"
+      - key: BACKUP_ENABLED
+        value: "0"
+      - key: DJANGO_HSTS_SECONDS
+        value: "3600"
+      - key: FRONTEND_URL
+        value: https://balancer-web.onrender.com
+      - key: API_PUBLIC_URL
+        value: https://balancer-api.onrender.com/api/v1
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://balancer-web.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://balancer-web.onrender.com
+      - key: EMAIL_ENABLED
+        value: "1"
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "1"
+      # Render asks for these three when the Blueprint is created.
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "1"
+      - key: NOTIFICATION_EMAILS_ENABLED
+        value: "0"
+
+  - type: web
+    name: balancer-web
+    runtime: static
+    buildCommand: cd FE && npm ci --include=dev && npx ng build --configuration production --define "API_URL='$API_URL'"
+    staticPublishPath: ./FE/dist/finance-tracker-ui/browser
+    buildFilter:
+      paths:
+        - FE/**
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: API_URL
+        value: https://balancer-api.onrender.com/api/v1
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

@@ -8,4 +8,9 @@ if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
     python manage.py collectstatic --noinput >/dev/null
 fi
 
+# Hosts with one container per service and no cheap worker (Render): run the jobs next to the API.
+if [ "${RUN_SCHEDULER_IN_PROCESS:-0}" = "1" ]; then
+    python manage.py run_scheduler &
+fi
+
 exec "$@"

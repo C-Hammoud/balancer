@@ -257,7 +257,8 @@ python manage.py claim_shared_categories --username <you>
 ### Production server
 
 The production setup is in `deploy/` (Docker Compose: Caddy + Django/gunicorn + PostgreSQL + Redis + scheduler).
-The step-by-step guide for the Oracle Cloud server is `docs/deploy/oracle.md`.
+The step-by-step guide for the Oracle Cloud server is `docs/deploy/oracle.md`. To host on Render instead, see
+`docs/deploy/render.md` and `render.yaml`.
 
 | Setting | Effect |
 |---|---|
