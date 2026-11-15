@@ -33,6 +33,7 @@ from api.serializers import (
     FirebaseLoginSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    PendingRegistrationUpdateSerializer,
     RegisterSerializer,
     UserProfileSerializer,
 )
@@ -110,12 +111,55 @@ def _app_handoff_html(*, title: str, message: str, app_url: str, web_url: str) -
     return HttpResponse(html)
 
 
+def _pending_registration(data):
+    """
+    Registering again with the username and password of an account that was never verified
+    (e.g. to fix a mistyped email) updates that account instead of failing with "username taken".
+    The password proves it is the same person; verified accounts are never touched.
+    """
+    if not getattr(settings, "REQUIRE_EMAIL_VERIFICATION", True):
+        return None
+    username, password = data.get("username"), data.get("password")
+    if not isinstance(username, str) or not isinstance(password, str) or not username or not password:
+        return None
+    user = User.objects.filter(username=username).first()
+    if user and user.is_active and not is_email_verified(user) and user.check_password(password):
+        return user
+    return None
+
+
+def _update_pending_registration(user, data) -> Response:
+    serializer = PendingRegistrationUpdateSerializer(user, data=data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
+    # A new email changes the token hash, so links sent to the old address stop working.
+    email_sent = send_welcome_and_verification_email(user)
+    detail = (
+        "Your details are updated. We sent a new verification link to your email."
+        if email_sent
+        else "Your details are updated, but we could not send the verification email. Try resending from the sign-in page."
+    )
+    return Response(
+        {
+            "detail": detail,
+            "email": user.email,
+            "email_sent": email_sent,
+            "verification_required": True,
+            "updated": True,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
 class RegisterView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
     throttle_classes = (RegisterThrottle,)
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
+        pending = _pending_registration(request.data)
+        if pending:
+            return _update_pending_registration(pending, request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()

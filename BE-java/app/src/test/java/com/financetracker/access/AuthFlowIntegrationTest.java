@@ -98,6 +98,52 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
+    void registeringAgainFixesTheEmailOfAnUnverifiedAccount() throws Exception {
+        Map<String, Object> first = Map.of("username", "bob", "email", "bob@example.com", "first_name", "Bob",
+                "password", "Tr1cky-horse-77", "password_confirm", "Tr1cky-horse-77");
+        mvc.perform(post("/api/v1/auth/register/").contentType(MediaType.APPLICATION_JSON).content(json(first)))
+                .andExpect(status().isCreated());
+
+        // Wrong password: the normal "username taken" error, nothing changes.
+        mvc.perform(post("/api/v1/auth/register/").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("username", "bob", "email", "evil@example.com",
+                                "password", "Wr0ng-horse-77", "password_confirm", "Wr0ng-horse-77"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.username[0]").value("A user with that username already exists."));
+
+        // Same username and password, new email: the pending account is updated and a new link sent.
+        mvc.perform(post("/api/v1/auth/register/").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("username", "bob", "email", "bob.new@example.com", "first_name", "Bob",
+                                "last_name", "Smith", "password", "Tr1cky-horse-77", "password_confirm", "Tr1cky-horse-77"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.updated").value(true))
+                .andExpect(jsonPath("$.email").value("bob.new@example.com"))
+                .andExpect(jsonPath("$.verification_required").value(true));
+
+        ArgumentCaptor<EmailRecipient> to = ArgumentCaptor.forClass(EmailRecipient.class);
+        ArgumentCaptor<String> verifyUrl = ArgumentCaptor.forClass(String.class);
+        verify(emails, times(2)).welcomeAndVerification(to.capture(), verifyUrl.capture(), anyString());
+        assertThat(to.getAllValues().get(1).email()).isEqualTo("bob.new@example.com");
+
+        // The first link (old email) no longer works; the new one does.
+        URI oldLink = URI.create(verifyUrl.getAllValues().get(0));
+        URI newLink = URI.create(verifyUrl.getAllValues().get(1));
+        mvc.perform(post("/api/v1/auth/email-verify/confirm/").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("uid", query(oldLink, "uid"), "token", query(oldLink, "token")))))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/auth/email-verify/confirm/").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("uid", query(newLink, "uid"), "token", query(newLink, "token")))))
+                .andExpect(status().isOk());
+
+        // Verified accounts are never changed this way.
+        mvc.perform(post("/api/v1/auth/register/").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("username", "bob", "email", "other@example.com",
+                                "password", "Tr1cky-horse-77", "password_confirm", "Tr1cky-horse-77"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.username[0]").value("A user with that username already exists."));
+    }
+
+    @Test
     void fullAuthenticationFlow() throws Exception {
         // Register: verification required, email sent with a working link.
         mvc.perform(post("/api/v1/auth/register/").contentType(MediaType.APPLICATION_JSON)
@@ -113,10 +159,10 @@ class AuthFlowIntegrationTest {
         verify(emails).welcomeAndVerification(recipient.capture(), verifyUrl.capture(), anyString());
         assertThat(recipient.getValue().displayName("there")).isEqualTo("Alice");
 
-        // Duplicate username.
+        // Duplicate username (another password: the same one would update the unverified account).
         mvc.perform(post("/api/v1/auth/register/").contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("username", "alice", "password", "Tr1cky-horse-77",
-                                "password_confirm", "Tr1cky-horse-77"))))
+                        .content(json(Map.of("username", "alice", "password", "Other-horse-88",
+                                "password_confirm", "Other-horse-88"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.username[0]").value("A user with that username already exists."));
 

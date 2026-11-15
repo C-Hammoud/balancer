@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { loadPendingRegistration } from '../../core/pending-registration';
 import { ToastService } from '../../core/toast.service';
 
 @Component({
@@ -20,10 +21,14 @@ export class CheckEmailComponent {
 
   loading = signal(false);
   sent = signal(false);
-  email = this.route.snapshot.queryParamMap.get('email') || '';
+  /** Set when this tab just registered: the email can then be changed on the registration form. */
+  pending = loadPendingRegistration();
+  email = this.route.snapshot.queryParamMap.get('email') || this.pending?.email || '';
 
   form = this.fb.nonNullable.group({
-    email: [this.email, [Validators.required, Validators.email]],
+    // Locked when the address is known; changing it goes through the registration form.
+    // Editable only when the page is opened without one (e.g. from the sign-in page).
+    email: [{ value: this.email, disabled: !!this.email }, [Validators.required, Validators.email]],
   });
 
   resend(): void {

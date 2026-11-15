@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import {
+  clearPendingRegistration,
+  loadPendingRegistration,
+  savePendingRegistration,
+} from '../../core/pending-registration';
 import { ToastService } from '../../core/toast.service';
 
 @Component({
@@ -20,6 +25,8 @@ export class RegisterComponent implements OnInit {
   private toast = inject(ToastService);
 
   loading = signal(false);
+  /** Fixing the details of an account that is registered but not verified yet. */
+  editing = signal(false);
 
   form = this.fb.nonNullable.group({
     username: ['', Validators.required],
@@ -31,10 +38,28 @@ export class RegisterComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const prefill = this.route.snapshot.queryParamMap.get('email');
+    const params = this.route.snapshot.queryParamMap;
+    const pending = params.get('edit') ? loadPendingRegistration() : null;
+    if (pending) {
+      this.form.patchValue(pending);
+      // The username identifies the pending account; a different one would create a second account.
+      this.form.controls.username.disable();
+      this.editing.set(true);
+      return;
+    }
+    const prefill = params.get('email');
     if (prefill) {
       this.form.patchValue({ email: prefill });
     }
+  }
+
+  /** Leave edit mode and register a completely new account. */
+  startOver(): void {
+    clearPendingRegistration();
+    this.editing.set(false);
+    this.form.reset();
+    this.form.controls.username.enable();
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
   }
 
   submit(): void {
@@ -53,18 +78,27 @@ export class RegisterComponent implements OnInit {
       next: (res) => {
         this.loading.set(false);
         if (res.verification_required) {
-          this.toast.success(res.detail);
-          this.router.navigate(['/check-email'], {
-            queryParams: { email: res.email || raw.email },
+          const email = res.email || raw.email;
+          savePendingRegistration({
+            username: raw.username,
+            email,
+            first_name: raw.first_name,
+            last_name: raw.last_name,
           });
+          this.toast.success(res.detail);
+          this.router.navigate(['/check-email'], { queryParams: { email } });
           return;
         }
+        clearPendingRegistration();
         this.toast.success('Account created successfully.');
         this.router.navigate(['/dashboard'], { queryParams: { setup: 'accounts' } });
       },
       error: (err) => {
         this.loading.set(false);
-        this.toast.fromHttpError(err, 'Could not create account.');
+        const fallback = this.editing()
+          ? 'Could not update your details. Use the same password you chose when you registered.'
+          : 'Could not create account.';
+        this.toast.fromHttpError(err, fallback);
       },
     });
   }

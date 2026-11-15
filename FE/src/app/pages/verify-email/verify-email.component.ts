@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { clearPendingRegistration } from '../../core/pending-registration';
 import { extractApiError } from '../../core/toast.service';
 
 /** loading → activated (first time) | already (link opened again) | failed */
@@ -63,6 +64,7 @@ export class VerifyEmailComponent implements OnInit {
     this.auth.verifyEmail(this.uid, this.token).subscribe({
       next: (res) => {
         if (res.email_verified) {
+          clearPendingRegistration();
           this.state.set(res.already_verified ? 'already' : 'activated');
           return;
         }

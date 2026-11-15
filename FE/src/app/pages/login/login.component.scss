@@ -162,3 +162,20 @@ input {
 .success-notice p {
   color: #1d6b3a;
 }
+
+input:disabled {
+  background: #eef2f1;
+  color: #5b6b6b;
+  cursor: not-allowed;
+}
+
+.field-hint {
+  margin: -0.4rem 0 0;
+  font-size: 0.85rem;
+  color: #5b6b6b;
+
+  a {
+    color: #1a5c5e;
+    font-weight: 600;
+  }
+}

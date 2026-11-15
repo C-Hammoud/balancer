@@ -33,6 +33,27 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class PendingRegistrationUpdateSerializer(serializers.ModelSerializer):
+    """Registering again for an account that was never verified: new email and name only."""
+
+    password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ("email", "first_name", "last_name", "password", "password_confirm")
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        return attrs
+
+    def update(self, instance, validated_data):
+        validated_data.pop("password")
+        validated_data.pop("password_confirm")
+        return super().update(instance, validated_data)
+
+
 class EmailNotVerified(APIException):
     """400 with plain strings: {"detail": "...", "code": "email_not_verified"}.
     A ValidationError would be re-wrapped by the serializer into lists (code: ["..."]),

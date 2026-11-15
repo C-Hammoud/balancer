@@ -44,7 +44,10 @@ class AuthController {
     ResponseEntity<Map<String, Object>> register(@RequestBody(required = false) Map<String, Object> body,
             HttpServletRequest request) {
         throttler.check("auth_register", props.getThrottle().getAuthRegister(), Throttler.ident(request));
-        return ResponseEntity.status(HttpStatus.CREATED).body(auth.register(body));
+        Map<String, Object> out = auth.register(body);
+        // 200 when an unverified account was updated instead of created.
+        HttpStatus status = Boolean.TRUE.equals(out.get("updated")) ? HttpStatus.OK : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(out);
     }
 
     @PostMapping("/login/")

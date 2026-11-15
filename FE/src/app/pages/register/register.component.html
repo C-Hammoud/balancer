@@ -1,8 +1,16 @@
 <div class="auth-page">
   <div class="auth-card">
     <p class="eyebrow">Finance Tracker</p>
-    <h1>Create account</h1>
-    <p class="sub">Start tracking spend and budgets.</p>
+    @if (editing()) {
+      <h1>Update your details</h1>
+      <p class="sub">
+        Fix your email or name, then enter the same password you chose when you registered. We'll send a
+        new verification link.
+      </p>
+    } @else {
+      <h1>Create account</h1>
+      <p class="sub">Start tracking spend and budgets.</p>
+    }
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label>
@@ -32,10 +40,20 @@
         <input type="password" formControlName="password_confirm" />
       </label>
       <button class="btn primary" type="submit" [disabled]="loading()">
-        {{ loading() ? 'Creating…' : 'Create account' }}
+        @if (editing()) {
+          {{ loading() ? 'Updating…' : 'Update and resend link' }}
+        } @else {
+          {{ loading() ? 'Creating…' : 'Create account' }}
+        }
       </button>
     </form>
 
+    @if (editing()) {
+      <p class="footer">
+        Not your account?
+        <a href="" (click)="$event.preventDefault(); startOver()">Create a new one</a>
+      </p>
+    }
     <p class="footer">
       Already have an account?
       <a routerLink="/login">Sign in</a>

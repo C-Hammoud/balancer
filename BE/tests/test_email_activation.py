@@ -101,6 +101,55 @@ def test_old_api_link_redirects_to_the_web_page_without_verifying():
     assert not is_email_verified(user)
 
 
+def _register_again(client, **changes):
+    data = {
+        "username": "alice",
+        "email": "alice@example.com",
+        "first_name": "Alice",
+        "password": "Tr1cky-horse-77",
+        "password_confirm": "Tr1cky-horse-77",
+        **changes,
+    }
+    return client.post(A + "/register/", data, format="json")
+
+
+def test_registering_again_fixes_the_email_of_an_unverified_account():
+    client = APIClient()
+    user = _register(client)
+    old_uid, old_token = _uid_token(_link_from_welcome_email())
+
+    r = _register_again(client, email="alice.new@example.com", last_name="Smith")
+    assert r.status_code == 200, r.content
+    assert r.json()["updated"] is True and r.json()["email"] == "alice.new@example.com"
+    user.refresh_from_db()
+    assert (user.email, user.last_name) == ("alice.new@example.com", "Smith")
+    assert get_user_model().objects.filter(username="alice").count() == 1
+    assert mail.outbox[-1].to == ["alice.new@example.com"]
+
+    # The link sent to the old address no longer works; the new one does.
+    r = client.post(A + "/email-verify/confirm/", {"uid": old_uid, "token": old_token}, format="json")
+    assert r.status_code == 400
+    uid, token = _uid_token(_link_from_welcome_email())
+    r = client.post(A + "/email-verify/confirm/", {"uid": uid, "token": token}, format="json")
+    assert r.status_code == 200 and is_email_verified(user)
+
+
+def test_registering_again_needs_the_password_and_an_unverified_account():
+    client = APIClient()
+    user = _register(client)
+    r = _register_again(client, email="evil@example.com", password="Wr0ng-horse-77", password_confirm="Wr0ng-horse-77")
+    assert r.status_code == 400 and "username" in r.json()
+    user.refresh_from_db()
+    assert user.email == "alice@example.com"
+
+    uid, token = _uid_token(_link_from_welcome_email())
+    client.post(A + "/email-verify/confirm/", {"uid": uid, "token": token}, format="json")
+    r = _register_again(client, email="alice.new@example.com")
+    assert r.status_code == 400 and "username" in r.json()  # verified accounts are never changed this way
+    user.refresh_from_db()
+    assert user.email == "alice@example.com"
+
+
 def test_activation_email_failure_does_not_fail_verification(monkeypatch):
     def boom(user):
         raise ConnectionError("SMTP down")

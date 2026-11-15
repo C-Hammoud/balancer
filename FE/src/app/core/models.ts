@@ -38,6 +38,8 @@ export interface RegisterResponse {
   email?: string;
   email_sent?: boolean;
   verification_required?: boolean;
+  /** True when an unverified account was updated (registered again with the same password) */
+  updated?: boolean;
   user?: User;
   access?: string;
   refresh?: string;

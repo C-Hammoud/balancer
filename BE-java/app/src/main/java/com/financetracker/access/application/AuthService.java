@@ -108,6 +108,10 @@ public class AuthService {
     /** RegisterView.create: 201 with either the verification notice or user + tokens. */
     @Transactional
     public Map<String, Object> register(Map<String, Object> body) {
+        Optional<UserAccount> pending = pendingRegistration(body);
+        if (pending.isPresent()) {
+            return updatePendingRegistration(pending.get(), body);
+        }
         RequestData d = RequestData.of(body);
         String username = d.string("username", Field.required());
         if (username != null) {
@@ -159,6 +163,58 @@ public class AuthService {
         out.put("user", profiles.profileJson(user));
         out.put("refresh", tokens.refresh());
         out.put("access", tokens.access());
+        return out;
+    }
+
+    /**
+     * _pending_registration: registering again with the username and password of an account that
+     * was never verified (e.g. to fix a mistyped email) updates that account instead of failing
+     * with "username taken". The password proves it is the same person; verified accounts are
+     * never touched.
+     */
+    private Optional<UserAccount> pendingRegistration(Map<String, Object> body) {
+        if (!props.isRequireEmailVerification() || body == null
+                || !(body.get("username") instanceof String username) || !(body.get("password") instanceof String password)
+                || username.isEmpty() || password.isEmpty()) {
+            return Optional.empty();
+        }
+        return users.findByUsername(username)
+                .filter(u -> u.isActive() && !profiles.isEmailVerified(u) && hasher.matches(password, u.getPassword()));
+    }
+
+    /** _update_pending_registration: new email and name, then a fresh verification link. */
+    private Map<String, Object> updatePendingRegistration(UserAccount user, Map<String, Object> body) {
+        RequestData d = RequestData.of(body);
+        String email = d.email("email", Field.optional().allowBlank().maxLength(254));
+        String firstName = d.string("first_name", Field.optional().allowBlank().maxLength(150));
+        String lastName = d.string("last_name", Field.optional().allowBlank().maxLength(150));
+        String password = d.string("password", Field.required());
+        String confirm = d.string("password_confirm", Field.required());
+        d.validate();
+        if (!password.equals(confirm)) {
+            throw ApiException.field("password_confirm", "Passwords do not match.");
+        }
+        if (body.containsKey("email")) {
+            user.setEmail(normalizeEmail(email));
+        }
+        if (body.containsKey("first_name")) {
+            user.setFirstName(firstName);
+        }
+        if (body.containsKey("last_name")) {
+            user.setLastName(lastName);
+        }
+        user = users.save(user);
+        // A new email changes the token hash, so links sent to the old address stop working.
+        boolean emailSent = emails.welcomeAndVerification(ProfileService.recipient(user),
+                links.emailVerificationUrl(user), links.mobileVerifyUrl(user));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("detail", emailSent
+                ? "Your details are updated. We sent a new verification link to your email."
+                : "Your details are updated, but we could not send the verification email. Try resending from the sign-in page.");
+        out.put("email", user.getEmail());
+        out.put("email_sent", emailSent);
+        out.put("verification_required", true);
+        out.put("updated", true);
         return out;
     }
 
