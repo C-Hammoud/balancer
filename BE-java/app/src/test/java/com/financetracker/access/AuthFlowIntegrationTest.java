@@ -3,12 +3,12 @@ package com.financetracker.access;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.financetracker.notifications.api.EmailRecipient;
 import com.financetracker.notifications.api.TransactionalEmails;
+import com.financetracker.shared.config.AppProperties;
 import com.financetracker.shared.web.Throttler;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -47,6 +48,9 @@ class AuthFlowIntegrationTest {
 
     @Autowired
     Throttler throttler;
+
+    @Autowired
+    AppProperties props;
 
     @MockitoBean
     TransactionalEmails emails;
@@ -128,12 +132,40 @@ class AuthFlowIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.detail").value("No active account found with the given credentials"));
 
-        // The emailed GET link verifies and hands off to the app.
+        // The emailed link opens the web app's verify page.
         URI link = URI.create(verifyUrl.getValue());
-        mvc.perform(get(link.getPath().replace("/api/v1", "/api/v1")).queryParam("uid", query(link, "uid"))
-                        .queryParam("token", query(link, "token")))
+        String webPage = props.getFrontendUrl().replaceFirst("/+$", "") + "/verify-email";
+        assertThat(verifyUrl.getValue()).startsWith(webPage + "?");
+        String uid = query(link, "uid");
+        String token = query(link, "token");
+
+        // Links in older emails (the API GET) only redirect to that page; they don't verify.
+        mvc.perform(get("/api/v1/auth/email-verify/confirm/").queryParam("uid", uid).queryParam("token", token))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith(webPage + "?uid=")));
+        mvc.perform(post("/api/v1/auth/login/").contentType(MediaType.APPLICATION_JSON).content(credentials))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("email_not_verified"));
+
+        // The web page confirms with a POST: activated once, one "account is active" email.
+        String confirm = json(Map.of("uid", uid, "token", token));
+        mvc.perform(post("/api/v1/auth/email-verify/confirm/").contentType(MediaType.APPLICATION_JSON).content(confirm))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Email verified")));
+                .andExpect(jsonPath("$.detail").value("Your account has been activated. You can sign in now."))
+                .andExpect(jsonPath("$.email_verified").value(true))
+                .andExpect(jsonPath("$.already_verified").value(false));
+        verify(emails, times(1)).accountActivated(any());
+
+        // Opening the link again: fine, but no second email.
+        mvc.perform(post("/api/v1/auth/email-verify/confirm/").contentType(MediaType.APPLICATION_JSON).content(confirm))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.already_verified").value(true));
+        verify(emails, times(1)).accountActivated(any());
+
+        mvc.perform(post("/api/v1/auth/email-verify/confirm/").contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("uid", uid, "token", "nope"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("This link is invalid, expired or already used."));
 
         MvcResult login = mvc.perform(post("/api/v1/auth/login/").contentType(MediaType.APPLICATION_JSON).content(credentials))
                 .andExpect(status().isOk())

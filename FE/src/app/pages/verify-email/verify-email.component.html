@@ -1,28 +1,42 @@
 <div class="auth-page">
   <div class="auth-card">
     <p class="eyebrow">Finance Tracker</p>
-    <h1>Email verification</h1>
 
-    @if (loading()) {
-      <div class="status loading">
-        <p class="sub">Verifying your email address…</p>
-      </div>
-    } @else if (done()) {
-      <div class="status success">
-        <p class="sub"><strong>Success!</strong> Your email is verified.</p>
-        <p class="sub">You can sign in now and start using Finance Tracker.</p>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn primary" (click)="goToLogin()">Continue to sign in</button>
-      </div>
-    } @else if (failed()) {
-      <div class="status error">
-        <p class="sub">{{ errorMessage() }}</p>
-      </div>
-      <div class="actions">
-        <a class="btn ghost" routerLink="/check-email">Resend verification email</a>
-        <button type="button" class="btn primary" (click)="goToLogin()">Go to sign in</button>
-      </div>
+    @switch (state()) {
+      @case ('loading') {
+        <h1>Activating your account…</h1>
+        <div class="status loading">
+          <p class="sub">Checking your verification link.</p>
+        </div>
+      }
+      @case ('activated') {
+        <div class="badge success" aria-hidden="true">✓</div>
+        <h1>Your account has been activated</h1>
+        <p class="sub">Your email is verified. You can now sign in and start using Finance Tracker.</p>
+        <p class="sub hint">We've also sent you a confirmation email.</p>
+        <div class="actions">
+          <button type="button" class="btn primary" (click)="goToLogin()">Go to sign in</button>
+        </div>
+      }
+      @case ('already') {
+        <div class="badge success" aria-hidden="true">✓</div>
+        <h1>Your account is already active</h1>
+        <p class="sub">This link was already used. Sign in with your username and password.</p>
+        <div class="actions">
+          <button type="button" class="btn primary" (click)="goToLogin()">Go to sign in</button>
+        </div>
+      }
+      @case ('failed') {
+        <h1>We couldn't activate your account</h1>
+        <div class="status error">
+          <p class="sub">{{ errorMessage() }}</p>
+        </div>
+        <p class="sub hint">If you already activated your account, just sign in. Otherwise ask for a new link.</p>
+        <div class="actions">
+          <button type="button" class="btn primary" (click)="goToLogin()">Go to sign in</button>
+          <a class="btn ghost" routerLink="/check-email">Send a new verification email</a>
+        </div>
+      }
     }
   </div>
 </div>

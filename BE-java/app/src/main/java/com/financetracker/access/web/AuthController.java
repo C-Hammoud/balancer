@@ -1,5 +1,6 @@
 package com.financetracker.access.web;
 
+import java.net.URI;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,9 +64,12 @@ class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping(value = "/email-verify/confirm/", produces = MediaType.TEXT_HTML_VALUE)
-    String confirmEmailPage(@RequestParam(defaultValue = "") String uid, @RequestParam(defaultValue = "") String token) {
-        return auth.confirmEmailPage(uid, token);
+    @GetMapping("/email-verify/confirm/")
+    ResponseEntity<Void> confirmEmailPage(@RequestParam(defaultValue = "") String uid,
+            @RequestParam(defaultValue = "") String token) {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(auth.confirmEmailRedirect(uid, token)))
+                .build();
     }
 
     @PostMapping("/email-verify/confirm/")

@@ -48,10 +48,14 @@ public class AuthLinks {
         return Py.urlsafeB64Encode(String.valueOf(user.getId()));
     }
 
-    /** API GET link so verification works from mail apps before the SPA loads. */
+    /** The web app's verify page; it confirms the token with a POST and shows the result. */
+    public String webVerifyUrl(String uid, String token) {
+        String base = props.getFrontendUrl().replaceFirst("/+$", "");
+        return base + "/verify-email?uid=" + Py.quote(uid, "") + "&token=" + Py.quote(token, "");
+    }
+
     public String emailVerificationUrl(UserAccount user) {
-        String token = Py.quote(emailVerificationTokens.makeToken(user), "");
-        return props.getApiPublicUrl() + "/auth/email-verify/confirm/?uid=" + uidFor(user) + "&token=" + token;
+        return webVerifyUrl(uidFor(user), emailVerificationTokens.makeToken(user));
     }
 
     public String mobileVerifyUrl(UserAccount user) {

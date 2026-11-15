@@ -2,7 +2,10 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { ToastService, extractApiError } from '../../core/toast.service';
+import { extractApiError } from '../../core/toast.service';
+
+/** loading → activated (first time) | already (link opened again) | failed */
+type VerifyState = 'loading' | 'activated' | 'already' | 'failed';
 
 @Component({
   selector: 'app-verify-email',
@@ -15,11 +18,8 @@ export class VerifyEmailComponent implements OnInit {
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private toast = inject(ToastService);
 
-  loading = signal(true);
-  done = signal(false);
-  failed = signal(false);
+  state = signal<VerifyState>('loading');
   errorMessage = signal('');
   uid = '';
   token = '';
@@ -32,8 +32,7 @@ export class VerifyEmailComponent implements OnInit {
 
     this.route.queryParamMap.subscribe((params) => {
       if (params.get('verified') === '1') {
-        this.loading.set(false);
-        this.done.set(true);
+        this.state.set('activated');
         return;
       }
 
@@ -42,16 +41,12 @@ export class VerifyEmailComponent implements OnInit {
       const errorParam = params.get('error');
 
       if (errorParam) {
-        this.loading.set(false);
-        this.failed.set(true);
-        this.errorMessage.set(decodeURIComponent(errorParam));
+        this.fail(decodeURIComponent(errorParam));
         return;
       }
 
       if (!this.uid || !this.token) {
-        this.loading.set(false);
-        this.failed.set(true);
-        this.errorMessage.set('This verification link is invalid or incomplete.');
+        this.fail('This verification link is invalid or incomplete.');
         return;
       }
 
@@ -64,35 +59,26 @@ export class VerifyEmailComponent implements OnInit {
   }
 
   private runVerification(): void {
-    this.loading.set(true);
-    this.failed.set(false);
-    this.done.set(false);
-
+    this.state.set('loading');
     this.auth.verifyEmail(this.uid, this.token).subscribe({
       next: (res) => {
-        this.loading.set(false);
         if (res.email_verified) {
-          this.done.set(true);
-          this.toast.success(res.detail);
-          window.setTimeout(() => {
-            this.router.navigate(['/login'], { queryParams: { verified: '1' } });
-          }, 1800);
+          this.state.set(res.already_verified ? 'already' : 'activated');
           return;
         }
-        this.failed.set(true);
-        this.errorMessage.set(res.detail || 'Verification did not complete.');
+        this.fail(res.detail || 'Verification did not complete.');
       },
-      error: (err) => {
-        this.loading.set(false);
-        this.failed.set(true);
-        this.errorMessage.set(extractApiError(err, 'Could not verify email. The link may have expired.'));
-      },
+      error: (err) => this.fail(extractApiError(err, 'Could not verify email. The link may have expired.')),
     });
   }
 
+  private fail(message: string): void {
+    this.errorMessage.set(message);
+    this.state.set('failed');
+  }
+
   goToLogin(): void {
-    this.router.navigate(['/login'], {
-      queryParams: this.done() ? { verified: '1' } : {},
-    });
+    const active = this.state() === 'activated' || this.state() === 'already';
+    this.router.navigate(['/login'], { queryParams: active ? { verified: '1' } : {} });
   }
 }

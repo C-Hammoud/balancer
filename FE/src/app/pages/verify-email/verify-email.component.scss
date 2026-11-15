@@ -39,6 +39,28 @@ h1 {
   line-height: 1.5;
 }
 
+.badge {
+  width: 3rem;
+  height: 3rem;
+  margin: 0.75rem 0 0.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.badge.success {
+  background: #e4f5ea;
+  color: #1d6b3a;
+  border: 1px solid rgba(29, 107, 58, 0.25);
+}
+
+.sub.hint {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
 .status {
   margin-top: 1rem;
   padding: 0.9rem 1rem;

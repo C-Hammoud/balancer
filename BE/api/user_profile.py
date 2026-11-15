@@ -131,6 +131,16 @@ def mark_email_verified(user) -> UserProfile:
     return profile
 
 
+def activate_email(user) -> bool:
+    """Mark the email verified; True only for the call that changed it (one atomic UPDATE, so two
+    clicks at the same moment cannot both count as the first activation)."""
+    profile = get_user_profile(user)
+    changed = UserProfile.objects.filter(pk=profile.pk, email_verified=False).update(
+        email_verified=True, email_verified_at=timezone.now()
+    )
+    return changed == 1
+
+
 def mark_email_unverified(user) -> UserProfile:
     profile = get_user_profile(user)
     if profile.email_verified or profile.email_verified_at:

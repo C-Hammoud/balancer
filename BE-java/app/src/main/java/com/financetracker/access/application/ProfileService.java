@@ -47,14 +47,17 @@ public class ProfileService {
         return profiles.findById(user.getId()).map(UserProfile::isEmailVerified).orElse(false);
     }
 
+    /** True when this call verified the email (false when it already was). */
     @Transactional
-    public void markEmailVerified(UserAccount user) {
+    public boolean markEmailVerified(UserAccount user) {
         UserProfile p = profile(user);
-        if (!p.isEmailVerified()) {
-            p.setEmailVerified(true);
-            p.setEmailVerifiedAt(Instant.now(clock));
-            profiles.save(p);
+        if (p.isEmailVerified()) {
+            return false;
         }
+        p.setEmailVerified(true);
+        p.setEmailVerifiedAt(Instant.now(clock));
+        profiles.save(p);
+        return true;
     }
 
     @Transactional

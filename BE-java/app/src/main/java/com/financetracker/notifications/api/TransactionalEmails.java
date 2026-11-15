@@ -10,6 +10,8 @@ public interface TransactionalEmails {
 
     boolean verification(EmailRecipient to, String verifyUrl, String mobileVerifyUrl);
 
+    boolean accountActivated(EmailRecipient to);
+
     boolean setupNudge(EmailRecipient to);
 
     boolean passwordReset(EmailRecipient to, String resetUrl, String appUrl);

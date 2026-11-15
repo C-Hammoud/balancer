@@ -51,11 +51,16 @@ public class AuthService {
             "If an account exists with that email or username, you will receive password reset instructions shortly.";
     public static final String VERIFICATION_RESENT_MSG =
             "If an unverified account exists for that email, a verification link was sent.";
-    private static final String INVALID_LINK = "Invalid or expired verification link.";
+    private static final String INVALID_LINK = "This link is invalid, expired or already used.";
+    private static final String ACTIVATED = "Your account has been activated. You can sign in now.";
+    private static final String ALREADY_ACTIVE = "Your account is already active. You can sign in.";
     private static final String INVALID_RESET = "Invalid or expired reset link.";
     private static final Pattern USERNAME = Pattern.compile("^[\\w.@+-]+\\z", Pattern.UNICODE_CHARACTER_CLASS);
 
-    public record VerifyResult(boolean ok, String detail) {
+    public record VerifyResult(boolean ok, String detail, boolean alreadyVerified) {
+        VerifyResult(boolean ok, String detail) {
+            this(ok, detail, false);
+        }
     }
 
     public record Created(Map<String, Object> body) {
@@ -288,17 +293,26 @@ public class AuthService {
             log.info("Email verify failed: bad token for user {}", u.getId());
             return new VerifyResult(false, INVALID_LINK);
         }
-        profiles.markEmailVerified(u);
+        boolean newlyActivated = profiles.markEmailVerified(u);
         if (!profiles.isEmailVerified(u)) {
             log.error("Email verify save failed for user {}", u.getId());
             return new VerifyResult(false, "Could not save verification status. Please try again.");
+        }
+        if (!newlyActivated) {
+            return new VerifyResult(true, ALREADY_ACTIVE, true);
         }
         try {
             events.publishEvent(new EmailVerified(u.userId(), u.getEmail()));
         } catch (RuntimeException e) {
             log.warn("Failed to apply pending budget invites for user {}: {}", u.getId(), e.getMessage());
         }
-        return new VerifyResult(true, "Email verified successfully. You can sign in now.");
+        try {
+            emails.accountActivated(ProfileService.recipient(u));
+        } catch (RuntimeException e) {
+            // The account is active either way; a mail problem must not fail the verification.
+            log.warn("Account activated email failed for user {}: {}", u.getId(), e.getMessage());
+        }
+        return new VerifyResult(true, ACTIVATED, false);
     }
 
     /** POST /auth/email-verify/confirm/. */
@@ -315,22 +329,16 @@ public class AuthService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("detail", result.detail());
         out.put("email_verified", true);
+        out.put("already_verified", result.alreadyVerified());
         return out;
     }
 
-    /** GET /auth/email-verify/confirm/: HTML that hands off to the app or the web page. */
-    @Transactional
-    public String confirmEmailPage(String uid, String token) {
-        VerifyResult result = verifyEmail(uid, token);
-        String frontend = props.getFrontendUrl();
-        if (result.ok()) {
-            return AuthLinks.handoffHtml("Email verified", "Opening Finance Tracker so you can sign in.",
-                    links.mobileDeepLink("login", "verified", "1"), frontend + "/login?verified=1");
-        }
-        String error = Py.quote(result.detail(), "");
-        return AuthLinks.handoffHtml("Could not verify email", result.detail(),
-                links.mobileDeepLink("verify-email", "uid", uid, "token", token, "error", result.detail()),
-                frontend + "/verify-email?uid=" + uid + "&token=" + token + "&error=" + error);
+    /**
+     * GET /auth/email-verify/confirm/ (links in emails sent before the web page took over): where to
+     * redirect. GET never verifies, so mail scanners that open links cannot act on them.
+     */
+    public String confirmEmailRedirect(String uid, String token) {
+        return links.webVerifyUrl(uid, token);
     }
 
     /** EmailVerifyResendView. */

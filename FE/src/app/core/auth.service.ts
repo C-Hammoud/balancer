@@ -55,8 +55,11 @@ export class AuthService {
     );
   }
 
-  verifyEmail(uid: string, token: string): Observable<{ detail: string; email_verified?: boolean }> {
-    return this.http.post<{ detail: string; email_verified?: boolean }>(
+  verifyEmail(
+    uid: string,
+    token: string
+  ): Observable<{ detail: string; email_verified?: boolean; already_verified?: boolean }> {
+    return this.http.post<{ detail: string; email_verified?: boolean; already_verified?: boolean }>(
       `${this.api}/auth/email-verify/confirm/`,
       { uid, token }
     );

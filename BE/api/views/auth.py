@@ -1,10 +1,9 @@
 import logging
-from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from firebase_admin import auth as fb_auth, firestore
@@ -25,6 +24,7 @@ from api.email_verification import (
     build_password_reset_open_url,
     mobile_deep_link,
     verify_email_with_token,
+    web_verify_url,
 )
 from api.serializers import (
     CustomTokenObtainPairSerializer,
@@ -180,23 +180,11 @@ class EmailVerifyConfirmView(APIView):
     authentication_classes = ()
 
     def get(self, request):
+        # Links in emails sent before the web page took over: open the web page, which confirms
+        # with a POST. GET never verifies, so mail scanners that open links cannot act on them.
         uid = request.query_params.get("uid", "")
         token = request.query_params.get("token", "")
-        result = verify_email_with_token(uid, token)
-        if result["ok"]:
-            return _app_handoff_html(
-                title="Email verified",
-                message="Opening Finance Tracker so you can sign in.",
-                app_url=mobile_deep_link("login", verified="1"),
-                web_url=f"{settings.FRONTEND_URL}/login?verified=1",
-            )
-        error = quote(result["detail"], safe="")
-        return _app_handoff_html(
-            title="Could not verify email",
-            message=result["detail"],
-            app_url=mobile_deep_link("verify-email", uid=uid, token=token, error=result["detail"]),
-            web_url=f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}&error={error}",
-        )
+        return HttpResponseRedirect(web_verify_url(uid, token))
 
     def post(self, request):
         serializer = EmailVerifyConfirmSerializer(data=request.data)
@@ -209,6 +197,7 @@ class EmailVerifyConfirmView(APIView):
             {
                 "detail": result["detail"],
                 "email_verified": True,
+                "already_verified": result["already_verified"],
             }
         )
 

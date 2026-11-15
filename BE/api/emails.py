@@ -73,6 +73,28 @@ def send_verification_email(user) -> bool:
     return send_branded_email(content, [email])
 
 
+def send_account_activated_email(user) -> bool:
+    email = (user.email or "").strip()
+    if not email:
+        return False
+    from django.conf import settings
+
+    name = _display_name(user)
+    content = BrandedEmail(
+        subject="Your Finance Tracker account is active",
+        preheader="Your email is verified. You can sign in now.",
+        headline=f"You're all set, {name}!",
+        paragraphs=[
+            "Your email address is verified and your Finance Tracker account is now active.",
+            "Sign in to start planning budgets and tracking your spending.",
+        ],
+        cta=EmailCTA(label="Sign in", url=f"{settings.FRONTEND_URL}/login"),
+        secondary_note="If you didn't create this account, reset your password or contact support.",
+        footer_reason="You received this because your account was just activated.",
+    )
+    return send_branded_email(content, [email])
+
+
 def send_setup_nudge_email(user) -> bool:
     email = (getattr(user, "email", None) or "").strip()
     if not email:

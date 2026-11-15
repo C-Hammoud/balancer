@@ -84,6 +84,25 @@ class TransactionalEmailService implements TransactionalEmails {
     }
 
     @Override
+    public boolean accountActivated(EmailRecipient to) {
+        String email = email(to);
+        if (email.isEmpty()) {
+            return false;
+        }
+        String name = to.displayName("there");
+        BrandedEmail content = new BrandedEmail(
+                "Your Finance Tracker account is active",
+                "Your email is verified. You can sign in now.",
+                "You're all set, " + name + "!")
+                .paragraph("Your email address is verified and your Finance Tracker account is now active.")
+                .paragraph("Sign in to start planning budgets and tracking your spending.")
+                .cta("Sign in", frontend() + "/login")
+                .secondaryNote("If you didn't create this account, reset your password or contact support.")
+                .footerReason("You received this because your account was just activated.");
+        return delivery.send(content, List.of(email));
+    }
+
+    @Override
     public boolean setupNudge(EmailRecipient to) {
         String email = email(to);
         if (email.isEmpty()) {
