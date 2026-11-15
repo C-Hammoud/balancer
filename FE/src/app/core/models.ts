@@ -602,6 +602,8 @@ export interface TransactionUploadResult {
   date_format?: ImportDateFormat;
   currency?: string;
   errors?: { row: number; error: string }[];
+  /** PDF rows with no balance or CR/DR marker, imported as money out */
+  uncertain_direction?: number;
 }
 
 export type ImportDateFormat = 'auto' | 'dmy' | 'mdy' | 'ymd';

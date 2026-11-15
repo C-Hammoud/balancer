@@ -564,15 +564,37 @@
     <header class="modal-head">
       <div>
         <h2 id="import-title">Import bank statement</h2>
-        <p class="muted">CSV or Excel (.xlsx) with Date, Description and Amount (or Debit / Credit) columns.</p>
+        <p class="muted">
+          Your bank's e-statement as PDF or JSON, or a CSV / Excel (.xlsx) file with Date, Description and
+          Amount (or Debit / Credit) columns.
+        </p>
       </div>
       <button type="button" class="icon-close" (click)="closeImport()" aria-label="Close">×</button>
     </header>
     <div class="modal-body import-form">
       <label>
         File <span class="req">*</span>
-        <input type="file" accept=".csv,.xlsx" (change)="onImportFile($event)" [disabled]="uploading()" />
+        <input
+          type="file"
+          accept=".pdf,.json,.csv,.xlsx"
+          (change)="onImportFile($event)"
+          [disabled]="uploading()"
+        />
       </label>
+      @if (importPasswordPrompt()) {
+        <label>
+          PDF password <span class="req">*</span>
+          <input
+            type="password"
+            [(ngModel)]="importPassword"
+            name="importPassword"
+            autocomplete="off"
+            (keydown.enter)="runImport()"
+          />
+          <small class="error-text">{{ importPasswordPrompt() }}</small>
+          <small class="muted">Used only to open this file. It is not saved.</small>
+        </label>
+      }
       <label>
         Date format
         <select [(ngModel)]="importDateFormat" name="importDateFormat">
@@ -602,7 +624,12 @@
     </div>
     <footer class="modal-foot">
       <button type="button" class="btn ghost" (click)="closeImport()" [disabled]="uploading()">Cancel</button>
-      <button type="button" class="btn primary" (click)="runImport()" [disabled]="uploading() || !importFile">
+      <button
+        type="button"
+        class="btn primary"
+        (click)="runImport()"
+        [disabled]="uploading() || !importFile || (!!importPasswordPrompt() && !importPassword)"
+      >
         {{ uploading() ? 'Importing…' : 'Import' }}
       </button>
     </footer>

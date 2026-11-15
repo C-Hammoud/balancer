@@ -797,10 +797,12 @@ class TransactionDetailView(APIView):
 
 class TransactionUploadView(APIView):
     """
-    Import a bank statement (.csv or .xlsx). Optional form fields:
+    Import a bank statement (.csv, .xlsx, .json or .pdf). Optional form fields:
       date_format: auto | dmy | mdy | ymd (auto: detect from the file, else the user's country)
       currency:    statement currency (default: the user's default currency)
       account_id:  account the statement belongs to
+      password:    opens a password-protected PDF (used once, never stored). Without it such a
+                   file returns 400 with code "password_required" (or "password_incorrect").
     Positive amounts are income and negative amounts are expenses (or use Debit/Credit columns).
     """
 
@@ -815,7 +817,9 @@ class TransactionUploadView(APIView):
 
         f = request.FILES.get("file")
         if not f:
-            return Response({"detail": "Choose a .csv or .xlsx file."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Choose a .csv, .xlsx, .json or .pdf file."}, status=status.HTTP_400_BAD_REQUEST
+            )
         if f.size and f.size > dj_settings.TRANSACTION_IMPORT_MAX_BYTES:
             limit_mb = dj_settings.TRANSACTION_IMPORT_MAX_BYTES // (1024 * 1024)
             return Response({"detail": f"File is too large (max {limit_mb} MB)."}, status=status.HTTP_400_BAD_REQUEST)
@@ -840,9 +844,12 @@ class TransactionUploadView(APIView):
                 return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            rows = importer.read_rows(f.name, f.read())
+            rows, uncertain = importer.read_statement(f.name, f.read(), request.data.get("password") or "")
         except importer.StatementImportError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            body = {"detail": str(exc)}
+            if getattr(exc, "code", None):
+                body["code"] = exc.code
+            return Response(body, status=status.HTTP_400_BAD_REQUEST)
         if len(rows) > dj_settings.TRANSACTION_IMPORT_MAX_ROWS + 1:
             return Response(
                 {"detail": f"Too many rows (max {dj_settings.TRANSACTION_IMPORT_MAX_ROWS}). Split the file."},
@@ -953,6 +960,8 @@ class TransactionUploadView(APIView):
             "date_format": date_format,
             "currency": currency,
             "errors": errors[:20],
+            # PDF lines with no balance or CR/DR marker were imported as money out: worth a check.
+            "uncertain_direction": uncertain,
         })
 
 

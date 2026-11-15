@@ -191,6 +191,8 @@ class ImportTest extends ApiTestSupport {
 
     @Test
     void rejectsWrongTypeAndOversize() {
+        assertThat(api.upload(URL, "statement.txt", "x".getBytes(StandardCharsets.UTF_8)).status()).isEqualTo(400);
+        // Not a real PDF.
         assertThat(api.upload(URL, "statement.pdf", "x".getBytes(StandardCharsets.UTF_8)).status()).isEqualTo(400);
         long before = props.getImportLimits().getMaxBytes();
         props.getImportLimits().setMaxBytes(10);

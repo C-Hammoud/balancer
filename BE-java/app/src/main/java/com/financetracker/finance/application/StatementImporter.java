@@ -30,7 +30,8 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
- * Port of budgeting/importer.py: read CSV/XLSX rows, detect columns, parse dates and amounts.
+ * Port of budgeting/importer.py: read CSV/XLSX rows (JSON and PDF via StatementFormats), detect
+ * columns, parse dates and amounts.
  * Pure functions (no store access).
  */
 public final class StatementImporter {
@@ -109,7 +110,23 @@ public final class StatementImporter {
             }
             return rows;
         }
-        throw new ImportError("Upload a .csv or .xlsx file.");
+        throw new ImportError("Upload a .csv, .xlsx, .json or .pdf file.");
+    }
+
+    /**
+     * Rows for any supported file, plus how many transactions had to assume their direction
+     * (read_statement). JSON and PDF rows come with a date/description/amount header and signed
+     * amounts (StatementFormats).
+     */
+    public static StatementFormats.Parsed readStatement(String filename, byte[] raw, String password) {
+        String name = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
+        if (name.endsWith(".json")) {
+            return new StatementFormats.Parsed(StatementFormats.jsonRows(raw), 0);
+        }
+        if (name.endsWith(".pdf")) {
+            return StatementFormats.pdfRows(raw, password);
+        }
+        return new StatementFormats.Parsed(readRows(filename, raw), 0);
     }
 
     /**

@@ -31,6 +31,7 @@
         <shedlock.version>7.10.1</shedlock.version>
         <poi.version>5.5.1</poi.version>
         <commons-csv.version>1.14.1</commons-csv.version>
+        <pdfbox.version>3.0.5</pdfbox.version>
     </properties>
 
     <dependencyManagement>
@@ -73,6 +74,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
                 <version>${commons-csv.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

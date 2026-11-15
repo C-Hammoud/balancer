@@ -131,7 +131,8 @@ def test_bad_rows_are_reported(api, user):
 
 
 def test_rejects_wrong_type_and_oversize(api, settings):
-    assert _upload(api, "x", name="statement.pdf").status_code == 400
+    assert _upload(api, "x", name="statement.txt").status_code == 400
+    assert _upload(api, "x", name="statement.pdf").status_code == 400  # not a real PDF
     settings.TRANSACTION_IMPORT_MAX_BYTES = 10
     assert _upload(api, "Date,Description,Amount\n2026-04-03,Shop,-1\n").status_code == 400
 

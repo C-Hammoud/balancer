@@ -99,6 +99,9 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   importDateFormat: ImportDateFormat = 'auto';
   importCurrency = '';
   importAccountId = '';
+  /** Only for a password-protected PDF; never saved with the import preferences. */
+  importPassword = '';
+  importPasswordPrompt = signal('');
   readonly dateFormatOptions = (Object.keys(DATE_FORMAT_LABELS) as ImportDateFormat[]).map((code) => ({
     code,
     label: DATE_FORMAT_LABELS[code],
@@ -964,16 +967,24 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     this.importAccountId =
       saved.accountId && accountIds.has(saved.accountId) ? saved.accountId : this.defaultExpenseAccountId();
     this.importFile = null;
+    this.resetImportPassword();
     this.showImport.set(true);
   }
 
   closeImport(): void {
     if (this.uploading()) return;
     this.showImport.set(false);
+    this.resetImportPassword();
   }
 
   onImportFile(event: Event): void {
     this.importFile = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.resetImportPassword();
+  }
+
+  private resetImportPassword(): void {
+    this.importPassword = '';
+    this.importPasswordPrompt.set('');
   }
 
   private loadImportPrefs(): TransactionImportOptions {
@@ -995,7 +1006,7 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   runImport(): void {
     const file = this.importFile;
     if (!file) {
-      this.toast.error('Choose a .csv or .xlsx file.');
+      this.toast.error('Choose a .csv, .xlsx, .json or .pdf file.');
       return;
     }
     const opts: TransactionImportOptions = {
@@ -1005,14 +1016,22 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     };
     this.saveImportPrefs(opts);
     this.uploading.set(true);
-    this.api.uploadTransactions(file, opts).subscribe({
+    this.api.uploadTransactions(file, opts, this.importPassword).subscribe({
       next: (r) => {
         this.uploading.set(false);
         this.showImport.set(false);
+        this.resetImportPassword();
         const fmt = r.date_format ? ' Dates read as ' + DATE_FORMAT_LABELS[r.date_format] + '.' : '';
         this.toast.success(
           'Imported ' + r.created + ' (matched ' + r.matched + ' merchants), skipped ' + r.skipped + '.' + fmt
         );
+        if (r.uncertain_direction) {
+          this.toast.info(
+            r.uncertain_direction +
+              ' transaction(s) did not say whether money came in or went out and were saved as expenses. Check them in the list.',
+            8000
+          );
+        }
         if (r.errors?.length) {
           const first = r.errors[0];
           this.toast.error(r.errors.length + ' row(s) could not be read. First: row ' + first.row + ' (' + first.error + ')');
@@ -1038,6 +1057,13 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.uploading.set(false);
+        const body = (err as { error?: { code?: string; detail?: string } })?.error;
+        if (body?.code === 'password_required' || body?.code === 'password_incorrect') {
+          // Keep the dialog open and ask for the PDF's password.
+          this.importPassword = '';
+          this.importPasswordPrompt.set(body.detail || 'Enter the PDF password.');
+          return;
+        }
         this.toast.fromHttpError(err, 'Import failed.');
       },
     });

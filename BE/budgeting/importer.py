@@ -1,5 +1,6 @@
 """
-Bank statement import: read CSV/XLSX rows, detect columns, parse dates and amounts.
+Bank statement import: read CSV/XLSX rows (JSON and PDF via statement_formats), detect columns,
+parse dates and amounts.
 Pure functions (no store access) so the parsing rules are easy to test.
 """
 import csv
@@ -73,7 +74,23 @@ def read_rows(filename: str, raw: bytes) -> list[list[str]]:
         except csv.Error:
             dialect = csv.excel
         return [list(r) for r in csv.reader(io.StringIO(text), dialect)]
-    raise StatementImportError("Upload a .csv or .xlsx file.")
+    raise StatementImportError("Upload a .csv, .xlsx, .json or .pdf file.")
+
+
+def read_statement(filename: str, raw: bytes, password: str = "") -> tuple[list[list[str]], int]:
+    """
+    Rows for any supported file, plus how many transactions had to assume their direction
+    (PDF lines without a balance or CR/DR marker). JSON and PDF rows come with a
+    date/description/amount header and signed amounts (budgeting/statement_formats.py).
+    """
+    from budgeting import statement_formats
+
+    name = (filename or "").lower()
+    if name.endswith(".json"):
+        return statement_formats.json_rows(raw), 0
+    if name.endswith(".pdf"):
+        return statement_formats.pdf_rows(raw, password)
+    return read_rows(filename, raw), 0
 
 
 def column_map(header_row) -> dict | None:

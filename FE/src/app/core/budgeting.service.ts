@@ -124,12 +124,18 @@ export class BudgetingService {
     return this.http.delete<void>(`${this.api}/transactions/${id}/`);
   }
 
-  uploadTransactions(file: File, opts: TransactionImportOptions = {}): Observable<TransactionUploadResult> {
+  /** `password` opens a password-protected PDF; it is sent once and never saved. */
+  uploadTransactions(
+    file: File,
+    opts: TransactionImportOptions = {},
+    password = ''
+  ): Observable<TransactionUploadResult> {
     const form = new FormData();
     form.append('file', file);
     if (opts.dateFormat) form.append('date_format', opts.dateFormat);
     if (opts.currency) form.append('currency', opts.currency);
     if (opts.accountId) form.append('account_id', opts.accountId);
+    if (password) form.append('password', password);
     return this.http.post<TransactionUploadResult>(`${this.api}/transactions/upload/`, form);
   }
 

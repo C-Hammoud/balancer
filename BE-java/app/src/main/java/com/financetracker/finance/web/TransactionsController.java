@@ -34,6 +34,7 @@ import com.financetracker.finance.application.CategoryAccess;
 import com.financetracker.finance.application.CommitmentScheduleService;
 import com.financetracker.finance.application.PersonalBudgetAccess;
 import com.financetracker.finance.application.ReportService;
+import com.financetracker.finance.application.StatementFormats;
 import com.financetracker.finance.application.StatementImporter;
 import com.financetracker.finance.domain.Account;
 import com.financetracker.finance.domain.Category;
@@ -398,15 +399,17 @@ class TransactionsController {
     }
 
     /**
-     * Import a bank statement (.csv / .xlsx). Positive amounts are income, negative are expenses
-     * (or Debit/Credit columns). Re-uploading the same file adds nothing.
+     * Import a bank statement (.csv / .xlsx / .json / .pdf). Positive amounts are income, negative
+     * are expenses (or Debit/Credit columns). Re-uploading the same file adds nothing. A
+     * password-protected PDF needs the "password" field (used once, never stored); without it the
+     * answer is 400 with code password_required (or password_incorrect).
      */
     @PostMapping(value = "/upload/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Map<String, Object> upload(@RequestParam(required = false) MultipartFile file,
             @RequestParam Map<String, String> form) throws IOException {
         String uid = FinanceJson.uid();
         if (file == null || file.getOriginalFilename() == null || file.getOriginalFilename().isEmpty()) {
-            throw ApiException.badRequest("Choose a .csv or .xlsx file.");
+            throw ApiException.badRequest("Choose a .csv, .xlsx, .json or .pdf file.");
         }
         long maxBytes = props.getImportLimits().getMaxBytes();
         if (file.getSize() > 0 && file.getSize() > maxBytes) {
@@ -433,8 +436,17 @@ class TransactionsController {
         }
 
         List<List<String>> rows;
+        int uncertain;
         try {
-            rows = StatementImporter.readRows(file.getOriginalFilename(), file.getBytes());
+            StatementFormats.Parsed parsed = StatementImporter.readStatement(file.getOriginalFilename(), file.getBytes(),
+                    form.getOrDefault("password", ""));
+            rows = parsed.rows();
+            uncertain = parsed.uncertain();
+        } catch (StatementFormats.PasswordError e) {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("detail", e.getMessage());
+            body.put("code", e.code());
+            throw new ApiException(HttpStatus.BAD_REQUEST, body);
         } catch (StatementImporter.ImportError e) {
             throw ApiException.badRequest(e.getMessage());
         }
@@ -579,6 +591,8 @@ class TransactionsController {
         out.put("date_format", dateFormat);
         out.put("currency", currency);
         out.put("errors", errors.size() > 20 ? errors.subList(0, 20) : errors);
+        // PDF lines with no balance or CR/DR marker were imported as money out: worth a check.
+        out.put("uncertain_direction", uncertain);
         return out;
     }
 
