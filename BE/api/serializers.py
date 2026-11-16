@@ -3,7 +3,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.models import update_last_login
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenObtainSerializer
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
 from api.constants import CURRENCY_CHOICES, TYPE_CHOICES
 from api.user_profile import get_user_profile, is_email_verified, setup_payload
@@ -75,10 +77,18 @@ class EmailNotVerified(APIException):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        data = super().validate(attrs)
+        # Authenticate only (TokenObtainSerializer), then refuse unverified accounts BEFORE
+        # tokens are issued and last_login is written: a refused sign-in is not a login.
+        data = TokenObtainSerializer.validate(self, attrs)
         user = User.objects.get(pk=self.user.pk)
         if getattr(settings, "REQUIRE_EMAIL_VERIFICATION", True) and not is_email_verified(user):
             raise EmailNotVerified()
+        # Same steps as TokenObtainPairSerializer.validate.
+        refresh = self.get_token(self.user)
+        data["refresh"] = str(refresh)
+        data["access"] = str(refresh.access_token)
+        if jwt_settings.UPDATE_LAST_LOGIN:
+            update_last_login(None, self.user)
         return data
 
 

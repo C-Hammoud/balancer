@@ -88,6 +88,6 @@ class SecurityConfiguration {
     @Bean
     DjangoTokenGenerator emailVerificationTokens(AppProperties props, Clock clock) {
         return new DjangoTokenGenerator(DjangoTokenGenerator.EMAIL_VERIFICATION_SALT, props.getSecretKey(),
-                props.getPasswordResetTimeout(), clock);
+                props.getPasswordResetTimeout(), clock, false);
     }
 }

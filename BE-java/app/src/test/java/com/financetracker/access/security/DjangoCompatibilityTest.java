@@ -71,11 +71,15 @@ class DjangoCompatibilityTest {
         DjangoTokenGenerator reset = new DjangoTokenGenerator(DjangoTokenGenerator.PASSWORD_RESET_SALT, SECRET,
                 Duration.ofDays(3), clock);
         DjangoTokenGenerator verify = new DjangoTokenGenerator(DjangoTokenGenerator.EMAIL_VERIFICATION_SALT, SECRET,
-                Duration.ofDays(3), clock);
+                Duration.ofDays(3), clock, false);
 
         assertThat(reset.makeToken(user(lastLogin))).isEqualTo("dgp2o0-70fa570ab2ac5c655464b8ffe0f61c5a");
-        assertThat(verify.makeToken(user(lastLogin))).isEqualTo("dgp2o0-4c35a68299ed0b66154ae827ea89cae7");
         assertThat(reset.makeToken(user(null))).isEqualTo("dgp2o0-c2299b3b8bb301397f7a6fd9351beae6");
+        // Verification tokens ignore last_login (api.tokens.EmailVerificationTokenGenerator).
+        assertThat(verify.makeToken(user(lastLogin))).isEqualTo("dgp2o0-5580e732d80746d639a9c47a896d59ff");
+        assertThat(verify.makeToken(user(null))).isEqualTo("dgp2o0-5580e732d80746d639a9c47a896d59ff");
+        assertThat(verify.checkToken(user(Instant.parse("2026-10-19T11:59:00Z")), "dgp2o0-5580e732d80746d639a9c47a896d59ff")).isTrue();
+        assertThat(reset.checkToken(user(Instant.parse("2026-10-19T11:59:00Z")), "dgp2o0-70fa570ab2ac5c655464b8ffe0f61c5a")).isFalse();
 
         assertThat(reset.checkToken(user(lastLogin), "dgp2o0-70fa570ab2ac5c655464b8ffe0f61c5a")).isTrue();
         assertThat(verify.checkToken(user(lastLogin), "dgp2o0-70fa570ab2ac5c655464b8ffe0f61c5a")).isFalse();

@@ -150,6 +150,51 @@ def test_registering_again_needs_the_password_and_an_unverified_account():
     assert user.email == "alice@example.com"
 
 
+def _sign_in(client):
+    return client.post(A + "/login/", {"username": "alice", "password": "Tr1cky-horse-77"}, format="json")
+
+
+def test_signing_in_before_verifying_does_not_break_the_link():
+    # The usual path: register, try to sign in, then open the link from the email.
+    client = APIClient()
+    user = _register(client)
+    uid, token = _uid_token(_link_from_welcome_email())
+
+    for _ in range(2):
+        r = _sign_in(client)
+        assert r.status_code != 200
+        assert r.json()["code"] == "email_not_verified"
+    user.refresh_from_db()
+    assert user.last_login is None  # a refused sign-in is not a login
+
+    r = client.post(A + "/email-verify/confirm/", {"uid": uid, "token": token}, format="json")
+    assert r.status_code == 200, r.content
+    assert r.json()["already_verified"] is False
+    assert len(_activation_emails()) == 1
+
+    r = _sign_in(client)
+    assert r.status_code == 200 and "access" in r.json()
+    user.refresh_from_db()
+    assert user.last_login is not None
+
+
+def test_verification_link_survives_last_login_but_not_a_new_password():
+    from django.utils import timezone
+
+    from api.tokens import email_verification_token
+
+    client = APIClient()
+    user = _register(client)
+    token = email_verification_token.make_token(user)
+    user.last_login = timezone.now()
+    user.save(update_fields=["last_login"])
+    assert email_verification_token.check_token(user, token)
+
+    user.set_password("An0ther-horse-77")
+    user.save()
+    assert not email_verification_token.check_token(user, token)
+
+
 def test_activation_email_failure_does_not_fail_verification(monkeypatch):
     def boom(user):
         raise ConnectionError("SMTP down")

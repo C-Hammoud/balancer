@@ -19,6 +19,8 @@ import com.financetracker.access.domain.UserAccount;
  * Port of django.contrib.auth.tokens.PasswordResetTokenGenerator. Tokens are "ts_b36-hash"
  * where hash = salted_hmac(key_salt, pk + password + last_login + ts + email)[::2], so links
  * emailed by Django stay valid here and become invalid once the password changes.
+ * Email verification tokens leave last_login out (api.tokens.EmailVerificationTokenGenerator), so
+ * an unverified user trying to sign in does not break the links already in their inbox.
  */
 public final class DjangoTokenGenerator {
 
@@ -32,12 +34,18 @@ public final class DjangoTokenGenerator {
     private final String secret;
     private final Duration timeout;
     private final Clock clock;
+    private final boolean includeLastLogin;
 
     public DjangoTokenGenerator(String keySalt, String secret, Duration timeout, Clock clock) {
+        this(keySalt, secret, timeout, clock, true);
+    }
+
+    public DjangoTokenGenerator(String keySalt, String secret, Duration timeout, Clock clock, boolean includeLastLogin) {
         this.keySalt = keySalt;
         this.secret = secret;
         this.timeout = timeout;
         this.clock = clock;
+        this.includeLastLogin = includeLastLogin;
     }
 
     public String makeToken(UserAccount user) {
@@ -77,8 +85,8 @@ public final class DjangoTokenGenerator {
         return Long.toString(timestamp, 36) + "-" + every2nd;
     }
 
-    private static String hashValue(UserAccount user, long timestamp) {
-        String loginTimestamp = user.getLastLogin() == null ? ""
+    private String hashValue(UserAccount user, long timestamp) {
+        String loginTimestamp = !includeLastLogin || user.getLastLogin() == null ? ""
                 : LOGIN_TS.format(user.getLastLogin().atOffset(ZoneOffset.UTC).toLocalDateTime());
         return user.getId() + user.getPassword() + loginTimestamp + timestamp + (user.getEmail() == null ? "" : user.getEmail());
     }

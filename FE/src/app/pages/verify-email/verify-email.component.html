@@ -31,10 +31,10 @@
         <div class="status error">
           <p class="sub">{{ errorMessage() }}</p>
         </div>
-        <p class="sub hint">If you already activated your account, just sign in. Otherwise ask for a new link.</p>
+        <p class="sub hint">Ask for a new link below. If you already activated your account, just sign in.</p>
         <div class="actions">
-          <button type="button" class="btn primary" (click)="goToLogin()">Go to sign in</button>
-          <a class="btn ghost" routerLink="/check-email">Send a new verification email</a>
+          <a class="btn primary" routerLink="/check-email">Send a new verification email</a>
+          <button type="button" class="btn ghost" (click)="goToLogin()">Go to sign in</button>
         </div>
       }
     }
