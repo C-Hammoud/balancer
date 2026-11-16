@@ -21,8 +21,9 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.locale.loadMeta().subscribe();
+    // /meta/ needs a signed-in user; signed-out pages use the locally detected defaults.
     if (this.auth.isAuthenticated()) {
+      this.locale.loadMeta().subscribe();
       this.locale.syncFromServer().subscribe();
     }
   }

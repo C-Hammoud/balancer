@@ -156,7 +156,9 @@ commands below to `dc ps`, `dc logs api`, and so on.
 
 ```bash
 docker compose -f deploy/docker-compose.yml ps          # every service "running" / "healthy"
-curl http://localhost/healthz/                          # {"status":"ok"}
+docker compose -f deploy/docker-compose.yml exec api \
+  python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/healthz/').read())"
+                                                        # b'{"status":"ok"}' (from outside, /healthz/ is a 404)
 docker compose -f deploy/docker-compose.yml logs --tail=50 api scheduler
 ```
 

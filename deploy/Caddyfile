@@ -15,7 +15,14 @@
 		file_server
 	}
 
-	@backend path /api/* /healthz /healthz/ /admin /admin/*
+	# Health checks are internal only: Docker's healthcheck calls the API container directly
+	# (127.0.0.1:8000), so from the internet these answer 404.
+	@health path /healthz /healthz/ /api/v1/health /api/v1/health/
+	handle @health {
+		respond 404
+	}
+
+	@backend path /api/* /admin /admin/*
 	handle @backend {
 		reverse_proxy api:8000
 	}

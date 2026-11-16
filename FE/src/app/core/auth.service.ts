@@ -11,6 +11,14 @@ const ACCESS_KEY = 'ft_access';
 const REFRESH_KEY = 'ft_refresh';
 const USER_KEY = 'ft_user';
 
+/** Pages used while signed out (see app.routes.ts); a lost session never redirects away from them. */
+const PUBLIC_PAGES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/check-email'];
+
+function isPublicPage(url: string): boolean {
+  const path = (url || '').split(/[?#]/)[0];
+  return PUBLIC_PAGES.some((page) => path === page || path.startsWith(page + '/'));
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = environment.apiUrl;
@@ -113,7 +121,10 @@ export class AuthService {
     const hadSession = !!this.getAccessToken() || !!this.getRefreshToken();
     this.clearSession();
     const current = this.router.url;
-    if (current.startsWith('/login')) return;
+    // Signed-out pages (verify-email, check-email, register, ...) stay where they are: a background
+    // request refused with 401 there must not cut off what the page is doing, such as verifying
+    // an email link. window.location is checked too: router.url is still "/" while the app starts.
+    if (isPublicPage(current) || isPublicPage(window.location.pathname)) return;
     this.redirectingToLogin = true;
     this.router
       .navigate(['/login'], { queryParams: { returnUrl: current, expired: hadSession ? '1' : null } })
