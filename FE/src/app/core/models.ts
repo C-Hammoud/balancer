@@ -858,7 +858,7 @@ export interface AdminUserDetail {
     setup_completed_at: string | null;
     notify_low_balance: boolean;
     has_password: boolean;
-  };
+  } & AdminUserEditable;
   flags: IssueFlag[];
   emails: EmailLogRow[];
   tickets: SupportTicket[];
@@ -870,6 +870,27 @@ export interface AdminUserDetail {
   open_alerts?: BudgetAlert[];
   risk?: { as_of: string; score: number | null; level: string } | null;
   finance_error?: string;
+}
+
+/** Fields an admin can change on Admin -> user (PATCH /admin/users/:id/). */
+export interface AdminUserEditable {
+  // Any admin (regular users); superusers also for admins.
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  timezone: string;
+  country: string;
+  default_currency: string;
+  // Superusers only.
+  phone: string;
+  email_verified: boolean;
+  setup_status: string;
+  notify_weekly_summaries: boolean;
+  notify_low_balance: boolean;
+  notify_setup_nudges: boolean;
+  notify_plan_updates: boolean;
+  savings_target_pct: number;
 }
 
 export interface AuditLogRow {

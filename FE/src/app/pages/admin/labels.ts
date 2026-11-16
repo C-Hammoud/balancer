@@ -30,6 +30,7 @@ export const FLAG_LABEL: Record<string, string> = {
 
 export const AUDIT_ACTION_LABEL: Record<string, string> = {
   view_user: 'Viewed user',
+  edit_user: 'Edited user',
   resend_verification: 'Resent verification',
   mark_verified: 'Marked verified',
   send_reset: 'Sent password reset',

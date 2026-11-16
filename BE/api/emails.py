@@ -95,6 +95,32 @@ def send_account_activated_email(user) -> bool:
     return send_branded_email(content, [email])
 
 
+def send_email_changed_by_support_email(user, old_email: str) -> bool:
+    """Support changed the address: tell both the old and the new one (account email, always sent)."""
+    from django.conf import settings
+
+    new_email = (user.email or "").strip()
+    name = _display_name(user)
+    sent = False
+    for to in dict.fromkeys(e for e in ((old_email or "").strip(), new_email) if e):
+        content = BrandedEmail(
+            subject="Your Finance Tracker email address was changed",
+            preheader=f"Your account email is now {new_email}.",
+            headline="Your email address was changed",
+            paragraphs=[
+                f"Hello {name},",
+                f"Our support team changed the email address on your Finance Tracker account "
+                f"from {old_email or '(none)'} to {new_email}.",
+                "From now on, sign-in emails and notifications go to the new address.",
+            ],
+            cta=EmailCTA(label="Sign in", url=f"{settings.FRONTEND_URL}/login"),
+            secondary_note="If you did not ask for this change, contact support right away.",
+            footer_reason="You received this because the email address on your account was changed.",
+        )
+        sent = send_branded_email(content, [to]) or sent
+    return sent
+
+
 def send_setup_nudge_email(user) -> bool:
     email = (getattr(user, "email", None) or "").strip()
     if not email:

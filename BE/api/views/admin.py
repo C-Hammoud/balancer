@@ -1,4 +1,6 @@
 """Support staff API: user search and support view, support actions, ticket queue, audit log."""
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import status
@@ -8,13 +10,23 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, Ou
 
 from api import support
 from api.currency import resolve_report_currency
-from api.emails import send_verification_email
-from api.models import AdminAuditLog, EmailLog, SupportTicket
-from api.user_profile import get_user_profile, is_email_verified, mark_email_verified
+from api.emails import send_email_changed_by_support_email, send_verification_email
+from api.models import AdminAuditLog, EmailLog, SupportTicket, UserProfile
+from api.serializers import AdminUserEditSerializer
+from api.user_preferences import get_user_preferences, save_user_preferences
+from api.user_profile import (
+    apply_profile_setup_patch,
+    get_user_profile,
+    is_email_verified,
+    mark_email_unverified,
+    mark_email_verified,
+    setup_payload,
+)
 from api.utils import decimal_to_json, transaction_to_dict
 from api.views.auth import _send_password_reset_email
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 PAGE_SIZE = 25
 
 
@@ -67,18 +79,62 @@ class AdminUserListView(StaffView):
 
 
 class AdminUserDetailView(StaffView):
-    """The support view of one user. Every look is written to the audit log."""
+    """
+    GET: the support view of one user; every look is written to the audit log.
+    PATCH: edit the user (AdminUserEditSerializer). Any admin edits the basic fields of regular
+    users; superusers also edit admins and every other field. Every change is audited.
+    """
 
     def get(self, request, pk):
         user = _get_user(pk)
         if not user:
             return _not_found()
         support.audit(request.user, "view_user", user)
+        return Response(self._detail(user))
+
+    def patch(self, request, pk):
+        user = _get_user(pk)
+        if not user:
+            return _not_found()
+        actor = request.user
+        is_admin_target = user.is_staff or user.is_superuser
+        if is_admin_target and user.pk != actor.pk and not actor.is_superuser:
+            return Response(
+                {"detail": "Only a superuser can edit another admin."}, status=status.HTTP_403_FORBIDDEN
+            )
+        allowed = set(AdminUserEditSerializer.BASIC_FIELDS)
+        if actor.is_superuser:
+            allowed |= set(AdminUserEditSerializer.SUPERUSER_FIELDS)
+        unknown = sorted(set(request.data) - set(AdminUserEditSerializer.BASIC_FIELDS)
+                         - set(AdminUserEditSerializer.SUPERUSER_FIELDS))
+        if unknown:
+            return Response(
+                {"detail": f"These fields cannot be edited: {', '.join(unknown)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        forbidden = sorted(set(request.data) - allowed)
+        if forbidden:
+            return Response(
+                {"detail": f"Only a superuser can change: {', '.join(forbidden)}."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        serializer = AdminUserEditSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        changes = _apply_admin_edit(user, serializer.validated_data)
+        if changes:
+            support.audit(actor, "edit_user", user, changes=changes)
+        return Response(self._detail(user))
+
+    def _detail(self, user) -> dict:
         profile = get_user_profile(user)
         uid = str(user.pk)
         data = {
             "user": {
                 **support.user_ref(user),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                **get_user_preferences(user),
+                **setup_payload(user),
                 "name": f"{user.first_name} {user.last_name}".strip(),
                 "is_active": user.is_active,
                 "is_staff": user.is_staff,
@@ -101,7 +157,7 @@ class AdminUserDetailView(StaffView):
             "tickets": [support.ticket_to_dict(t, for_staff=True) for t in user.support_tickets.all()[:20]],
         }
         data.update(self._finance(user, uid))
-        return Response(decimal_to_json(data))
+        return decimal_to_json(data)
 
     @staticmethod
     def _finance(user, uid: str) -> dict:
@@ -125,6 +181,69 @@ class AdminUserDetailView(StaffView):
             }
         except Exception as exc:
             return {"finance_error": f"Could not load financial data: {exc}"}
+
+
+def _apply_admin_edit(user, cd: dict) -> dict:
+    """Save the validated admin edit; returns {field: {"from": old, "to": new}} for what changed."""
+    changes = {}
+    old_email = user.email or ""
+
+    user_fields = [f for f in ("username", "email", "first_name", "last_name") if f in cd]
+    changed_user_fields = []
+    for field in user_fields:
+        old = getattr(user, field) or ""
+        if cd[field] != old:
+            changes[field] = {"from": old, "to": cd[field]}
+            setattr(user, field, cd[field])
+            changed_user_fields.append(field)
+    if changed_user_fields:
+        user.save(update_fields=changed_user_fields)
+
+    pref_fields = [f for f in ("timezone", "country", "default_currency") if f in cd]
+    if pref_fields:
+        before = get_user_preferences(user)
+        after = save_user_preferences(user, {f: cd[f] for f in pref_fields})
+        for field in ("timezone", "country", "default_currency"):
+            if before.get(field) != after.get(field):
+                changes[field] = {"from": before.get(field), "to": after.get(field)}
+
+    profile_fields = [f for f in AdminUserEditSerializer.SUPERUSER_FIELDS if f in cd and f != "email_verified"]
+    if profile_fields:
+        before = setup_payload(user)
+        patch = {f: cd[f] for f in profile_fields}
+        if patch.get("setup_status") == before["setup_status"]:
+            patch.pop("setup_status")  # unchanged: do not restart its dates
+        elif patch.get("setup_status") == UserProfile.SETUP_PENDING:
+            # Back to "not started": the user sees the setup steps again, without reminders queued.
+            patch.pop("setup_status")
+            profile = get_user_profile(user)
+            profile.setup_status = UserProfile.SETUP_PENDING
+            profile.setup_completed_at = profile.setup_skipped_at = None
+            profile.setup_nudge_push_due_at = profile.setup_nudge_email_due_at = None
+            profile.save(update_fields=[
+                "setup_status", "setup_completed_at", "setup_skipped_at",
+                "setup_nudge_push_due_at", "setup_nudge_email_due_at",
+            ])
+        apply_profile_setup_patch(user, patch)
+        after = setup_payload(user)
+        for field in profile_fields:
+            if before.get(field) != after.get(field):
+                changes[field] = {"from": before.get(field), "to": after.get(field)}
+
+    if "email_verified" in cd:
+        was = is_email_verified(user)
+        if cd["email_verified"] != was:
+            (mark_email_verified if cd["email_verified"] else mark_email_unverified)(user)
+            changes["email_verified"] = {"from": was, "to": cd["email_verified"]}
+
+    # An admin edit keeps the verified status (support is trusted to fix a typo), but both
+    # addresses are told, so a wrong or malicious change does not go unnoticed.
+    if "email" in changes:
+        try:
+            send_email_changed_by_support_email(user, old_email)
+        except Exception:
+            logger.warning("Email-changed notice failed for user %s", user.pk, exc_info=True)
+    return changes
 
 
 class _UserAction(StaffView):

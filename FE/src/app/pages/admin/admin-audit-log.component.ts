@@ -85,8 +85,18 @@ export class AdminAuditLogComponent implements OnInit {
   }
 
   details(r: AuditLogRow): string {
+    const label = (k: string) => k.replace(/_/g, ' ');
+    const show = (v: unknown) => (v === '' || v === null || v === undefined ? '—' : String(v));
     return Object.entries(r.detail || {})
-      .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
+      .map(([k, v]) => {
+        // edit_user: {changes: {field: {from, to}}}
+        if (k === 'changes' && v && typeof v === 'object') {
+          return Object.entries(v as Record<string, { from: unknown; to: unknown }>)
+            .map(([f, c]) => `${label(f)}: ${show(c?.from)} → ${show(c?.to)}`)
+            .join(' · ');
+        }
+        return `${label(k)}: ${v}`;
+      })
       .join(' · ');
   }
 

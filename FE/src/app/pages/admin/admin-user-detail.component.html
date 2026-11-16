@@ -14,6 +14,9 @@
       </p>
     </div>
     <div class="toolbar">
+      @if (canEdit() && !editing()) {
+        <button type="button" class="btn primary" [disabled]="busy()" (click)="startEdit()">Edit details</button>
+      }
       @for (a of actions(); track a.action) {
         <button type="button" class="btn ghost" [class.danger]="a.action === 'deactivate'" [disabled]="busy()" (click)="run(a)">
           {{ a.label }}
@@ -26,6 +29,99 @@
       }
     </div>
   </section>
+
+  @if (editing()) {
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Edit details</h2>
+        <small class="muted">Every change is written to the audit log.</small>
+      </div>
+      <form class="edit-form" [formGroup]="form" (ngSubmit)="save()">
+        <fieldset>
+          <legend>Account</legend>
+          <label>
+            Username
+            <input formControlName="username" autocomplete="off" />
+          </label>
+          <label>
+            Email
+            <input type="email" formControlName="email" autocomplete="off" />
+            <small class="muted">Stays verified; the old and the new address both get a notice.</small>
+          </label>
+          <label>
+            First name
+            <input formControlName="first_name" />
+          </label>
+          <label>
+            Last name
+            <input formControlName="last_name" />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Locale</legend>
+          <label>
+            Timezone
+            <input formControlName="timezone" placeholder="e.g. Asia/Riyadh" />
+          </label>
+          <label>
+            Country
+            <select formControlName="country">
+              <option value="">—</option>
+              @for (c of countries(); track c.code) {
+                <option [value]="c.code">{{ c.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Currency
+            <select formControlName="default_currency">
+              @for (c of currencies(); track c.code) {
+                <option [value]="c.code">{{ c.code }} · {{ c.label }}</option>
+              }
+            </select>
+          </label>
+        </fieldset>
+
+        @if (isSuperuser()) {
+          <fieldset>
+            <legend>Profile and settings <span class="pill">superuser</span></legend>
+            <label>
+              Phone
+              <input formControlName="phone" />
+            </label>
+            <label>
+              Setup
+              <select formControlName="setup_status">
+                @for (s of setupStatuses; track s.code) {
+                  <option [value]="s.code">{{ s.label }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Savings target (%)
+              <input type="number" min="0" max="90" formControlName="savings_target_pct" />
+            </label>
+            <label class="check">
+              <input type="checkbox" formControlName="email_verified" />
+              Email verified
+            </label>
+            @for (n of notifyFields; track n.key) {
+              <label class="check">
+                <input type="checkbox" [formControlName]="n.key" />
+                {{ n.label }}
+              </label>
+            }
+          </fieldset>
+        }
+
+        <div class="toolbar">
+          <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+          <button type="button" class="btn ghost" [disabled]="saving()" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    </section>
+  }
 
   @if (d.flags.length) {
     <section class="panel">

@@ -1,14 +1,20 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenObtainSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
-from api.constants import CURRENCY_CHOICES, TYPE_CHOICES
+from api.constants import COUNTRIES, CURRENCY_CHOICES, TYPE_CHOICES
+from api.models import UserProfile
 from api.user_profile import get_user_profile, is_email_verified, setup_payload
+
+COUNTRY_CHOICES = list(COUNTRIES.choices)
 from budgeting.models import Direction, GoalStatus, Frequency, TransactionStatus
 
 User = get_user_model()
@@ -54,6 +60,65 @@ class PendingRegistrationUpdateSerializer(serializers.ModelSerializer):
         validated_data.pop("password")
         validated_data.pop("password_confirm")
         return super().update(instance, validated_data)
+
+
+class AdminUserEditSerializer(serializers.Serializer):
+    """
+    What support can change on a user (Admin -> user page). Every field is optional (PATCH).
+    BASIC_FIELDS: any admin. The rest: superusers only (enforced by the view).
+    """
+
+    BASIC_FIELDS = ("username", "email", "first_name", "last_name", "timezone", "country", "default_currency")
+    SUPERUSER_FIELDS = (
+        "phone",
+        "email_verified",
+        "setup_status",
+        "notify_weekly_summaries",
+        "notify_low_balance",
+        "notify_setup_nudges",
+        "notify_plan_updates",
+        "savings_target_pct",
+    )
+
+    username = serializers.CharField(max_length=150, validators=[UnicodeUsernameValidator()])
+    email = serializers.EmailField(max_length=254)
+    first_name = serializers.CharField(max_length=150, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, allow_blank=True)
+    timezone = serializers.CharField(max_length=64, allow_blank=True)
+    country = serializers.ChoiceField(choices=[("", "—"), *COUNTRY_CHOICES], allow_blank=True)
+    default_currency = serializers.ChoiceField(choices=CURRENCY_CHOICES)
+    phone = serializers.CharField(max_length=32, allow_blank=True)
+    email_verified = serializers.BooleanField()
+    setup_status = serializers.ChoiceField(choices=[c[0] for c in UserProfile.SETUP_STATUS_CHOICES])
+    notify_weekly_summaries = serializers.BooleanField()
+    notify_low_balance = serializers.BooleanField()
+    notify_setup_nudges = serializers.BooleanField()
+    notify_plan_updates = serializers.BooleanField()
+    savings_target_pct = serializers.IntegerField(min_value=0, max_value=90)
+
+    def _others(self):
+        return User.objects.exclude(pk=self.instance.pk)
+
+    def validate_username(self, value):
+        value = value.strip()
+        if self._others().filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Another account already uses this username.")
+        return value
+
+    def validate_email(self, value):
+        value = value.strip()
+        if self._others().filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Another account already uses this email.")
+        return value
+
+    def validate_timezone(self, value):
+        value = value.strip()
+        if value:
+            try:
+                ZoneInfo(value)
+            except (ZoneInfoNotFoundError, ValueError):
+                raise serializers.ValidationError("Unknown timezone. Use a name such as Asia/Riyadh.")
+        return value
 
 
 class EmailNotVerified(APIException):

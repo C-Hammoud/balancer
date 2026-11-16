@@ -6,6 +6,7 @@ import {
   AdminOverview,
   AdminUserAction,
   AdminUserDetail,
+  AdminUserEditable,
   AdminUserRow,
   AuditLogRow,
   Paged,
@@ -39,6 +40,10 @@ export class AdminService {
 
   user(id: number | string): Observable<AdminUserDetail> {
     return this.http.get<AdminUserDetail>(`${this.api}/users/${id}/`);
+  }
+
+  updateUser(id: number | string, patch: Partial<AdminUserEditable>): Observable<AdminUserDetail> {
+    return this.http.patch<AdminUserDetail>(`${this.api}/users/${id}/`, patch);
   }
 
   userAction(id: number | string, action: AdminUserAction): Observable<{ ok: boolean; email_sent?: boolean }> {

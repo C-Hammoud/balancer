@@ -54,18 +54,17 @@ def mark_setup_incomplete(user) -> UserProfile:
 
 
 def apply_profile_setup_patch(user, data: dict) -> UserProfile:
+    # Setup status first: it saves and reloads the profile, which would drop edits made before it.
+    status = data.get("setup_status")
+    if status == UserProfile.SETUP_COMPLETE:
+        mark_setup_complete(user)
+    elif status == UserProfile.SETUP_INCOMPLETE:
+        mark_setup_incomplete(user)
     profile = get_user_profile(user)
     fields = []
     if "phone" in data:
         profile.phone = str(data.get("phone") or "").strip()[:32]
         fields.append("phone")
-    status = data.get("setup_status")
-    if status == UserProfile.SETUP_COMPLETE:
-        mark_setup_complete(user)
-        profile = get_user_profile(user)
-    elif status == UserProfile.SETUP_INCOMPLETE:
-        mark_setup_incomplete(user)
-        profile = get_user_profile(user)
     for field in ("notify_weekly_summaries", "notify_low_balance", "notify_setup_nudges", "notify_plan_updates"):
         if field in data:
             setattr(profile, field, bool(data.get(field)))
