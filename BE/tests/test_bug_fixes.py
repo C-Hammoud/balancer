@@ -56,3 +56,14 @@ def test_malformed_input_is_400_not_500(api):
     assert api.get(B + "/dashboard/", {"year": "abc"}).status_code == 400
     assert api.get(B + "/alerts/", {"month": "x"}).status_code == 400
     assert api.post(B + "/personal-budgets/", {"name": "x", "start_date": "nope"}, format="json").status_code == 400
+
+
+def test_personal_budget_dashboard_with_no_active_budgets(api):
+    """sum() over no budgets returned int 0, and int has no .quantize() -> 500."""
+    r = api.get(B + "/personal-budgets/dashboard/")
+    assert r.status_code == 200, r.content
+    body = r.json()
+    assert body["active_budgets"] == 0
+    assert body["total_allocated"] == "0.00"
+    assert body["total_spent"] == "0.00"
+    assert body["total_remaining"] == "0.00"

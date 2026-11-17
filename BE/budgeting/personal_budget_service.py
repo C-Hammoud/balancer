@@ -127,9 +127,12 @@ def serialize_budget_summary(
         data["categories"] = cats
         data["categories_allocated_total"] = str(
             sum(
-                _decimal(c["allocated_amount"])
-                for c in cats
-                if c["id"] != "_uncategorized_" and not c.get("parent_id")
+                (
+                    _decimal(c["allocated_amount"])
+                    for c in cats
+                    if c["id"] != "_uncategorized_" and not c.get("parent_id")
+                ),
+                Decimal("0"),
             )
         )
     return data
@@ -242,8 +245,8 @@ def dashboard_summary(user) -> dict:
     budgets = list_personal_budgets(user, status="")
     shared = list_shared_with_me(user)
     active = [b for b in budgets if b["status"] not in (ARCHIVED, DRAFT)]
-    total_allocated = sum(_decimal(b["total_amount"]) for b in active)
-    total_spent = sum(_decimal(b["spent"]) for b in active)
+    total_allocated = sum((_decimal(b["total_amount"]) for b in active), Decimal("0"))
+    total_spent = sum((_decimal(b["spent"]) for b in active), Decimal("0"))
     return {
         "total_budgets": len(budgets),
         "active_budgets": len(active),
