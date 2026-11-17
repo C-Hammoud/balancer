@@ -398,6 +398,242 @@ class TransactionsController {
         return ResponseEntity.noContent().build();
     }
 
+    // ---- Bulk actions: selected transactions and whole months ----
+
+    static final int BULK_MAX_IDS = 1000;
+    static final int BULK_MAX_MONTHS = 240;
+    /** This port has no transaction status, so only the account and the merchant change in bulk. */
+    private static final java.util.Set<String> BULK_UPDATE_FIELDS = java.util.Set.of("account_id", "category_id");
+
+    static boolean isMonthKey(Object v) {
+        if (!(v instanceof String s) || s.length() != 7 || s.charAt(4) != '-') {
+            return false;
+        }
+        String y = s.substring(0, 4);
+        String mo = s.substring(5);
+        if (!y.chars().allMatch(Character::isDigit) || !mo.chars().allMatch(Character::isDigit)) {
+            return false;
+        }
+        int m = Integer.parseInt(mo);
+        return m >= 1 && m <= 12;
+    }
+
+    private static String rowMonth(Transaction t) {
+        if (t.month != null && !t.month.isEmpty()) {
+            return t.month;
+        }
+        return t.date == null ? "" : ReportService.monthStr(t.date);
+    }
+
+    /** Same rule as the web app's preserveDescriptionInNote: keep the bank text once in the note. */
+    static String keepBankTextInNote(String description, String merchant, String note) {
+        String desc = description == null ? "" : description.strip();
+        String n = note == null ? "" : note.strip();
+        String mer = merchant == null ? "" : merchant.strip();
+        if (desc.isEmpty() || "Unassigned".equals(desc) || desc.equalsIgnoreCase(mer)) {
+            return n;
+        }
+        if (n.isEmpty()) {
+            return desc;
+        }
+        return n.contains(desc) ? n : desc + " · " + n;
+    }
+
+    /** Delete own rows: reopen paid installments, then refresh alerts once per month. */
+    private int deleteRows(String uid, List<Transaction> rows) {
+        TreeSet<String> months = new TreeSet<>();
+        for (Transaction t : rows) {
+            String lineId = t.scheduleLineId == null ? "" : t.scheduleLineId.strip();
+            if (t.date != null) {
+                months.add(ReportService.monthStr(t.date));
+            }
+            transactions.delete(t);
+            if (!lineId.isEmpty()) {
+                scheduleLines.get(lineId).filter(l -> ScheduleLine.PAID.equals(l.status)).ifPresent(schedules::markOutstanding);
+            }
+        }
+        for (String ym : months) {
+            alerts.trigger(uid, Integer.parseInt(ym.substring(0, 4)), Integer.parseInt(ym.substring(5)));
+        }
+        return rows.size();
+    }
+
+    /** Every month that has transactions, newest first, with counts and totals per currency. */
+    @GetMapping("/months/")
+    List<Map<String, Object>> months() {
+        Map<String, Map<String, Object>> summary = new java.util.TreeMap<>(java.util.Comparator.reverseOrder());
+        Map<String, Map<String, BigDecimal[]>> totals = new LinkedHashMap<>();
+        for (Transaction t : transactions.findByUserIdOrderByIdAsc(FinanceJson.uid())) {
+            String key = rowMonth(t);
+            if (key.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> row = summary.computeIfAbsent(key, k -> {
+                Map<String, Object> r = new LinkedHashMap<>();
+                r.put("month", k);
+                r.put("count", 0);
+                r.put("income_count", 0);
+                r.put("expense_count", 0);
+                r.put("transfer_count", 0);
+                r.put("first_date", null);
+                r.put("last_date", null);
+                return r;
+            });
+            String direction = List.of("income", "expense", "transfer").contains(t.direction) ? t.direction : "expense";
+            row.merge("count", 1, (a, b) -> (Integer) a + (Integer) b);
+            row.merge(direction + "_count", 1, (a, b) -> (Integer) a + (Integer) b);
+            if (t.date != null) {
+                String d = t.date.toString();
+                Object first = row.get("first_date");
+                Object last = row.get("last_date");
+                if (first == null || d.compareTo((String) first) < 0) {
+                    row.put("first_date", d);
+                }
+                if (last == null || d.compareTo((String) last) > 0) {
+                    row.put("last_date", d);
+                }
+            }
+            if (!"transfer".equals(direction)) {
+                String cur = t.currency == null || t.currency.isEmpty() ? "USD" : t.currency;
+                BigDecimal[] sums = totals.computeIfAbsent(key, k -> new java.util.TreeMap<>())
+                        .computeIfAbsent(cur, c -> new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO});
+                BigDecimal amount = t.amount == null ? BigDecimal.ZERO : t.amount.abs();
+                int idx = "income".equals(direction) ? 0 : 1;
+                sums[idx] = sums[idx].add(amount);
+            }
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        summary.forEach((key, row) -> {
+            List<Map<String, Object>> tot = new ArrayList<>();
+            totals.getOrDefault(key, Map.of()).forEach((cur, sums) -> {
+                Map<String, Object> r = new LinkedHashMap<>();
+                r.put("currency", cur);
+                r.put("income", sums[0].setScale(2, java.math.RoundingMode.HALF_EVEN).toPlainString());
+                r.put("expense", sums[1].setScale(2, java.math.RoundingMode.HALF_EVEN).toPlainString());
+                tot.add(r);
+            });
+            row.put("totals", tot);
+            out.add(row);
+        });
+        return out;
+    }
+
+    /** Delete every transaction in the chosen months: {"months": ["2026-01", ...]}. */
+    @PostMapping("/months/delete/")
+    Map<String, Object> deleteMonths(@RequestBody(required = false) Map<String, Object> body) {
+        Object raw = body == null ? null : body.get("months");
+        if (!(raw instanceof List<?> months) || months.isEmpty()) {
+            throw ApiException.field("months", "Choose at least one month.");
+        }
+        if (months.size() > BULK_MAX_MONTHS) {
+            throw ApiException.field("months", "Choose at most " + BULK_MAX_MONTHS + " months at a time.");
+        }
+        for (Object m : months) {
+            if (!isMonthKey(m)) {
+                throw ApiException.field("months", "Use the YYYY-MM format (got " + Py.repr(Py.str(m)) + ").");
+            }
+        }
+        TreeSet<String> wanted = new TreeSet<>();
+        months.forEach(m -> wanted.add((String) m));
+        String uid = FinanceJson.uid();
+        List<Transaction> rows = transactions.findByUserIdOrderByIdAsc(uid).stream()
+                .filter(t -> wanted.contains(rowMonth(t))).toList();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("deleted", deleteRows(uid, rows));
+        out.put("months", new ArrayList<>(wanted));
+        return out;
+    }
+
+    /**
+     * Act on several of the user's own transactions: {"ids": [...], "action": "delete"} or
+     * {"ids": [...], "action": "update", "changes": {"account_id", "category_id"}}. A merchant only
+     * applies to expenses that are not commitment payments; other rows count as skipped.
+     */
+    @PostMapping("/bulk/")
+    Map<String, Object> bulk(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> data = body == null ? Map.of() : body;
+        String uid = FinanceJson.uid();
+        if (!(data.get("ids") instanceof List<?> ids) || ids.isEmpty()) {
+            throw ApiException.field("ids", "Select at least one transaction.");
+        }
+        if (ids.size() > BULK_MAX_IDS) {
+            throw ApiException.field("ids", "Select at most " + BULK_MAX_IDS + " transactions at a time.");
+        }
+        Object action = data.get("action");
+        if (!"delete".equals(action) && !"update".equals(action)) {
+            throw ApiException.field("action", "Use \"delete\" or \"update\".");
+        }
+        java.util.Set<String> wanted = new java.util.HashSet<>();
+        ids.forEach(i -> wanted.add(Py.str(i)));
+        List<Transaction> rows = transactions.findByUserIdOrderByIdAsc(uid).stream()
+                .filter(t -> wanted.contains(t.id)).toList();
+        int missing = wanted.size() - rows.size();
+        if (rows.isEmpty()) {
+            throw ApiException.notFound("None of the selected transactions were found.");
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        if ("delete".equals(action)) {
+            out.put("deleted", deleteRows(uid, rows));
+            out.put("missing", missing);
+            return out;
+        }
+
+        if (!(data.get("changes") instanceof Map<?, ?> changes) || changes.isEmpty()) {
+            throw ApiException.field("changes", "Choose what to change.");
+        }
+        List<String> unknown = changes.keySet().stream().map(Py::str).filter(k -> !BULK_UPDATE_FIELDS.contains(k))
+                .sorted().toList();
+        if (!unknown.isEmpty()) {
+            throw ApiException.field("changes", "Cannot change " + String.join(", ", unknown) + " in bulk.");
+        }
+        Account acc = changes.containsKey("account_id")
+                ? resolveAccount(accounts, uid, Py.truthy(changes.get("account_id")) ? Py.str(changes.get("account_id")).strip() : "")
+                : null;
+        Category sub = null;
+        if (changes.containsKey("category_id")) {
+            String cid = Py.truthy(changes.get("category_id")) ? Py.str(changes.get("category_id")).strip() : "";
+            if (cid.isEmpty()) {
+                throw ApiException.field("category_id", "Pick a merchant (subcategory).");
+            }
+            sub = requireSubcategory(uid, cid);
+        }
+
+        int updated = 0;
+        int skipped = 0;
+        TreeSet<String> months = new TreeSet<>();
+        for (Transaction t : rows) {
+            boolean changed = false;
+            if (acc != null && !acc.id.equals(t.incomeSourceId)) {
+                t.incomeSourceId = acc.id;
+                t.sourceAccount = acc.name;
+                changed = true;
+            }
+            boolean isPayment = t.commitmentId != null && !t.commitmentId.isEmpty();
+            if (sub != null && "expense".equals(t.direction) && !isPayment && !sub.id.equals(t.categoryId)) {
+                t.note = keepBankTextInNote(t.description, sub.name, t.note);
+                t.description = sub.name.length() > 500 ? sub.name.substring(0, 500) : sub.name;
+                t.categoryId = sub.id;
+                changed = true;
+            }
+            if (!changed) {
+                skipped++;
+                continue;
+            }
+            transactions.save(t);
+            updated++;
+            if (t.date != null && !"transfer".equals(t.direction)) {
+                months.add(ReportService.monthStr(t.date));
+            }
+        }
+        for (String ym : months) {
+            alerts.trigger(uid, Integer.parseInt(ym.substring(0, 4)), Integer.parseInt(ym.substring(5)));
+        }
+        out.put("updated", updated);
+        out.put("skipped", skipped);
+        out.put("missing", missing);
+        return out;
+    }
+
     /**
      * Import a bank statement (.csv / .xlsx / .json / .pdf). Positive amounts are income, negative
      * are expenses (or Debit/Credit columns). Re-uploading the same file adds nothing. A

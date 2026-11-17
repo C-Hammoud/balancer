@@ -1,0 +1,16 @@
+﻿id,date,amount,currency,note,reason
+28079b5c-0493-4cf2-983d-57eec62ca75a,2025-08-16,17.00,SAR,,deleted in old app
+912b55ec-4c74-4580-ba3f-67dbc30b4497,2025-08-17,35,SAR,chris bill,deleted in old app
+a8041ec5-c00e-492b-9898-34f3dd962a22,2025-08-17,10,SAR,,deleted in old app
+4b712949-4fd4-4964-af30-2b991490eb37,2025-08-18,100000,LBP,,deleted in old app
+858eb664-65d7-44be-b1ba-3300b6b35d47,2025-08-18,60,SAR,test edit,deleted in old app
+c1fda903-7df9-42d6-a34a-e726ec0c7145,2025-08-18,100000,LBP,,deleted in old app
+AKHol3pai85SFVnlfJ1Z,2026-02-01,100,?,food,manual transaction with no matching expense (looks like a test entry)
+282f56df-da71-460a-856c-64118ad77b44,2026-02-06,1000,LBP,test,deleted in old app
+a3005a32-cc4f-4888-8249-dc48e4cef929,2026-02-06,878,SAR,,deleted in old app
+ecb2d70c-585e-4915-92ab-d051b1b6654a,2026-02-06,78,SAR,,deleted in old app
+099013ce-ae88-4e13-a712-8941f9a25fbe,2026-03-10,2700,SAR,Nom,deleted in old app
+5495faa6-fce9-43b0-9d7d-c3a1d2f02b98,2026-05-20,6,SAR,,deleted in old app
+8288f416-1ac0-40d5-946e-712eb8c97ae6,2026-06-22,1800,SAR,Car parking,deleted in old app
+8b2f34e7-2623-4430-956f-52952768aaba,2026-09-17,15,SAR,Mimi taxi,deleted in old app
+ae684f01-2f7d-4f65-bf66-ce39e08f8194,2026-09-17,77,SAR,Shawarma house,deleted in old app

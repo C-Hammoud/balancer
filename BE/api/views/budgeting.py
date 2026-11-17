@@ -795,6 +795,201 @@ class TransactionDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# ---- Bulk actions: selected transactions and whole months ----
+
+BULK_MAX_IDS = 1000
+BULK_MAX_MONTHS = 240
+BULK_UPDATE_FIELDS = ("status", "account_id", "category_id")
+
+
+def _is_month_key(value) -> bool:
+    """True for "YYYY-MM" with a real month."""
+    if not isinstance(value, str) or len(value) != 7 or value[4] != "-":
+        return False
+    y, m = value[:4], value[5:]
+    return y.isdigit() and m.isdigit() and 1 <= int(m) <= 12
+
+
+def _row_month(t) -> str:
+    return t.month or (get_month_str(t.date) if t.date else "")
+
+
+def _keep_bank_text_in_note(description: str, merchant: str, note: str) -> str:
+    """Same rule as the web app's preserveDescriptionInNote: keep the bank text once in the note."""
+    desc = (description or "").strip()
+    note = (note or "").strip()
+    if not desc or desc == "Unassigned" or desc.lower() == (merchant or "").strip().lower():
+        return note
+    if not note:
+        return desc
+    return note if desc in note else f"{desc} · {note}"
+
+
+def _delete_transaction_rows(user, rows) -> int:
+    """Delete own transactions: reopen paid installments, then refresh alerts once per month."""
+    months = set()
+    for t in rows:
+        line_id = (getattr(t, "schedule_line_id", "") or "").strip()
+        if t.date:
+            months.add((t.date.year, t.date.month))
+        t.delete()
+        if line_id:
+            line = CommitmentScheduleLineFS.get(line_id)
+            if line and line.status == "paid":
+                mark_line_outstanding(line)
+    for year, month in sorted(months):
+        trigger_budget_alerts(user, year, month)
+    return len(rows)
+
+
+class TransactionMonthsView(APIView):
+    """Every month that has transactions, newest first, with counts and totals per currency."""
+
+    def get(self, request):
+        summary: dict[str, dict] = {}
+        for t in TransactionFS.list_all_for_user(user_id(request.user)):
+            key = _row_month(t)
+            if not key:
+                continue
+            row = summary.setdefault(
+                key,
+                {"month": key, "count": 0, "income_count": 0, "expense_count": 0, "transfer_count": 0,
+                 "first_date": None, "last_date": None, "_totals": {}},
+            )
+            row["count"] += 1
+            direction = t.direction if t.direction in ("income", "expense", "transfer") else "expense"
+            row[direction + "_count"] += 1
+            if t.date:
+                d = t.date.isoformat()
+                row["first_date"] = min(row["first_date"] or d, d)
+                row["last_date"] = max(row["last_date"] or d, d)
+            if direction != "transfer":
+                cur = row["_totals"].setdefault(
+                    t.currency or "USD", {"income": Decimal("0"), "expense": Decimal("0")}
+                )
+                cur[direction] += abs(Decimal(str(t.amount or 0)))
+        out = []
+        for key in sorted(summary, reverse=True):
+            row = summary[key]
+            totals = row.pop("_totals")
+            row["totals"] = [
+                {"currency": c, "income": str(v["income"].quantize(Decimal("0.01"))),
+                 "expense": str(v["expense"].quantize(Decimal("0.01")))}
+                for c, v in sorted(totals.items())
+            ]
+            out.append(row)
+        return Response(out)
+
+
+class TransactionMonthsDeleteView(APIView):
+    """Delete every transaction in the chosen months: {"months": ["2026-01", ...]}."""
+
+    def post(self, request):
+        months = request.data.get("months") if isinstance(request.data, dict) else None
+        if not isinstance(months, list) or not months:
+            return Response({"months": ["Choose at least one month."]}, status=status.HTTP_400_BAD_REQUEST)
+        if len(months) > BULK_MAX_MONTHS:
+            return Response(
+                {"months": [f"Choose at most {BULK_MAX_MONTHS} months at a time."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        bad = [m for m in months if not _is_month_key(m)]
+        if bad:
+            return Response(
+                {"months": [f"Use the YYYY-MM format (got {bad[0]!r})."]}, status=status.HTTP_400_BAD_REQUEST
+            )
+        wanted = set(months)
+        rows = [t for t in TransactionFS.list_all_for_user(user_id(request.user)) if _row_month(t) in wanted]
+        deleted = _delete_transaction_rows(request.user, rows)
+        return Response({"deleted": deleted, "months": sorted(wanted)})
+
+
+class TransactionBulkView(APIView):
+    """
+    Act on several of the user's own transactions at once.
+      {"ids": [...], "action": "delete"}
+      {"ids": [...], "action": "update", "changes": {"status", "account_id", "category_id"}}
+    A merchant (category_id) only applies to expenses that are not commitment payments; other
+    rows are counted as skipped. Ids that are not the user's are counted as missing.
+    """
+
+    def post(self, request):
+        data = request.data if isinstance(request.data, dict) else {}
+        uid = user_id(request.user)
+        ids = data.get("ids")
+        if not isinstance(ids, list) or not ids:
+            return Response({"ids": ["Select at least one transaction."]}, status=status.HTTP_400_BAD_REQUEST)
+        if len(ids) > BULK_MAX_IDS:
+            return Response(
+                {"ids": [f"Select at most {BULK_MAX_IDS} transactions at a time."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        action = data.get("action")
+        if action not in ("delete", "update"):
+            return Response({"action": ['Use "delete" or "update".']}, status=status.HTTP_400_BAD_REQUEST)
+
+        wanted = {str(i) for i in ids}
+        rows = [t for t in TransactionFS.list_all_for_user(uid) if t.pk in wanted]
+        missing = len(wanted) - len(rows)
+        if not rows:
+            return Response({"detail": "None of the selected transactions were found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if action == "delete":
+            return Response({"deleted": _delete_transaction_rows(request.user, rows), "missing": missing})
+
+        changes = data.get("changes")
+        if not isinstance(changes, dict) or not changes:
+            return Response({"changes": ["Choose what to change."]}, status=status.HTTP_400_BAD_REQUEST)
+        unknown = sorted(set(changes) - set(BULK_UPDATE_FIELDS))
+        if unknown:
+            return Response(
+                {"changes": [f"Cannot change {', '.join(unknown)} in bulk."]}, status=status.HTTP_400_BAD_REQUEST
+            )
+        new_status = changes.get("status")
+        if "status" in changes and new_status not in ("settled", "pending"):
+            return Response({"status": ['Use "settled" or "pending".']}, status=status.HTTP_400_BAD_REQUEST)
+        acc = None
+        if "account_id" in changes:
+            acc, acc_err = _resolve_account(uid, str(changes.get("account_id") or "").strip())
+            if acc_err:
+                return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
+        sub = None
+        if "category_id" in changes:
+            cid = str(changes.get("category_id") or "").strip()
+            sub = _require_subcategory(request.user, cid) if cid else None
+            if not sub:
+                msg = _category_id_field_error(request.user, cid) if cid else "Pick a merchant (subcategory)."
+                return Response({"category_id": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+
+        updated, skipped, months = 0, 0, set()
+        for t in rows:
+            changed = False
+            if new_status and t.status != new_status:
+                t.status = new_status
+                changed = True
+            # A transfer cannot leave from the account it goes to.
+            if acc and t.income_source_id != acc.pk and t.to_account_id != acc.pk:
+                t.income_source_id = acc.pk
+                t.source_account = acc.name
+                changed = True
+            if sub and t.direction == "expense" and not t.commitment_id and t.category_id != sub.pk:
+                t.note = _keep_bank_text_in_note(t.description, sub.name, t.note)
+                t.description = sub.name[:500]
+                t.category_id = sub.pk
+                changed = True
+            if not changed:
+                skipped += 1
+                continue
+            t.save()
+            updated += 1
+            if t.date and t.direction != "transfer":
+                months.add((t.date.year, t.date.month))
+        for year, month in sorted(months):
+            trigger_budget_alerts(request.user, year, month)
+        return Response({"updated": updated, "skipped": skipped, "missing": missing})
+
+
 class TransactionUploadView(APIView):
     """
     Import a bank statement (.csv, .xlsx, .json or .pdf). Optional form fields:

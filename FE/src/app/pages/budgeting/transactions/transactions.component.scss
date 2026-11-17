@@ -228,6 +228,21 @@ th, td {
   width: min(480px, calc(100vw - 1.5rem));
 }
 
+.select-col { width: 2rem; }
+.selected-row td { background: #eef6f5; }
+.bulk-bar { padding: 0.8rem 1rem; display: grid; gap: 0.6rem; }
+.bulk-head { display: flex; align-items: center; gap: 0.5rem; }
+.bulk-head .btn { margin-left: auto; }
+.bulk-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 0.6rem; align-items: end; }
+.bulk-actions { display: flex; gap: 0.4rem; }
+.months-modal { width: min(760px, calc(100vw - 1.5rem)); }
+.months-table td { vertical-align: top; }
+.months-table small { display: block; }
+@media (max-width: 900px) {
+  .bulk-fields { grid-template-columns: 1fr 1fr; }
+  .bulk-actions { grid-column: 1 / -1; flex-wrap: wrap; }
+}
+
 .import-form {
   display: grid;
   gap: 0.85rem;

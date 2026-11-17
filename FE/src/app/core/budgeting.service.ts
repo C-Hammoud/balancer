@@ -37,7 +37,10 @@ import {
   SavingsRow,
   ThresholdRow,
   Transaction,
+  TransactionBulkChanges,
+  TransactionBulkResult,
   TransactionImportOptions,
+  TransactionMonth,
   TransactionUploadResult,
   TypeMapRow,
   UtilizationReport,
@@ -122,6 +125,25 @@ export class BudgetingService {
 
   deleteTransaction(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/transactions/${id}/`);
+  }
+
+  /** Delete several of the user's transactions at once. */
+  bulkDeleteTransactions(ids: string[]): Observable<TransactionBulkResult> {
+    return this.http.post<TransactionBulkResult>(`${this.api}/transactions/bulk/`, { ids, action: 'delete' });
+  }
+
+  /** Same change (status, account and/or merchant) on several transactions. */
+  bulkUpdateTransactions(ids: string[], changes: TransactionBulkChanges): Observable<TransactionBulkResult> {
+    return this.http.post<TransactionBulkResult>(`${this.api}/transactions/bulk/`, { ids, action: 'update', changes });
+  }
+
+  /** Every month that has transactions, newest first. */
+  transactionMonths(): Observable<TransactionMonth[]> {
+    return this.http.get<TransactionMonth[]>(`${this.api}/transactions/months/`);
+  }
+
+  deleteTransactionMonths(months: string[]): Observable<{ deleted: number; months: string[] }> {
+    return this.http.post<{ deleted: number; months: string[] }>(`${this.api}/transactions/months/delete/`, { months });
   }
 
   /** `password` opens a password-protected PDF; it is sent once and never saved. */

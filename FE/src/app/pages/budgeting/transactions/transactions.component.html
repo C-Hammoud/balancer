@@ -4,6 +4,7 @@
   </div>
   <div class="actions">
     <input type="month" [(ngModel)]="month" (ngModelChange)="reload()" />
+    <button type="button" class="btn ghost" (click)="openMonths()">All months</button>
     <button type="button" class="btn ghost" (click)="openImport()" [disabled]="uploading()">
       {{ uploading() ? 'Importing…' : 'Import statement' }}
     </button>
@@ -209,10 +210,83 @@
 @if (loading()) {
   <p class="muted">Loading…</p>
 } @else {
+  @if (selectedCount() > 0) {
+    <div class="panel bulk-bar" role="region" aria-label="Selected transactions">
+      <div class="bulk-head">
+        <strong>{{ selectedCount() }} selected</strong>
+        @if (allSelected()) { <span class="muted">· all of {{ monthLabel(month) }}</span> }
+        <button type="button" class="btn ghost" (click)="clearSelection()" [disabled]="bulkBusy()">Clear</button>
+      </div>
+      <div class="bulk-fields">
+        <label>
+          Status
+          <select [(ngModel)]="bulkStatus" name="bulkStatus">
+            <option value="">Keep</option>
+            <option value="settled">Settled</option>
+            <option value="pending">Pending</option>
+          </select>
+        </label>
+        <label>
+          Account
+          <select [(ngModel)]="bulkAccountId" name="bulkAccountId">
+            <option value="">Keep</option>
+            @for (a of accounts(); track a.id) {
+              <option [value]="a.id">{{ a.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Category
+          <select [(ngModel)]="bulkGroupId" name="bulkGroupId" (ngModelChange)="onBulkGroupChange()">
+            <option value="">Keep</option>
+            @for (g of groups(); track g.id) {
+              <option [value]="g.id">{{ g.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Merchant
+          <select [(ngModel)]="bulkMerchantId" name="bulkMerchantId" [disabled]="!bulkGroupId">
+            <option value="">{{ bulkGroupId ? 'Select…' : 'Keep' }}</option>
+            @for (s of subcategoriesForGroup(bulkGroupId); track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </label>
+        <div class="bulk-actions">
+          <button
+            type="button"
+            class="btn primary"
+            (click)="applyBulkChanges()"
+            [disabled]="bulkBusy() || !hasBulkChanges()"
+          >
+            {{ bulkBusy() ? 'Working…' : 'Apply to selected' }}
+          </button>
+          <button type="button" class="btn ghost danger" (click)="deleteSelected()" [disabled]="bulkBusy()">
+            Delete selected
+          </button>
+        </div>
+      </div>
+      @if (bulkGroupId) {
+        <small class="muted">A merchant applies to expenses only; income, transfers and commitment payments keep theirs.</small>
+      }
+    </div>
+  }
+
   <div class="panel table-wrap">
     <table class="stack-table">
       <thead>
         <tr>
+          <th class="select-col">
+            <input
+              type="checkbox"
+              aria-label="Select every transaction of this month"
+              [checked]="allSelected()"
+              [indeterminate]="someSelected()"
+              [disabled]="!items().length || bulkBusy()"
+              (change)="toggleSelectAll()"
+            />
+          </th>
           <th>Date</th>
           <th>Time</th>
           <th>Category</th>
@@ -227,7 +301,16 @@
       </thead>
       <tbody>
         @for (t of items(); track t.id) {
-          <tr [class.unassigned-row]="isUnassigned(t)">
+          <tr [class.unassigned-row]="isUnassigned(t)" [class.selected-row]="isSelected(t.id)">
+            <td class="select-col" data-label="Select">
+              <input
+                type="checkbox"
+                [attr.aria-label]="'Select ' + merchantLabel(t) + ' on ' + t.date"
+                [checked]="isSelected(t.id)"
+                [disabled]="bulkBusy()"
+                (change)="toggleSelected(t.id)"
+              />
+            </td>
             <td data-label="Date">{{ t.date }}</td>
             <td data-label="Time">{{ t.time || '—' }}</td>
             <td data-label="Category">{{ sourceLabel(t) }}</td>
@@ -254,7 +337,7 @@
             </td>
           </tr>
         } @empty {
-          <tr><td colspan="10" class="muted">No transactions for this month.</td></tr>
+          <tr><td colspan="11" class="muted">No transactions for this month.</td></tr>
         }
       </tbody>
     </table>
@@ -554,6 +637,101 @@
     <footer class="modal-foot">
       <button type="button" class="btn ghost" (click)="closeUnmatchedModal()">Do later</button>
       <button type="button" class="btn primary" (click)="saveAllReady()">Save all filled</button>
+    </footer>
+  </div>
+}
+
+@if (showMonths()) {
+  <div class="modal-backdrop" (click)="closeMonths()"></div>
+  <div class="modal months-modal" role="dialog" aria-modal="true" aria-labelledby="months-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="months-title">All months</h2>
+        <p class="muted">Open a month to work on its transactions, or tick months to delete everything in them.</p>
+      </div>
+      <button type="button" class="icon-close" (click)="closeMonths()" aria-label="Close">×</button>
+    </header>
+    <div class="modal-body">
+      @if (monthsLoading() && !months().length) {
+        <p class="muted">Loading…</p>
+      } @else if (!months().length) {
+        <p class="muted">No transactions yet.</p>
+      } @else {
+        <table class="months-table">
+          <thead>
+            <tr>
+              <th class="select-col">
+                <input
+                  type="checkbox"
+                  aria-label="Select every month"
+                  [checked]="allMonthsSelected()"
+                  [indeterminate]="selectedMonths().size > 0 && !allMonthsSelected()"
+                  [disabled]="bulkBusy()"
+                  (change)="toggleAllMonths()"
+                />
+              </th>
+              <th>Month</th>
+              <th>Transactions</th>
+              <th>Income</th>
+              <th>Expenses</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of months(); track m.month) {
+              <tr [class.selected-row]="isMonthSelected(m.month)" [class.current]="m.month === month">
+                <td class="select-col">
+                  <input
+                    type="checkbox"
+                    [attr.aria-label]="'Select ' + monthLabel(m.month)"
+                    [checked]="isMonthSelected(m.month)"
+                    [disabled]="bulkBusy()"
+                    (change)="toggleMonth(m.month)"
+                  />
+                </td>
+                <td>
+                  <strong>{{ monthLabel(m.month) }}</strong>
+                  @if (m.month === month) { <span class="pill">showing</span> }
+                </td>
+                <td>
+                  {{ m.count }}
+                  <small class="muted">
+                    {{ m.expense_count }} out · {{ m.income_count }} in@if (m.transfer_count) { · {{ m.transfer_count }} transfers }
+                  </small>
+                </td>
+                <td>
+                  @for (tot of m.totals; track tot.currency) {
+                    <div>{{ tot.income }} {{ tot.currency }}</div>
+                  } @empty { — }
+                </td>
+                <td>
+                  @for (tot of m.totals; track tot.currency) {
+                    <div>{{ tot.expense }} {{ tot.currency }}</div>
+                  } @empty { — }
+                </td>
+                <td><button type="button" class="btn ghost" (click)="openMonth(m.month)">Open</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn ghost" (click)="closeMonths()" [disabled]="bulkBusy()">Close</button>
+      <button
+        type="button"
+        class="btn ghost danger"
+        (click)="deleteSelectedMonths()"
+        [disabled]="bulkBusy() || !selectedMonths().size"
+      >
+        @if (bulkBusy()) {
+          Deleting…
+        } @else if (selectedMonths().size) {
+          Delete {{ selectedMonths().size }} month(s) · {{ selectedMonthsTxnCount() }} transaction(s)
+        } @else {
+          Delete selected months
+        }
+      </button>
     </footer>
   </div>
 }

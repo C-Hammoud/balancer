@@ -1,0 +1,916 @@
+﻿date,description,debit
+2025-08-09,Taxi Airport to home,86
+2025-08-10,Market,13
+2025-08-10,Market,73
+2025-08-11,Taxi,13
+2025-08-12,Food,40
+2025-08-12,Transport,18
+2025-08-12,Market,20
+2025-08-13,Photo,25
+2025-08-13,Ikama Test,207
+2025-08-14,Transport,25
+2025-08-14,Food,30
+2025-08-15,Market,200
+2025-08-16,Transport,28
+2025-08-16,Haraj,60
+2025-08-17,Transport,17
+2025-08-18,Transport,18
+2025-08-18,Christian,35
+2025-08-18,STC,25
+2025-08-18,Hallak,50
+2025-08-19,Transport,19
+2025-08-19,Food,48
+2025-08-20,Food,35
+2025-08-20,Transport,8
+2025-08-20,Market,39
+2025-08-21,Firas,50
+2025-08-22,Transport,4
+2025-08-22,Transport,18
+2025-08-22,Transport,19
+2025-08-22,Transport,57
+2025-08-22,Market,50
+2025-08-22,Food,100
+2025-08-23,Stc,35
+2025-08-23,Food,30
+2025-08-23,Transport,8
+2025-08-24,Transport,21
+2025-08-25,Market,110
+2025-08-25,Transport,20
+2025-08-26,Market,85
+2025-08-26,Transport,20
+2025-08-27,Transport,19
+2025-08-27,Market,48
+2025-08-28,Market,145
+2025-08-28,Transport,19
+2025-08-29,Market,104
+2025-08-29,Stc,75
+2025-08-30,Market,38
+2025-08-30,Lea's baby,200
+2025-08-31,Transport,15
+2025-09-01,Transport,24
+2025-09-01,Food,35
+2025-09-02,Transport,22
+2025-09-02,Market,40
+2025-09-03,Market,28
+2025-09-03,7allak,50
+2025-09-04,Food,58
+2025-09-05,Market,117
+2025-09-08,Food,60
+2025-09-08,Market,35
+2025-09-10,Food,28
+2025-09-11,Food,41
+2025-09-11,Market,53
+2025-09-12,Market,100
+2025-09-12,Transport,19
+2025-09-13,Market,31
+2025-09-13,Food,29
+2025-09-17,Transport,14
+2025-09-18,Market,55
+2025-09-18,Food,80
+2025-09-19,Market,20
+2025-09-20,Transport,34
+2025-09-20,Transport,22
+2025-09-20,Perfume,100
+2025-09-20,Market,50
+2025-09-21,Food,35
+2025-09-23,Food,20
+2026-01-01,Food,47
+2026-01-01,Loan,3750
+2026-01-01,Loan,2175
+2026-01-02,Market,44
+2026-01-02,Market,65
+2026-01-03,Food,34
+2026-01-03,Market,40
+2026-01-04,Amazon,80
+2026-01-05,Market,7
+2026-01-05,Market,26
+2026-01-06,Food,28
+2026-01-08,Amazon,95
+2026-01-08,Food,161
+2026-01-09,Market,125
+2026-01-09,Amazon,38
+2026-01-10,Market,36
+2026-01-11,Market,46
+2026-01-12,Food,27
+2026-01-14,Market,32
+2026-01-15,Transport,28
+2026-01-15,Food,37
+2026-01-16,Souvenir,875
+2026-01-16,Market,88
+2026-01-17,Food,75
+2026-01-18,Food,26
+2026-01-18,Market,36
+2026-01-20,Market,71
+2026-01-20,Food,12
+2026-01-21,Market,10
+2026-01-23,Market,46
+2026-01-23,Food,10
+2026-01-23,Bag,159
+2026-01-24,Bubble wrap,70
+2026-01-24,Coffe - chris,39
+2026-01-24,7alla2,60
+2026-01-25,Airport taxi,48
+2026-01-26,Dad,200
+2026-01-26,Car rent,230
+2026-01-29,Gaz,20
+2026-01-31,Airport taxi,80
+2026-02-01,Food,30
+2026-02-01,Market,27
+2026-02-01,Loan closer,5325
+2026-02-02,Market,11
+2026-02-02,Market,90
+2026-02-04,Market,60
+2026-02-04,Food,129
+2026-02-04,Perfume,179
+2026-02-05,Food,35
+2026-02-06,Market,47
+2026-02-06,Cursor ai,78
+2026-02-06,Market,78
+2026-02-07,Food,76
+2026-02-07,Transport,20
+2026-02-07,Market,12
+2026-02-08,Market,33
+2026-02-09,Amazon sub,16
+2026-02-09,Transport,10
+2026-02-09,Food,29
+2026-02-09,Stc,115
+2026-02-09,Transport,4
+2026-02-10,Market,12
+2026-02-10,Market,41
+2026-02-11,Market,12
+2026-02-11,Transport,18
+2026-02-11,Transport,13
+2026-02-12,Pets,20
+2026-02-12,Market,11
+2026-02-13,Market,14
+2026-02-14,Food,40
+2026-02-15,Pharmacy,55
+2026-02-15,Market,35
+2026-02-15,7alle2,50
+2026-02-15,Market,18
+2026-02-16,Food,39
+2026-02-17,Market,12
+2026-02-19,Market,21
+2026-02-20,Market,81
+2026-02-20,Pan,39
+2026-02-21,Market,41
+2026-02-22,Market,28
+2026-02-23,Market,51
+2026-02-24,Transport,14
+2026-02-24,Transport,19
+2026-02-24,Transport,23
+2026-02-25,Benzin,90
+2026-02-26,Market,20
+2026-02-26,Floor matters,140
+2026-02-26,Car wash,35
+2026-02-27,Market,36
+2026-02-28,Food,80
+2026-02-28,Home rent,1900
+2026-03-01,Market,12
+2026-03-02,Food,66
+2026-03-03,Benzin,87
+2026-03-03,Car mat,40
+2026-03-04,Cleaning,50
+2026-03-04,Home,680
+2026-03-04,Transport,270
+2026-03-06,Gaz ghassaleh,1650
+2026-03-06,Manchar,140
+2026-03-06,Cursor,79
+2026-03-07,Amazon tamara,44
+2026-03-07,Amazon tamara,44
+2026-03-07,Chair,200
+2026-03-07,Berad kawe,1568
+2026-03-07,Transport,100
+2026-03-07,Food,38
+2026-03-07,Jaret gaz,298
+2026-03-08,Food,36
+2026-03-08,Stc,100
+2026-03-08,Berad gaz tawlet kawe,1568
+2026-03-08,Manchar ghasil,140
+2026-03-08,Rar3boun ghorft nom,100
+2026-03-09,Market,61
+2026-03-09,Electricity,133
+2026-03-10,Stc,57
+2026-03-10,Ladder,210
+2026-03-11,Food,25
+2026-03-11,Ghorft nom,2800
+2026-03-11,Benzin,97
+2026-03-12,Amazon maktab,87
+2026-03-12,Market,22
+2026-03-12,Farshe,1450
+2026-03-12,Market,25
+2026-03-12,Acid,10
+2026-03-12,7alle2,50
+2026-03-13,مخالفة,113
+2026-03-13,Car wash,35
+2026-03-13,Led,68
+2026-03-13,Market,63
+2026-03-13,Market,25
+2026-03-13,Food,35
+2026-03-14,Air fiyer,53
+2026-03-14,Market,170
+2026-03-14,Market,55
+2026-03-15,Market,60
+2026-03-15,Pharmacy,35
+2026-03-15,Internet,250
+2026-03-16,Market,80
+2026-03-17,Food,95
+2026-03-17,Food,18
+2026-03-18,Market,48
+2026-03-20,Food,15
+2026-03-20,Benzin,75
+2026-03-20,Food,70
+2026-03-21,Wash,35
+2026-03-21,Food,88
+2026-03-22,Market,67
+2026-03-23,Car loan,1390
+2026-03-24,Market,63
+2026-03-25,Food,20
+2026-03-25,Car wash,100
+2026-03-25,Temu car accessories,179
+2026-03-26,Food,38
+2026-03-27,Market,52
+2026-03-27,Market,44
+2026-03-27,Benzin,97
+2026-03-28,Market,170
+2026-03-28,Food,65
+2026-03-28,Market,10
+2026-03-29,Water oska,97
+2026-03-29,7alle2,50
+2026-04-01,Brand for less,99
+2026-04-01,DHL,459
+2026-04-01,Fa7s zawaj,574
+2026-04-02,Food,46
+2026-04-02,Market,58
+2026-04-03,Market,35
+2026-04-03,"Alothaim, noon",93
+2026-04-04,Fire controll new,21
+2026-04-04,Market,104
+2026-04-04,Home fiber,149
+2026-04-05,Market,25
+2026-04-06,Benzin,95
+2026-04-07,Food,31
+2026-04-08,Market,9
+2026-04-09,Hallab,300
+2026-04-10,Cursor,79
+2026-04-10,Tamara airfrier,55
+2026-04-10,STC,87
+2026-04-10,5 saving + wooden,63
+2026-04-12,Mal7ami,85
+2026-04-12,Taxi,25
+2026-04-13,Benzin,30
+2026-04-13,Market,47
+2026-04-14,5 saving,18
+2026-04-14,Temu,92
+2026-04-14,Itani and sarah cakes,55
+2026-04-14,Taxi to waalan service,20
+2026-04-14,Wallan home,36
+2026-04-15,Taxi home wallan,22
+2026-04-15,Market,6
+2026-04-15,Waalan to work,29
+2026-04-15,Shawarma house,30
+2026-04-16,Food,58
+2026-04-17,Tart from etoile,35
+2026-04-17,Benzin,100
+2026-04-17,7alle2,50
+2026-04-18,Shein mariam,821
+2026-04-18,Brand forf less,492
+2026-04-19,"Ice tea with water, moemen",54
+2026-04-19,Market,13
+2026-04-19,Home AC repair,80
+2026-04-20,Mariams passport,257
+2026-04-20,Food,19
+2026-04-21,Market,6
+2026-04-22,Market,37
+2026-04-23,Car loan April,1390
+2026-04-23,Market,6
+2026-04-23,Othaim+ batikh,70
+2026-04-25,5 saving,41
+2026-04-25,Tamimi,124
+2026-04-25,Car wash,35
+2026-04-25,Wooden,6
+2026-04-25,Food,38
+2026-04-26,Jerdak’s birthday,25
+2026-04-27,Market,11
+2026-04-27,Aljazira,103
+2026-04-28,Market,7
+2026-04-28,Benzin,105
+2026-04-29,Riyadh park,4
+2026-04-30,Car wash,101
+2026-04-30,Pharmacy,49
+2026-05-01,"Pharmacy skin care, wooden 3",36
+2026-05-03,Pharmacy,35
+2026-05-04,Market,15
+2026-05-04,Shein,91
+2026-05-04,5 saving,46
+2026-05-04,Aljazira,23
+2026-05-04,"Home, electricity",111
+2026-05-04,Home internet,287
+2026-05-05,Stc recharge,87
+2026-05-07,Shawarma House,28
+2026-05-08,Benzin,105
+2026-05-08,Shawarma house garlic sause,31
+2026-05-08,Amazon,16
+2026-05-09,Danoub,126
+2026-05-09,Tabby,53
+2026-05-09,Amazon qv andstand,126
+2026-05-10,Taxi waalan work,43
+2026-05-11,Taxi,29
+2026-05-11,Taxi from wallan to rental,11
+2026-05-11,Tire fix,35
+2026-05-11,Tamimi,40
+2026-05-13,Benzin,30
+2026-05-14,Amazon tabby air frier,105
+2026-05-15,7alle2,110
+2026-05-15,Benzin,75
+2026-05-16,Power bank brand for less,70
+2026-05-16,For mimi balleri,350
+2026-05-16,Centerpoint,67
+2026-05-16,Spa,400
+2026-05-16,Almajed for oud,365
+2026-05-17,Othaim,12
+2026-05-17,Kamal shoe,104
+2026-05-17,Mousa’s cloths,233
+2026-05-18,Kaaki,24
+2026-05-19,Market,6
+2026-05-20,Benzin,20
+2026-05-20,Taxi,20
+2026-05-20,Market,6
+2026-05-20,Perfum,446
+2026-05-20,Travel bag,94
+2026-05-20,Bharat lebanon,28
+2026-05-21,Fiod airport,22
+2026-05-26,Ruve hotel,592
+2026-05-31,Taxi,106
+2026-05-31,Taxi,25
+2026-05-31,Magribi,60
+2026-05-31,Anou diab,60
+2026-05-31,Parking,7
+2026-05-31,Taxi to abou diab,25
+2026-06-01,Mado,215
+2026-06-01,Mado,58
+2026-06-01,Danoub,84
+2026-06-01,Home jeddah,300
+2026-06-01,Panda jeddah,152
+2026-06-01,Car extension rent,138
+2026-06-01,Stc mariam,75
+2026-06-02,Shampoo,10
+2026-06-02,Prince’s coffe,58
+2026-06-02,Center point,143
+2026-06-02,Ring,55
+2026-06-02,Sunglasses,500
+2026-06-02,Stc,87
+2026-06-02,Benzin,55
+2026-06-03,Home electricity,67
+2026-06-03,Man2oucha hut,60
+2026-06-03,Dukkan,33
+2026-06-03,Taxi,60
+2026-06-03,Food,148
+2026-06-03,Northwest jeddah to riyadh,428
+2026-06-04,Market jeddah riyadh,21
+2026-06-04,Amazon qv,82
+2026-06-04,5 saving,41
+2026-06-04,Dura,12
+2026-06-05,Shawarma house,67
+2026-06-06,5 saving wooden,255
+2026-06-06,Aljazeera,319
+2026-06-06,Algoussein top up home,421
+2026-06-06,Tamimi,89
+2026-06-06,Rayahin dimashq,121
+2026-06-06,Extra hover,1984
+2026-06-06,Cursor,78
+2026-06-06,Home internet,38
+2026-06-07,Vox movie,138
+2026-06-07,Brand for less,99
+2026-06-07,Amazon,12
+2026-06-08,Khzaheh aluminum,250
+2026-06-08,Khzaneh sbavit daf3a 1,500
+2026-06-08,Ikea,273
+2026-06-08,Benzine,93
+2026-06-08,Operation falafel,84
+2026-06-08,Al jazeera,37
+2026-06-10,Othaim and wooden,41
+2026-06-10,Khzaneh daf3a tanyi,400
+2026-06-10,Berdayi,500
+2026-06-10,Msamir,4
+2026-06-10,Batikh,20
+2026-06-10,Tv,1700
+2026-06-10,5 saving,122
+2026-06-10,Juice,20
+2026-06-10,Karasi,40
+2026-06-10,Drill,100
+2026-06-10,Tamimi,131
+2026-06-11,Royoum saudi karasi,391
+2026-06-11,Tv unit with banana plant,350
+2026-06-12,Marwan icrean,47
+2026-06-12,Amazon saudi,152
+2026-06-12,Corn,12
+2026-06-13,7alle2,60
+2026-06-13,Car wash,35
+2026-06-13,Benzin,90
+2026-06-13,Lambet w baraggi,60
+2026-06-13,Drill rent,10
+2026-06-13,T3ali2 berdayi,50
+2026-06-13,Maestro,58
+2026-06-14,Ganesh jeddah,177
+2026-06-14,Hint,242
+2026-06-15,Othaim,25
+2026-06-15,Reef perfume,150
+2026-06-15,Riyadh park,7
+2026-06-15,Tamwinat library,103
+2026-06-15,Panda,180
+2026-06-15,Tamimi,110
+2026-06-15,Riyadh metro,4
+2026-06-16,Market,33
+2026-06-17,Mimi to school,21
+2026-06-18,Market,12
+2026-06-18,Othaim,20
+2026-06-19,Hanger bilaban,26
+2026-06-19,Othaim,46
+2026-06-19,Buskin robin,60
+2026-06-19,Othaim Picnic,119
+2026-06-20,Fool,43
+2026-06-20,La7m,150
+2026-06-20,Fa7m,60
+2026-06-20,5 saving,46
+2026-06-21,Benzine,102
+2026-06-21,S7oun,12
+2026-06-21,Mocca and natch riyadh park,38
+2026-06-22,Market,6
+2026-06-22,Panda,21
+2026-06-22,Mimi coffe riyadh gallery,45
+2026-06-23,Car loan,1390
+2026-06-23,Othaim,24
+2026-06-24,Market,14
+2026-06-24,Mimi metro,4
+2026-06-24,Mimi coffe,15
+2026-06-24,Aljazira,144
+2026-06-25,Na3na3,5
+2026-06-25,5 saving,92
+2026-06-25,Signature,26
+2026-06-26,Mille feulle,61
+2026-06-26,Stc mimi,75
+2026-06-26,Dariyah ice cream,46
+2026-06-26,Parking dariya,20
+2026-06-27,Taxi,60
+2026-06-27,Oska water,117
+2026-06-27,Amazon now,30
+2026-06-27,Stc chadi,87
+2026-06-27,Amazon now,35
+2026-06-28,Chadi and mimi metro,16
+2026-06-28,Market,15
+2026-06-29,Amazon now,72
+2026-06-29,Metro,4
+2026-06-29,Amazon now,34
+2026-06-29,Ahmad Naser’s cake,40
+2026-06-29,Riyadh metro,4
+2026-06-30,Metro and taxi to waalan,40
+2026-06-30,Photos,75
+2026-06-30,Benzin,111
+2026-06-30,Tamwinat,15
+2026-06-30,7alle2,50
+2026-06-30,Pharmacy,23
+2026-07-01,Parent,587
+2026-07-01,Aljazira,248
+2026-07-01,Shawarma house,116
+2026-07-02,Qiddia,1000
+2026-07-02,Ice cream darriya,48
+2026-07-02,Parking,30
+2026-07-03,Coffe,41
+2026-07-03,Jana’s gift,180
+2026-07-03,Market,76
+2026-07-03,Coffe shop,48
+2026-07-04,Home electricity bill,305
+2026-07-04,Electricity,55
+2026-07-04,Alharam plaxa,423
+2026-07-04,Amazon now,33
+2026-07-04,Aljazeera market,188
+2026-07-05,Kaak w jben,51
+2026-07-05,Mimi metro,8
+2026-07-05,Mimi market,15
+2026-07-06,Rony’s birthd,96
+2026-07-06,Home internet,288
+2026-07-07,Noon hdmi,31
+2026-07-07,Shein,620
+2026-07-07,Mimi’s visa issuance,2000
+2026-07-08,Benzin,100
+2026-07-08,Tamwinat,11
+2026-07-08,Mimi coffe,13
+2026-07-08,Mimi metro,4
+2026-07-08,AlJazeera,119
+2026-07-09,Max alhamra,130
+2026-07-09,Tamara watch,155
+2026-07-09,Centerpoint,325
+2026-07-10,5 saving,56
+2026-07-10,Alam as3ar,163
+2026-07-11,Amazon now,94
+2026-07-11,Samak,46
+2026-07-11,Khodra,13
+2026-07-11,Shanwani,15
+2026-07-11,Photo,150
+2026-07-11,Chef’s,470
+2026-07-12,Amazon now,43
+2026-07-12,Trafic violation,75
+2026-07-14,Mimi alharam,54
+2026-07-14,Transport,8
+2026-07-14,7alle2,50
+2026-07-14,Print,60
+2026-07-14,Amazon 5,155
+2026-07-15,Benzin,110
+2026-07-15,Mimi metro,4
+2026-07-15,Mimi market,10
+2026-07-15,Amazon,36
+2026-07-15,Hunger blaban,64
+2026-07-16,Print,27
+2026-07-16,Mimi metro,4
+2026-07-16,Amazon now,32
+2026-07-17,Car wash,44.96
+2026-07-17,Ba7er as3ar,86.98
+2026-07-17,Shawarma house,51
+2026-07-18,Netflix,49
+2026-07-18,Amazon prime,16
+2026-07-18,Mimi Iphone tamara,1890
+2026-07-18,La7meh,270
+2026-07-18,Movie,91
+2026-07-19,Stc esim,60
+2026-07-19,Stc esim,29
+2026-07-20,Chadi stc e sim,29
+2026-07-20,Market,5
+2026-07-20,Amazon 5,146
+2026-07-21,Market,10
+2026-07-21,Noon infinity cube,45
+2026-07-21,Mimi metro,8
+2026-07-21,Danub,28
+2026-07-21,R&B,230
+2026-07-21,Benzin,103
+2026-07-22,Bike,100
+2026-07-23,Car installment,1390
+2026-07-23,Mimi trendiyol,44
+2026-07-24,Deal,211
+2026-07-24,Shawarma house,25
+2026-07-25,Abaya for mimi,250
+2026-07-25,Aqua aribia locker,60
+2026-07-25,Benzin,89
+2026-07-25,Othaim,17
+2026-07-26,Chadi stc,76
+2026-07-26,Mariam stc,76
+2026-07-27,Riyadh parking,150
+2026-07-27,Aljazeera,70
+2026-07-27,Gifts for lebanon r& b,342
+2026-07-28,Amazon now,39
+2026-07-28,Alharam,247
+2026-07-28,50 fruits,34
+2026-07-30,Mimi metro,8
+2026-07-30,Tamwinat,10
+2026-07-30,Speed violation,113
+2026-07-30,Tamer,70
+2026-07-30,Alrasheed market,47
+2026-07-30,Mimi metro,8
+2026-07-30,Tamwinat,9
+2026-07-31,5 saving,75
+2026-07-31,Father clothes,380
+2026-07-31,Fish,53
+2026-07-31,Amazon now,33
+2026-08-01,Desert game,160
+2026-08-01,Danoun,110
+2026-08-01,7alle2,50
+2026-08-01,Benzin,40
+2026-08-01,Deal market,116
+2026-08-02,Spl Jrad to Jeddah,95
+2026-08-02,Tamara watch payment 2,155
+2026-08-02,Burger king airport,14
+2026-08-04,Home electricity,350
+2026-08-10,Tamwinat,12
+2026-08-10,Shawarma house,32
+2026-08-10,Benzin,106
+2026-08-10,Mimi metro,4
+2026-08-11,Tamwinat,13
+2026-08-11,Cursor,90
+2026-08-11,Prime,16
+2026-08-11,Wifi,288
+2026-08-12,Tamwinat,23
+2026-08-12,Shein,38
+2026-08-12,Operation falafel,26
+2026-08-12,Imlak tawfir,167
+2026-08-13,Tamwinat,10
+2026-08-13,Othaim,153
+2026-08-14,Hunger gift,223
+2026-08-14,Coffe,78
+2026-08-14,R&B,79
+2026-08-14,Pillow hraj,50
+2026-08-15,Mimi taxi,19
+2026-08-15,Coffe mimi,20
+2026-08-15,Tamer,50
+2026-08-15,Corn,30
+2026-08-15,Top up,394
+2026-08-15,Anny & danny,85
+2026-08-15,7alle2,50
+2026-08-16,Tamwinat,9
+2026-08-17,Benzin,20
+2026-08-17,Taxi wallan to work,60
+2026-08-18,Netflix,49
+2026-08-18,Metro,4
+2026-08-18,Taxi to wallaan,33
+2026-08-18,Taxi,50
+2026-08-18,Oska water,112
+2026-08-19,Malek tawook,44
+2026-08-20,Benzin,66
+2026-08-20,Taxi,13
+2026-08-20,Ritad park,7
+2026-08-20,Benzin,103
+2026-08-20,Jarir,63
+2026-08-21,Ugreen usb hub,103
+2026-08-21,Car wash,35
+2026-08-21,Cinema vox,90
+2026-08-21,Cinema food,77
+2026-08-21,Coffe,148
+2026-08-21,Home electricity stuff,32
+2026-08-21,Gift jana,189
+2026-08-21,Mouse logi,219
+2026-08-22,Wooden,41
+2026-08-22,Top up,37
+2026-08-22,Table,150
+2026-08-22,Office chair,250
+2026-08-22,Beef,210
+2026-08-23,Car installment,1390
+2026-08-23,Mimi taxi,11
+2026-08-23,Togo salad,49
+2026-08-23,Othaim market,45
+2026-08-24,Stc chadi,75
+2026-08-24,Mimi taxi,14
+2026-08-24,Flower,10
+2026-08-24,Mimi gift,15
+2026-08-24,Mimi Stc,76
+2026-08-24,Mimi Ikama,5100
+2026-08-25,Mimi taxi,14
+2026-08-25,Othaim market,20
+2026-08-26,Tamwinat,6
+2026-08-27,Hunger station,95
+2026-08-27,Othai Market,25
+2026-08-27,Mimi transport,14
+2026-08-27,Keeta dndip,88
+2026-08-28,Benzin,25
+2026-08-28,Almajed for oud,288
+2026-08-28,Amazon 5,200
+2026-08-28,Electricity cable,45
+2026-08-28,Benzin,101
+2026-08-29,Shein,285
+2026-08-29,"Tamimi, abou el hoss",309
+2026-08-30,Mimi Taxi,14
+2026-08-30,Tamwinat,26
+2026-08-31,Mimi taxi,15
+2026-08-31,Market,36
+2026-09-01,"Mimi phone, Chadi watch tamara",2045
+2026-09-01,Mimi taxi,15
+2026-09-01,Tamwinat,4
+2026-09-01,Cinema,115
+2026-09-03,Mimi taxi,22
+2026-09-03,Mimi coffe,19
+2026-09-03,Home electricity,35
+2026-09-03,Othaim,30
+2026-09-03,Benzin,97
+2026-09-03,Othaim,22
+2026-09-03,Jarir,9
+2026-09-03,The social restaurant,154
+2026-09-03,في سبيل الله,25
+2026-09-04,في سبيل الله,50
+2026-09-04,Coffe,38
+2026-09-04,Shoes cleaning,105
+2026-09-04,Riyadh roshen,29
+2026-09-06,Market,5
+2026-09-06,Dorrat alfaysal,151
+2026-09-06,Electricity,39
+2026-09-06,Cinema vox,117
+2026-09-06,Aljazeera,94
+2026-09-06,Dorrat al faisal,42
+2026-09-06,Cursor,90
+2026-09-06,Mimi taxi,22
+2026-09-07,Mobily home wifi,290
+2026-09-07,7alle2,103
+2026-09-07,Othaim,18
+2026-09-09,Othaim,51
+2026-09-09,Mimi taxi,16
+2026-09-10,Mimi taxi,19
+2026-09-10,Othaim,2
+2026-09-10,Mimi taxi,16
+2026-09-10,Mimi taxi,37
+2026-09-10,Mimi market,190
+2026-09-10,Kudu macdo,65
+2026-09-11,Wooden,63
+2026-09-11,Benzin,50
+2026-09-11,Ahmad abdullah,83
+2026-09-11,Car wash,42
+2026-09-11,Benzin,50
+2026-09-11,Topup,43
+2026-09-11,Panda,22
+2026-09-11,Hussain toys,33
+2026-09-11,Mimi Dar Anirat,99
+2026-09-11,Mimi toys,20
+2026-09-13,Fish,105
+2026-09-13,Joz,16
+2026-09-13,Gaz,37
+2026-09-13,Benzin,83
+2026-09-13,5 saving,93
+2026-09-13,Panda,198
+2026-09-13,Jazeera,40
+2026-09-13,Mimi taxi,19
+2026-09-13,Camera subscription,40
+2026-09-14,Guest house,401
+2026-09-14,Mimi taxi,15
+2026-09-16,Mimi taxi,19
+2026-09-17,Shawarma house,77
+2026-09-17,Mimi taxi,15
+2026-09-17,Mimi taxi,15
+2026-09-18,Netflix subscription,49
+2026-09-18,Wooden,43
+2026-09-18,Pharmacy,33
+2026-09-18,Icecream,10
+2026-09-18,Mimi laptop,3130
+2026-09-19,Booling,170
+2026-09-19,Benzin,80
+2026-09-19,Konafa,28
+2026-09-20,Mimi coffe,20
+2026-09-21,Abou al abed,45
+2026-09-21,Aljazeera,111
+2026-09-21,Mimi taxi,14
+2026-09-21,Chadi STC,75
+2026-09-21,Mimi STC,75
+2026-09-21,Mimi picnic,60
+2026-09-22,To go salad,42
+2026-09-22,To go salad,42
+2026-09-22,Pizza hut,48
+2026-09-22,Mimi taxi,16
+2026-09-23,Amazon,152
+2026-09-23,Lcwikiki,268
+2026-09-23,Almajed for oud,273
+2026-09-23,Kudu,39
+2026-09-23,Metro,8
+2026-09-23,Car rental,1400
+2026-09-25,Wooden bakery,106
+2026-09-25,Bbq moment,158
+2026-09-25,Othaim,41
+2026-09-25,Shawarma house,62
+2026-09-25,Market,23
+2026-09-25,Cocktail,50
+2026-09-26,Meat,236
+2026-09-26,Durrat al faisal,230
+2026-09-26,Amazon now,51
+2026-09-26,Benzin,95
+2026-09-27,Saudi consile of engineer,750
+2026-09-27,Noon,13
+2026-09-27,Board pad,160
+2026-09-28,Controller,140
+2026-09-28,Water,97
+2026-09-28,Mimi taxi,19
+2026-09-29,Aljazeera,164
+2026-09-30,Mimi taxi,16
+2026-10-01,Tamara Mimi iphone,2044
+2026-10-02,Shawarma,15
+2026-10-02,Mimi taxi,19
+2026-10-02,Catch 22,174
+2026-10-02,Jarir,15
+2026-10-02,Coffe,15
+2026-10-03,Ice cream,56
+2026-10-03,R&B,88
+2026-10-03,Top up,247
+2026-10-03,Mimi’s ring,12
+2026-10-03,Makhbaz,15
+2026-10-03,Tamimi market,133
+2026-10-03,Benzin,72
+2026-10-04,Home electricity,285
+2026-10-04,Mimi taxi,19
+2026-10-04,Aljazeera,59
+2026-10-04,Shein,872
+2026-10-05,Mimi taxi,19
+2026-10-05,7alle2,100
+2026-10-05,Saaddin,37
+2026-10-05,Flower,13
+2026-10-06,Mimi taxi,19
+2026-10-06,Alothaim,27
+2026-10-08,Mimi taxi,19
+2026-10-08,Mna2ich,18
+2026-10-09,Mimi taxi,19
+2026-10-09,Mimi food,14
+2026-10-09,Coffe,11
+2026-10-09,Ice cream,14
+2026-10-09,Shoes namchi,276
+2026-10-09,Ahlam alsham,146
+2026-10-09,Kafd coffe,50
+2026-10-09,Metro,8
+2026-10-10,Coffe,75
+2026-10-10,Beef,99
+2026-10-10,Perfume mimi,100
+2026-10-10,Shawarma house,25
+2026-10-10,Salam mall,33
+2026-10-10,Benzin,95
+2026-10-10,5 saving,58
+2026-10-11,Temu,365
+2026-10-11,Tasnim juice,50
+2026-10-11,Durrat faisal,122
+2026-10-11,Aljazeera,101
+2026-10-11,Pharmacy,24
+2026-10-11,Football,15
+2026-10-12,Amazon now,60
+2026-10-14,Mimi market,100
+2026-10-14,Absher new ikama,58
+2026-10-14,Absher pinalty iqama,1000
+2026-10-14,Mobily internet,288
+2026-10-15,Tamwinat,6
+2026-10-15,Fi sabil Allah,50
+2026-10-15,Honor tablet,1600
+2026-10-15,Parking,10
+2026-10-15,Mimi Market,34
+2026-10-16,JARIR hand bag,131
+2026-10-16,Shawarma house,72
+2026-10-16,Alhoussein top up,150
+2026-10-17,Benzin,82
+2026-10-17,Tasnim juice,55
+2026-10-17,Coffe with khaled,50
+2026-10-19,Aljazeera,112
+2026-10-19,Stc Chadi,75
+2026-10-19,Mimi stc,75
+2026-10-19,Icecream,18
+2026-10-21,Mimi coffe,15
+2026-10-21,Max,82
+2026-10-21,Othaim,87
+2026-10-21,Car wash,100
+2026-10-23,Aldahiya juice,38
+2026-10-23,Al haram plaza,48
+2026-10-23,Coffe,15
+2026-10-23,Bbq moment,165
+2026-10-23,Al haram plaza,75
+2026-10-23,Durrat al faisal,66
+2026-10-23,Benzin,78
+2026-10-23,Othaim market,59
+2026-10-23,Shawarma house,26
+2026-10-23,Car rental,1389
+2026-10-23,5 saving,133
+2026-10-24,Coffe,51
+2026-10-24,Anni & danni,90
+2026-10-24,Shrimp,190
+2026-10-24,Amazon now,109
+2026-10-26,Al jazeera,115
+2026-10-26,Park,23
+2026-10-27,Mimi’s iphone,1890
+2026-10-28,Taxi,11
+2026-10-28,Go 2,30
+2026-10-28,Football,15
+2026-10-29,Riyadh park,150
+2026-10-30,Benzine,112
+2026-10-30,Mishable sweet,132
+2026-10-31,Center point Chadi,253
+2026-10-31,Home center,42
+2026-10-31,Basken roben,57
+2026-10-31,Alharam mimi,572
+2026-11-01,Amazon now,123
+2026-11-01,7alle2,100
+2026-11-01,Car wash,40
+2026-11-03,Tasnim juice,66
+2026-11-03,Othaim market,32
+2026-11-03,Home electricity,152
+2026-11-03,Ppf payment 1,734
+2026-11-04,Metro,12
+2026-11-04,Aljazeera,55
+2026-11-04,Benzin,45
+2026-11-04,5 saving,104
+2026-11-04,Benzin,142
+2026-11-04,Albaik,40
+2026-11-04,Al tamayoz alraqi,130
+2026-11-04,Ganesh,155
+2026-11-04,Panda,40
+2026-11-05,Altamayoz al raqi,130
+2026-11-05,Mankoush,83
+2026-11-06,Waferha alfaqih aquarium,168
+2026-11-06,Benzin,95
+2026-11-06,Hizam omra,10
+2026-11-06,Napoli blu,156
+2026-11-06,Makkah parking,23
+2026-11-06,Hanger station,43
+2026-11-06,3asfour,260
+2026-11-07,Water,8
+2026-11-07,Benzin,72
+2026-11-07,Benzin,60
+2026-11-07,Market,70
+2026-11-07,Market,55
+2026-11-07,Benzin,80
+2026-11-07,Public - safarat,288
+2026-11-08,Glass repair,80
+2026-11-08,Bride dr,125
+2026-11-08,Tamimi,54
+2026-11-09,Tamwinat,15
+2026-11-09,Amazing now,34
+2026-11-09,Apeed violation,113
+2026-11-10,Water oska,114
+2026-11-11,Benzin,95
+2026-11-11,Abo el hoss,35
+2026-11-11,Tamwinat,10
+2026-11-12,Shawarma house,95
+2026-11-13,Coffe with albanna,41
+2026-11-13,Aljazeera market,107
+2026-11-13,Almaigliah souk,580
+2026-11-15,Benzin,53
+2026-11-15,Webook bolevard,60
+2026-11-15,Shai karak,30
+2026-11-15,Home - internet,287
+2026-11-16,Dorrat alfaisal,126
+2026-11-16,Aljazeera,59

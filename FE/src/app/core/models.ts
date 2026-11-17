@@ -218,6 +218,32 @@ export interface Transaction {
 
 export type TransactionStatus = 'settled' | 'pending';
 
+/** One month in the transactions month list (totals per currency; transfers are not totalled). */
+export interface TransactionMonth {
+  month: string;
+  count: number;
+  income_count: number;
+  expense_count: number;
+  transfer_count: number;
+  first_date: string | null;
+  last_date: string | null;
+  totals: { currency: string; income: string; expense: string }[];
+}
+
+export interface TransactionBulkChanges {
+  status?: TransactionStatus;
+  account_id?: string;
+  /** Merchant (subcategory); applies to expenses only. */
+  category_id?: string;
+}
+
+export interface TransactionBulkResult {
+  deleted?: number;
+  updated?: number;
+  skipped?: number;
+  missing?: number;
+}
+
 export type AccountType = 'bank' | 'credit_card' | 'wallet' | 'other';
 
 export interface AccountBalance {

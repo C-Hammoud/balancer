@@ -26,6 +26,9 @@ import {
   PersonalBudget,
   MerchantLink,
   Transaction,
+  TransactionBulkChanges,
+  TransactionBulkResult,
+  TransactionMonth,
   TransactionStatus,
   TransactionImportOptions,
   UnmatchedMerchant,
@@ -116,6 +119,20 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   assignmentDrafts = signal<AssignmentDraft[]>([]);
   assigningAll = signal(false);
 
+  /** Rows ticked in the current month's list, acted on together from the bulk bar. */
+  selectedIds = signal<ReadonlySet<string>>(new Set());
+  bulkBusy = signal(false);
+  bulkStatus: '' | TransactionStatus = '';
+  bulkAccountId = '';
+  bulkGroupId = '';
+  bulkMerchantId = '';
+
+  /** Months dialog: every month with transactions, some ticked for deletion. */
+  showMonths = signal(false);
+  months = signal<TransactionMonth[]>([]);
+  monthsLoading = signal(false);
+  selectedMonths = signal<ReadonlySet<string>>(new Set());
+
   form = this.fb.nonNullable.group({
     date: ['', Validators.required],
     category_id: ['', Validators.required],
@@ -179,6 +196,7 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.showImport()) this.closeImport();
+    else if (this.showMonths()) this.closeMonths();
     else if (this.showAssignModal()) this.closeAssignModal();
     else if (this.showUnmatchedModal()) this.closeUnmatchedModal();
     else if (this.editing()) this.closeEdit();
@@ -593,9 +611,13 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
         this.items.set(rows);
         this.loading.set(false);
         this.syncAssignmentDrafts();
+        // Keep only ticks on rows that are still listed (another month clears them).
+        const listed = new Set(rows.map((t) => t.id));
+        this.selectedIds.update((s) => new Set([...s].filter((id) => listed.has(id))));
       },
       error: (err) => {
         this.items.set([]);
+        this.selectedIds.set(new Set());
         this.loading.set(false);
         this.toast.fromHttpError(err, 'Could not load transactions.');
       },
@@ -954,6 +976,208 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
         this.reload();
       },
       error: (err) => this.toast.fromHttpError(err, 'Delete failed.'),
+    });
+  }
+
+  // ---- Selection and bulk actions ----
+
+  isSelected(id: string): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  selectedCount(): number {
+    return this.selectedIds().size;
+  }
+
+  allSelected(): boolean {
+    const rows = this.items();
+    return rows.length > 0 && rows.every((t) => this.selectedIds().has(t.id));
+  }
+
+  someSelected(): boolean {
+    return this.selectedCount() > 0 && !this.allSelected();
+  }
+
+  toggleSelected(id: string): void {
+    this.selectedIds.update((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** Header tick box: the whole month, or nothing. */
+  toggleSelectAll(): void {
+    this.selectedIds.set(this.allSelected() ? new Set() : new Set(this.items().map((t) => t.id)));
+  }
+
+  clearSelection(): void {
+    this.selectedIds.set(new Set());
+    this.bulkStatus = '';
+    this.bulkAccountId = '';
+    this.bulkGroupId = '';
+    this.bulkMerchantId = '';
+  }
+
+  onBulkGroupChange(): void {
+    this.bulkMerchantId = '';
+  }
+
+  bulkChanges(): TransactionBulkChanges {
+    const changes: TransactionBulkChanges = {};
+    if (this.bulkStatus) changes.status = this.bulkStatus;
+    if (this.bulkAccountId) changes.account_id = this.bulkAccountId;
+    if (this.bulkMerchantId) changes.category_id = this.bulkMerchantId;
+    return changes;
+  }
+
+  hasBulkChanges(): boolean {
+    return Object.keys(this.bulkChanges()).length > 0;
+  }
+
+  applyBulkChanges(): void {
+    const ids = [...this.selectedIds()];
+    const changes = this.bulkChanges();
+    if (!ids.length || !Object.keys(changes).length) return;
+    this.bulkBusy.set(true);
+    this.api.bulkUpdateTransactions(ids, changes).subscribe({
+      next: (r) => {
+        this.bulkBusy.set(false);
+        this.toast.success(this.bulkMessage(r, 'Updated'));
+        this.clearSelection();
+        this.reload();
+      },
+      error: (err) => {
+        this.bulkBusy.set(false);
+        this.toast.fromHttpError(err, 'Could not update the selected transactions.');
+      },
+    });
+  }
+
+  deleteSelected(): void {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    const what = this.allSelected() ? `all ${ids.length} transaction(s) of ${this.monthLabel(this.month)}` : `${ids.length} transaction(s)`;
+    if (!confirm(`Delete ${what}? This cannot be undone.`)) return;
+    this.bulkBusy.set(true);
+    this.api.bulkDeleteTransactions(ids).subscribe({
+      next: (r) => {
+        this.bulkBusy.set(false);
+        this.toast.success(this.bulkMessage(r, 'Deleted'));
+        this.clearSelection();
+        this.loadCommitments(); // deleted installment payments are outstanding again
+        this.reload();
+      },
+      error: (err) => {
+        this.bulkBusy.set(false);
+        this.toast.fromHttpError(err, 'Could not delete the selected transactions.');
+      },
+    });
+  }
+
+  private bulkMessage(r: TransactionBulkResult, verb: 'Updated' | 'Deleted'): string {
+    const n = verb === 'Deleted' ? r.deleted ?? 0 : r.updated ?? 0;
+    let msg = `${verb} ${n} transaction(s).`;
+    if (r.skipped) msg += ` ${r.skipped} already matched or did not apply (a merchant applies to expenses only).`;
+    if (r.missing) msg += ` ${r.missing} no longer exist.`;
+    return msg;
+  }
+
+  // ---- Months list ----
+
+  monthLabel(month: string): string {
+    const [y, m] = (month || '').split('-').map(Number);
+    if (!y || !m) return month;
+    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  }
+
+  openMonths(): void {
+    this.selectedMonths.set(new Set());
+    this.showMonths.set(true);
+    this.loadMonths();
+  }
+
+  closeMonths(): void {
+    if (this.bulkBusy()) return;
+    this.showMonths.set(false);
+  }
+
+  loadMonths(): void {
+    this.monthsLoading.set(true);
+    this.api.transactionMonths().subscribe({
+      next: (rows) => {
+        this.months.set(rows);
+        this.monthsLoading.set(false);
+        const listed = new Set(rows.map((r) => r.month));
+        this.selectedMonths.update((s) => new Set([...s].filter((m) => listed.has(m))));
+      },
+      error: (err) => {
+        this.months.set([]);
+        this.monthsLoading.set(false);
+        this.toast.fromHttpError(err, 'Could not load the months.');
+      },
+    });
+  }
+
+  /** Show one month in the list and close the dialog. */
+  openMonth(month: string): void {
+    this.month = month;
+    this.showMonths.set(false);
+    this.clearSelection();
+    this.reload();
+  }
+
+  isMonthSelected(month: string): boolean {
+    return this.selectedMonths().has(month);
+  }
+
+  toggleMonth(month: string): void {
+    this.selectedMonths.update((s) => {
+      const next = new Set(s);
+      if (next.has(month)) next.delete(month);
+      else next.add(month);
+      return next;
+    });
+  }
+
+  allMonthsSelected(): boolean {
+    const rows = this.months();
+    return rows.length > 0 && rows.every((r) => this.selectedMonths().has(r.month));
+  }
+
+  toggleAllMonths(): void {
+    this.selectedMonths.set(this.allMonthsSelected() ? new Set() : new Set(this.months().map((r) => r.month)));
+  }
+
+  selectedMonthsTxnCount(): number {
+    const picked = this.selectedMonths();
+    return this.months().reduce((n, r) => n + (picked.has(r.month) ? r.count : 0), 0);
+  }
+
+  deleteSelectedMonths(): void {
+    const months = [...this.selectedMonths()].sort();
+    if (!months.length) return;
+    const names = months.map((m) => this.monthLabel(m)).join(', ');
+    const count = this.selectedMonthsTxnCount();
+    if (!confirm(`Delete all ${count} transaction(s) in ${months.length} month(s): ${names}? This cannot be undone.`)) {
+      return;
+    }
+    this.bulkBusy.set(true);
+    this.api.deleteTransactionMonths(months).subscribe({
+      next: (r) => {
+        this.bulkBusy.set(false);
+        this.toast.success(`Deleted ${r.deleted} transaction(s) in ${r.months.length} month(s).`);
+        this.selectedMonths.set(new Set());
+        this.clearSelection();
+        this.loadMonths();
+        this.loadCommitments();
+        this.reload();
+      },
+      error: (err) => {
+        this.bulkBusy.set(false);
+        this.toast.fromHttpError(err, 'Could not delete those months.');
+      },
     });
   }
 
