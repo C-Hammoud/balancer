@@ -235,6 +235,11 @@ th, td {
 .bulk-head .btn { margin-left: auto; }
 .bulk-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 0.6rem; align-items: end; }
 .bulk-actions { display: flex; gap: 0.4rem; }
+.bulk-totals { display: grid; gap: 0.3rem; font-variant-numeric: tabular-nums; }
+.bulk-totals:empty { display: none; }
+.bulk-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 1.1rem; }
+.bulk-total .cur { font-weight: 600; min-width: 2.6rem; }
+.bulk-total .neg { color: #b42318; }
 .months-modal { width: min(760px, calc(100vw - 1.5rem)); }
 .months-table td { vertical-align: top; }
 .months-table small { display: block; }

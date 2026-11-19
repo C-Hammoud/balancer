@@ -5,7 +5,7 @@
       <h2 id="commitment-due-title">Commitment payment due</h2>
       <p class="lead">
         <strong>{{ commitmentLabel(alert) }}</strong>
-        — {{ alert.actual }} due on {{ alert.due_date | slice: 0 : 10 }}
+        — {{ alert.actual | amount }} due on {{ alert.due_date | slice: 0 : 10 }}
       </p>
     </header>
 

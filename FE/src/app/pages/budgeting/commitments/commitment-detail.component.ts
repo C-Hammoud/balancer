@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BudgetingService } from '../../../core/budgeting.service';
@@ -9,7 +10,7 @@ import { ToastService } from '../../../core/toast.service';
 @Component({
   selector: 'app-commitment-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, AmountPipe],
   templateUrl: './commitment-detail.component.html',
   styleUrl: './commitment-detail.component.scss',
 })

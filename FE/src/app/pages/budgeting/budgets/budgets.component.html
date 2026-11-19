@@ -19,15 +19,15 @@
     </article>
     <article class="stat">
       <span>Total allocated</span>
-      <strong>{{ d.total_allocated }}</strong>
+      <strong>{{ d.total_allocated | amount }}</strong>
     </article>
     <article class="stat">
       <span>Total spent</span>
-      <strong>{{ d.total_spent }}</strong>
+      <strong>{{ d.total_spent | amount }}</strong>
     </article>
     <article class="stat">
       <span>Total remaining</span>
-      <strong [class.neg]="+d.total_remaining < 0">{{ d.total_remaining }}</strong>
+      <strong [class.neg]="+d.total_remaining < 0">{{ d.total_remaining | amount }}</strong>
     </article>
   </div>
 }
@@ -131,9 +131,9 @@
         }
         <p class="period muted">{{ periodLabel(b) }}</p>
         <div class="amounts">
-          <div><span>Budget</span><strong>{{ b.total_amount }} {{ b.currency }}</strong></div>
-          <div><span>Spent</span><strong>{{ b.spent }} {{ b.currency }}</strong></div>
-          <div><span>Remaining</span><strong [class.neg]="+b.remaining < 0">{{ b.remaining }} {{ b.currency }}</strong></div>
+          <div><span>Budget</span><strong>{{ b.total_amount | amount }} {{ b.currency }}</strong></div>
+          <div><span>Spent</span><strong>{{ b.spent | amount }} {{ b.currency }}</strong></div>
+          <div><span>Remaining</span><strong [class.neg]="+b.remaining < 0">{{ b.remaining | amount }} {{ b.currency }}</strong></div>
         </div>
         <div class="progress">
           <div class="bar"><div class="fill" [style.width.%]="pctWidth(b)"></div></div>
@@ -161,8 +161,8 @@
         }
         <p class="period muted">{{ periodLabel(b) }}</p>
         <div class="amounts">
-          <div><span>Budget</span><strong>{{ b.total_amount }} {{ b.currency }}</strong></div>
-          <div><span>Spent</span><strong>{{ b.spent }} {{ b.currency }}</strong></div>
+          <div><span>Budget</span><strong>{{ b.total_amount | amount }} {{ b.currency }}</strong></div>
+          <div><span>Spent</span><strong>{{ b.spent | amount }} {{ b.currency }}</strong></div>
         </div>
         <div class="progress">
           <div class="bar"><div class="fill" [style.width.%]="pctWidth(b)"></div></div>

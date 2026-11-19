@@ -18,21 +18,21 @@
   <div class="stats">
     <article class="stat">
       <span>Principal</span>
-      <strong>{{ c.amount }} {{ c.currency || 'USD' }}</strong>
+      <strong>{{ c.amount | amount }} {{ c.currency || 'USD' }}</strong>
     </article>
     <article class="stat">
       <span>Installment</span>
-      <strong>{{ c.payment_amount }} {{ c.currency || 'USD' }}</strong>
+      <strong>{{ c.payment_amount | amount }} {{ c.currency || 'USD' }}</strong>
     </article>
     <article class="stat">
       <span>Remaining</span>
-      <strong>{{ c.remaining_principal }} {{ c.currency || 'USD' }}</strong>
+      <strong>{{ c.remaining_principal | amount }} {{ c.currency || 'USD' }}</strong>
     </article>
     <article class="stat">
       <span>Next due</span>
       <strong>{{ c.next_due_date || '—' }}</strong>
       @if (c.next_due_amount) {
-        <small>{{ c.next_due_amount }} {{ c.currency || 'USD' }}</small>
+        <small>{{ c.next_due_amount | amount }} {{ c.currency || 'USD' }}</small>
       }
     </article>
   </div>
@@ -116,7 +116,7 @@
                   <span class="muted">—</span>
                 }
               </td>
-              <td>{{ line.amount }}</td>
+              <td>{{ line.amount | amount }}</td>
               <td>
                 <span
                   class="pill"

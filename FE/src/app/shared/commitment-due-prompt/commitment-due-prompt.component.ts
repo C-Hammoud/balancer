@@ -1,5 +1,6 @@
 import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../amount.pipe';
 import { FormsModule } from '@angular/forms';
 import { BudgetingService } from '../../core/budgeting.service';
 import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
@@ -11,7 +12,7 @@ const DISMISS_KEY = 'commitment_due_dismissed';
 @Component({
   selector: 'app-commitment-due-prompt',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AmountPipe],
   templateUrl: './commitment-due-prompt.component.html',
   styleUrl: './commitment-due-prompt.component.scss',
 })

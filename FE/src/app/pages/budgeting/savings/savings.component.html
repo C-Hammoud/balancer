@@ -49,7 +49,7 @@
           <tr>
             <td>{{ s.year }}-{{ s.month | number: '2.0-0' }}</td>
             <td>{{ s.target }}</td>
-            <td>{{ s.actual }}</td>
+            <td>{{ s.actual | amount }}</td>
             <td>{{ s.goal_status_display || s.goal_status }}</td>
             <td><button type="button" class="btn ghost" (click)="edit(s)">Edit</button></td>
           </tr>

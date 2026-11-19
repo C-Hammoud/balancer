@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormsModule } from '@angular/forms';
 import { BudgetingService } from '../../../core/budgeting.service';
 import { BudgetCategory, BudgetGroup, BudgetRow } from '../../../core/models';
@@ -14,7 +15,7 @@ interface SubDraft {
 @Component({
   selector: 'app-monthly-forecasts',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AmountPipe],
   templateUrl: './monthly-forecasts.component.html',
   styleUrl: './monthly-forecasts.component.scss',
 })

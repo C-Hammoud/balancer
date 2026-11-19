@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../shared/amount.pipe';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { BudgetingService } from '../../core/budgeting.service';
@@ -9,7 +10,7 @@ import { ToastService } from '../../core/toast.service';
 @Component({
   selector: 'app-budgeting-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AmountPipe],
   templateUrl: './budgeting.component.html',
   styleUrl: './budgeting.component.scss',
 })

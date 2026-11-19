@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
 import { RiskService } from '../../core/risk.service';
 import { RiskFactor, RiskReport } from '../../core/models';
+import { formatAmount } from '../amount.pipe';
 
 const LEVEL_LABEL: Record<string, string> = {
   low: 'Low risk',
@@ -57,7 +58,7 @@ export class RiskSummaryComponent implements OnInit {
 
   money(value: string | string[] | null | undefined): string {
     if (typeof value !== 'string') return '—';
-    return `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${this.report()?.currency ?? ''}`;
+    return `${formatAmount(value)} ${this.report()?.currency ?? ''}`;
   }
 
   statusLabel(f: RiskFactor): string {

@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BudgetingService } from '../../../core/budgeting.service';
@@ -24,7 +25,7 @@ interface AssignmentDraft {
 @Component({
   selector: 'app-assign-merchants',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AmountPipe],
   templateUrl: './assign-merchants.component.html',
   styleUrl: './assign-merchants.component.scss',
 })

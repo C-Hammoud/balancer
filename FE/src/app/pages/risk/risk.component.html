@@ -38,16 +38,16 @@
         in {{ r.currency }}, as of {{ r.as_of }}.
       </p>
       <dl class="inputs">
-        <div><dt>Liquid balance</dt><dd>{{ r.inputs['liquid'] ?? '—' }}</dd></div>
+        <div><dt>Liquid balance</dt><dd>{{ r.inputs['liquid'] | amount }}</dd></div>
         <div>
           <dt>Monthly income</dt>
           <dd>
-            {{ r.inputs['monthly_income'] ?? '—' }}
+            {{ r.inputs['monthly_income'] | amount }}
             @if (r.inputs['income_source'] === 'recent_average') { <small>(recent average)</small> }
           </dd>
         </div>
-        <div><dt>Installments this month</dt><dd>{{ r.inputs['installments_month'] ?? '—' }}</dd></div>
-        <div><dt>Average monthly spending</dt><dd>{{ r.inputs['avg_spending'] ?? '—' }}</dd></div>
+        <div><dt>Installments this month</dt><dd>{{ r.inputs['installments_month'] | amount }}</dd></div>
+        <div><dt>Average monthly spending</dt><dd>{{ r.inputs['avg_spending'] | amount }}</dd></div>
       </dl>
     </div>
   </section>

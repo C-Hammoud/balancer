@@ -1,6 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { AmountPipe, formatAmount } from '../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { BudgetingService } from '../../core/budgeting.service';
@@ -36,7 +37,7 @@ const FACTOR_LINKS: Record<string, { label: string; path: string }> = {
 @Component({
   selector: 'app-risk',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, AmountPipe],
   templateUrl: './risk.component.html',
   styleUrl: './risk.component.scss',
 })
@@ -185,7 +186,7 @@ export class RiskComponent implements OnInit {
       case 'count':
         return String(Math.round(n));
       default:
-        return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${this.report()?.currency ?? ''}`;
+        return `${formatAmount(n)} ${this.report()?.currency ?? ''}`;
     }
   }
 

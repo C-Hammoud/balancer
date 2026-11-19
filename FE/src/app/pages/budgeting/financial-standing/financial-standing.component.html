@@ -40,8 +40,8 @@
         @for (s of items(); track s.id) {
           <tr>
             <td>{{ s.snapshot_date }}</td>
-            <td>{{ s.total_assets }}</td>
-            <td>{{ s.total_liabilities }}</td>
+            <td>{{ s.total_assets | amount }}</td>
+            <td>{{ s.total_liabilities | amount }}</td>
             <td [class.neg]="netWorth(s) < 0">{{ netWorth(s) | number: '1.2-2' }}</td>
             <td>{{ s.notes || '—' }}</td>
           </tr>

@@ -5,6 +5,7 @@ import { BudgetingService } from '../../../core/budgeting.service';
 import { Account, AccountBalance, AccountType } from '../../../core/models';
 import { RiskService } from '../../../core/risk.service';
 import { ToastService } from '../../../core/toast.service';
+import { formatAmount } from '../../../shared/amount.pipe';
 
 const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
   { value: 'bank', label: 'Bank' },
@@ -65,7 +66,7 @@ export class IncomeSourcesComponent implements OnInit {
     if (!b) return '';
     const entries = Object.entries(b.balances);
     if (entries.length < 2) return '';
-    return entries.map(([cur, v]) => `${cur} ${Number(v).toLocaleString()}`).join(' · ');
+    return entries.map(([cur, v]) => `${cur} ${formatAmount(v)}`).join(' · ');
   }
 
   isNegative(b: AccountBalance | undefined): boolean {

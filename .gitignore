@@ -10,3 +10,4 @@ deploy/.env
 deploy/backups/
 # Data exported from a local database to move it to the server
 data.json
+docs/

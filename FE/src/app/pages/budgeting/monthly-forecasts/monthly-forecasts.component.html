@@ -125,16 +125,16 @@
                     [placeholder]="subSum(r)"
                   />
                   @if (!groupForecasts[r.group_id] && r.forecast_is_derived) {
-                    <span class="derived-hint">Sum of subs: {{ r.forecast }}</span>
+                    <span class="derived-hint">Sum of subs: {{ r.forecast | amount }}</span>
                   } @else if (groupForecasts[r.group_id] && r.forecast_from_subs) {
-                    <span class="derived-hint">Subs total: {{ r.forecast_from_subs }}</span>
+                    <span class="derived-hint">Subs total: {{ r.forecast_from_subs | amount }}</span>
                   }
                 </div>
               } @else {
-                {{ r.forecast }}
+                {{ r.forecast | amount }}
               }
             </td>
-            <td>{{ r.actual }}</td>
+            <td>{{ r.actual | amount }}</td>
             <td class="row-actions">
               @if (r.group_id) {
                 <button type="button" class="btn ghost" (click)="saveGroup(r.group_id!)">Save</button>
@@ -149,7 +149,7 @@
               <tr class="sub-row">
                 <td><span class="sub-indent">{{ s.category_name }}</span></td>
                 <td><input class="forecast" [(ngModel)]="subForecasts[s.category_id]" placeholder="0" /></td>
-                <td>{{ s.actual }}</td>
+                <td>{{ s.actual | amount }}</td>
                 <td><button type="button" class="btn ghost" (click)="saveSub(s.category_id)">Save</button></td>
               </tr>
             }

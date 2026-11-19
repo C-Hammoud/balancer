@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BudgetingService } from '../../../core/budgeting.service';
 import { FinancialStanding } from '../../../core/models';
@@ -8,7 +9,7 @@ import { ToastService } from '../../../core/toast.service';
 @Component({
   selector: 'app-financial-standing',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, AmountPipe],
   templateUrl: './financial-standing.component.html',
   styleUrl: './financial-standing.component.scss',
 })

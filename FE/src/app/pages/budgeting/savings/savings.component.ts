@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { BudgetingService } from '../../../core/budgeting.service';
 import { SavingsRow } from '../../../core/models';
@@ -8,7 +9,7 @@ import { ToastService } from '../../../core/toast.service';
 @Component({
   selector: 'app-savings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, AmountPipe],
   templateUrl: './savings.component.html',
   styleUrl: './savings.component.scss',
 })

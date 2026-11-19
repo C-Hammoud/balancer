@@ -75,16 +75,16 @@
                 <span class="pill danger">{{ c.overdue_count }} overdue</span>
               }
             </td>
-            <td>{{ c.payment_amount }} {{ c.currency || 'USD' }}</td>
+            <td>{{ c.payment_amount | amount }} {{ c.currency || 'USD' }}</td>
             <td>
               @if (c.next_due_date) {
                 {{ c.next_due_date }}
-                <small>{{ c.next_due_amount }} {{ c.currency || 'USD' }}</small>
+                <small>{{ c.next_due_amount | amount }} {{ c.currency || 'USD' }}</small>
               } @else {
                 <span class="muted">—</span>
               }
             </td>
-            <td>{{ c.remaining_principal }} {{ c.currency || 'USD' }}</td>
+            <td>{{ c.remaining_principal | amount }} {{ c.currency || 'USD' }}</td>
             <td class="actions">
               <a class="btn ghost" [routerLink]="['/budgeting/commitments', c.id]" (click)="$event.stopPropagation()">Open</a>
               <button type="button" class="btn ghost danger" (click)="remove(c, $event)">Delete</button>

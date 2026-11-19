@@ -6,6 +6,7 @@ import { BudgetingService } from '../../../core/budgeting.service';
 import { UtilizationReport, UtilizationRow, UNMAPPED_CATEGORY_ID } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 import { LocaleService } from '../../../core/locale.service';
+import { formatAmount } from '../../../shared/amount.pipe';
 
 @Component({
   selector: 'app-utilization',
@@ -67,7 +68,7 @@ export class UtilizationComponent implements OnInit {
   fmt(val: string | number | null | undefined): string {
     const cur = this.report()?.report_currency || this.reportCurrency;
     if (val == null || val === '') return `— ${cur}`;
-    return `${val} ${cur}`;
+    return `${formatAmount(val)} ${cur}`;
   }
 
   utilWidth(util: string | null | undefined): number {

@@ -51,7 +51,7 @@
           <div class="assign-meta">
             <strong>{{ t.description || '—' }}</strong>
             <span class="pill">{{ t.date }}</span>
-            <span class="pill">{{ t.amount }} {{ t.currency || 'USD' }}</span>
+            <span class="pill">{{ t.amount | amount }} {{ t.currency || 'USD' }}</span>
             @if (t.note) {
               <span class="samples">{{ t.note }}</span>
             }

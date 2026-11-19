@@ -166,7 +166,7 @@
             <thead><tr><th>Account</th><th>Type</th><th>Balance ({{ d.currency }})</th></tr></thead>
             <tbody>
               @for (a of d.accounts; track a.account_id) {
-                <tr><td>{{ a.name }}</td><td>{{ a.account_type }}</td><td>{{ a.total }}</td></tr>
+                <tr><td>{{ a.name }}</td><td>{{ a.account_type }}</td><td>{{ a.total | amount }}</td></tr>
               }
             </tbody>
           </table>
@@ -186,7 +186,7 @@
               <td>{{ t.date }}</td>
               <td>{{ t.description }}</td>
               <td>{{ t.direction }}</td>
-              <td>{{ t.amount }} {{ t.currency }}</td>
+              <td>{{ t.amount | amount }} {{ t.currency }}</td>
               <td>{{ t.status }}</td>
             </tr>
           }

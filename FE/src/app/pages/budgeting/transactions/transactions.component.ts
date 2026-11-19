@@ -1,8 +1,9 @@
-import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subscription, switchMap } from 'rxjs';
+import { Observable, Subscription, concatMap, defer, from, switchMap, toArray } from 'rxjs';
 import { BudgetingService } from '../../../core/budgeting.service';
 import { FinanceDataRefreshService } from '../../../core/finance-data-refresh.service';
 import {
@@ -12,6 +13,7 @@ import {
   expenseFieldsForAssignment,
   isAssignmentDraftReady,
   isUnassignedExpense,
+  merchantNameFromDescription,
   preserveDescriptionInNote,
   resolveSubcategoryId,
   transactionAccountId,
@@ -42,6 +44,17 @@ interface PendingLink extends UnmatchedMerchant {
   saved?: boolean;
 }
 
+/** What the ticked rows add up to, for one currency. Amounts are in cents to avoid float drift. */
+interface SelectionTotal {
+  currency: string;
+  expenseCount: number;
+  expenseCents: number;
+  incomeCount: number;
+  incomeCents: number;
+  transferCount: number;
+  transferCents: number;
+}
+
 interface AssignmentDraft {
   txnId: string;
   group_id: string;
@@ -65,7 +78,7 @@ const TRANSFER_CATEGORY = '__transfer__';
 @Component({
   selector: 'app-budget-transactions',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, AmountPipe],
   templateUrl: './transactions.component.html',
   styleUrl: './transactions.component.scss',
 })
@@ -126,6 +139,45 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   bulkAccountId = '';
   bulkGroupId = '';
   bulkMerchantId = '';
+
+  /** Ticked rows added up per currency: expenses, income, transfers, net and average expense. */
+  selectionTotals = computed(() => {
+    const picked = this.selectedIds();
+    const byCurrency = new Map<string, SelectionTotal>();
+    for (const t of this.items()) {
+      if (!picked.has(t.id)) continue;
+      const currency = t.currency || 'USD';
+      let row = byCurrency.get(currency);
+      if (!row) {
+        row = { currency, expenseCount: 0, expenseCents: 0, incomeCount: 0, incomeCents: 0, transferCount: 0, transferCents: 0 };
+        byCurrency.set(currency, row);
+      }
+      const cents = Math.round(Math.abs(Number(t.amount) || 0) * 100);
+      if (t.direction === 'income') {
+        row.incomeCount += 1;
+        row.incomeCents += cents;
+      } else if (t.direction === 'transfer') {
+        row.transferCount += 1;
+        row.transferCents += cents;
+      } else {
+        row.expenseCount += 1;
+        row.expenseCents += cents;
+      }
+    }
+    return [...byCurrency.values()]
+      .sort((a, b) => a.currency.localeCompare(b.currency))
+      .map((r) => ({
+        currency: r.currency,
+        expenseCount: r.expenseCount,
+        expense: r.expenseCents / 100,
+        averageExpense: r.expenseCount ? r.expenseCents / r.expenseCount / 100 : 0,
+        incomeCount: r.incomeCount,
+        income: r.incomeCents / 100,
+        transferCount: r.transferCount,
+        transfer: r.transferCents / 100,
+        net: (r.incomeCents - r.expenseCents) / 100,
+      }));
+  });
 
   /** Months dialog: every month with transactions, some ticked for deletion. */
   showMonths = signal(false);
@@ -1020,26 +1072,36 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     this.bulkMerchantId = '';
   }
 
+  /** Picking a category defaults to keeping each row's own merchant name under it. */
   onBulkGroupChange(): void {
-    this.bulkMerchantId = '';
+    this.bulkMerchantId = this.bulkGroupId ? SAME_AS_DESCRIPTION : '';
+  }
+
+  /** Category chosen with "keep each merchant's name": every row goes to its own subcategory. */
+  get bulkKeepsMerchantNames(): boolean {
+    return !!this.bulkGroupId && usesSameAsDescription(this.bulkMerchantId);
   }
 
   bulkChanges(): TransactionBulkChanges {
     const changes: TransactionBulkChanges = {};
     if (this.bulkStatus) changes.status = this.bulkStatus;
     if (this.bulkAccountId) changes.account_id = this.bulkAccountId;
-    if (this.bulkMerchantId) changes.category_id = this.bulkMerchantId;
+    if (this.bulkMerchantId && !usesSameAsDescription(this.bulkMerchantId)) changes.category_id = this.bulkMerchantId;
     return changes;
   }
 
   hasBulkChanges(): boolean {
-    return Object.keys(this.bulkChanges()).length > 0;
+    return this.bulkKeepsMerchantNames || Object.keys(this.bulkChanges()).length > 0;
   }
 
   applyBulkChanges(): void {
     const ids = [...this.selectedIds()];
     const changes = this.bulkChanges();
-    if (!ids.length || !Object.keys(changes).length) return;
+    if (!ids.length || !this.hasBulkChanges()) return;
+    if (this.bulkKeepsMerchantNames) {
+      this.applyBulkCategoryKeepingNames(ids, changes);
+      return;
+    }
     this.bulkBusy.set(true);
     this.api.bulkUpdateTransactions(ids, changes).subscribe({
       next: (r) => {
@@ -1053,6 +1115,86 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
         this.toast.fromHttpError(err, 'Could not update the selected transactions.');
       },
     });
+  }
+
+  /**
+   * Move the selected expenses under one category while each keeps its own merchant name:
+   * rows are grouped by name, the subcategory is found or created under the category, then
+   * each group is updated in one bulk call. Calls run one after another so a name is created once.
+   */
+  private applyBulkCategoryKeepingNames(ids: string[], changes: TransactionBulkChanges): void {
+    const groupId = this.bulkGroupId;
+    const picked = new Set(ids);
+    const byName = new Map<string, { description: string; ids: string[] }>();
+    const others: string[] = [];
+    let noName = 0;
+    for (const t of this.items()) {
+      if (!picked.has(t.id)) continue;
+      if (t.direction !== 'expense' || t.commitment_id) {
+        others.push(t.id);
+        continue;
+      }
+      const description = (t.description || '').trim();
+      if (!description || description === UNASSIGNED) {
+        noName += 1;
+        others.push(t.id);
+        continue;
+      }
+      const key = merchantNameFromDescription(description).toLowerCase();
+      const entry = byName.get(key) ?? { description, ids: [] };
+      entry.ids.push(t.id);
+      byName.set(key, entry);
+    }
+
+    const hasOtherChanges = Object.keys(changes).length > 0;
+    const steps: Observable<TransactionBulkResult>[] = [...byName.values()].map((entry) =>
+      defer(() =>
+        resolveSubcategoryId(this.api, this.categories(), groupId, SAME_AS_DESCRIPTION, entry.description, (cat) =>
+          this.addCreatedCategory(cat)
+        ).pipe(
+          switchMap((subcategoryId) =>
+            this.api.bulkUpdateTransactions(entry.ids, { ...changes, category_id: subcategoryId })
+          )
+        )
+      )
+    );
+    // Rows that keep their merchant (income, transfers, commitment payments, no description)
+    // still get the status and account changes.
+    if (others.length && hasOtherChanges) {
+      steps.push(defer(() => this.api.bulkUpdateTransactions(others, changes)));
+    }
+    if (!steps.length) {
+      this.toast.error('None of the selected rows is an expense with a description to keep.');
+      return;
+    }
+
+    this.bulkBusy.set(true);
+    from(steps)
+      .pipe(
+        concatMap((step) => step),
+        toArray()
+      )
+      .subscribe({
+        next: (results) => {
+          this.bulkBusy.set(false);
+          const total = { updated: 0, skipped: hasOtherChanges ? 0 : others.length - noName, missing: 0 };
+          for (const r of results) {
+            total.updated += r.updated ?? 0;
+            total.skipped += r.skipped ?? 0;
+            total.missing += r.missing ?? 0;
+          }
+          let msg = this.bulkMessage(total, 'Updated');
+          if (noName) msg += ` ${noName} had no description, so their merchant was not changed.`;
+          this.toast.success(msg);
+          this.clearSelection();
+          this.reload();
+        },
+        error: (err) => {
+          this.bulkBusy.set(false);
+          this.toast.fromHttpError(err, 'Could not move every selected transaction. Check the list and try again.');
+          this.reload();
+        },
+      });
   }
 
   deleteSelected(): void {

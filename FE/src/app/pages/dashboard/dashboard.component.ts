@@ -15,6 +15,7 @@ import { ToastService } from '../../core/toast.service';
 import { LocaleService } from '../../core/locale.service';
 import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
 import { RiskSummaryComponent } from '../../shared/risk-summary/risk-summary.component';
+import { formatAmount } from '../../shared/amount.pipe';
 
 const DISMISS_KEY = 'ft_dismiss_accounts_prompt';
 
@@ -71,7 +72,7 @@ export class DashboardComponent implements OnInit {
   fmt(val: string | number | null | undefined): string {
     const cur = this.reportCurrency || this.locale.reportCurrency();
     if (val == null || val === '') return `— ${cur}`;
-    return `${val} ${cur}`;
+    return `${formatAmount(val)} ${cur}`;
   }
 
   checkAccounts(force = false): void {

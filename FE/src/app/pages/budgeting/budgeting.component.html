@@ -24,15 +24,15 @@
     <div class="stats">
       <article class="stat">
         <span>Forecast</span>
-        <strong>{{ d.report.total_forecast }}</strong>
+        <strong>{{ d.report.total_forecast | amount }}</strong>
       </article>
       <article class="stat">
         <span>Actual</span>
-        <strong>{{ d.report.total_actual }}</strong>
+        <strong>{{ d.report.total_actual | amount }}</strong>
       </article>
       <article class="stat">
         <span>Remaining</span>
-        <strong [class.neg]="+(d.report.remaining || 0) < 0">{{ d.report.remaining }}</strong>
+        <strong [class.neg]="+(d.report.remaining || 0) < 0">{{ d.report.remaining | amount }}</strong>
       </article>
       <article class="stat">
         <span>Utilization</span>
@@ -56,7 +56,7 @@
     <section class="panel">
       <header>
         <h2>Top categories</h2>
-        <span class="muted">Income {{ d.income_total }} · Expense {{ d.expense_total }}</span>
+        <span class="muted">Income {{ d.income_total | amount }} · Expense {{ d.expense_total | amount }}</span>
       </header>
       <div class="table-wrap">
         <table class="stack-table">
@@ -82,8 +82,8 @@
                     {{ r.category_name }} <small>{{ r.group_name }}</small>
                   }
                 </td>
-                <td data-label="Forecast">{{ r.forecast }}</td>
-                <td data-label="Actual">{{ r.actual }}</td>
+                <td data-label="Forecast">{{ r.forecast | amount }}</td>
+                <td data-label="Actual">{{ r.actual | amount }}</td>
                 <td data-label="Util">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
                 <td data-label="Status">
                   @if (r.category_id === unmappedId) {

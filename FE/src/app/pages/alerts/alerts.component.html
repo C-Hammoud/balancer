@@ -189,9 +189,9 @@
               @if (isRisk(a)) {
                 —
               } @else if (isCommitmentDue(a)) {
-                {{ a.actual }}
+                {{ a.actual | amount }}
               } @else {
-                {{ a.actual }} / {{ a.forecast }}
+                {{ a.actual | amount }} / {{ a.forecast | amount }}
               }
             </td>
             <td class="actions" data-label="">
@@ -250,7 +250,7 @@
       <div>
         <h2 id="pay-title">Record payment</h2>
         <p class="muted">
-          <strong>{{ commitmentLabel(alert) }}</strong> — {{ alert.actual }}
+          <strong>{{ commitmentLabel(alert) }}</strong> — {{ alert.actual | amount }}
           @if (alert.due_date) {
             due {{ alert.due_date | slice: 0 : 10 }}
           }

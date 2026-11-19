@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BudgetingService } from '../../../core/budgeting.service';
@@ -10,7 +11,7 @@ import { LocaleService } from '../../../core/locale.service';
 @Component({
   selector: 'app-commitments',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, AmountPipe],
   templateUrl: './commitments.component.html',
   styleUrl: './commitments.component.scss',
 })

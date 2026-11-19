@@ -46,15 +46,15 @@
     <div class="stats">
       <article class="stat">
         <span>Total budget</span>
-        <strong>{{ b.total_amount }} {{ b.currency }}</strong>
+        <strong>{{ b.total_amount | amount }} {{ b.currency }}</strong>
       </article>
       <article class="stat">
         <span>Spent</span>
-        <strong>{{ b.spent }} {{ b.currency }}</strong>
+        <strong>{{ b.spent | amount }} {{ b.currency }}</strong>
       </article>
       <article class="stat">
         <span>Remaining</span>
-        <strong [class.neg]="+b.remaining < 0">{{ b.remaining }} {{ b.currency }}</strong>
+        <strong [class.neg]="+b.remaining < 0">{{ b.remaining | amount }} {{ b.currency }}</strong>
       </article>
       <article class="stat">
         <span>Used</span>
@@ -200,7 +200,7 @@
       <header class="sec-head">
         <div>
           <h2>Budget categories</h2>
-          <p class="muted">Allocated: {{ b.categories_allocated_total || '0' }} {{ b.currency }}</p>
+          <p class="muted">Allocated: {{ b.categories_allocated_total || 0 | amount }} {{ b.currency }}</p>
         </div>
         @if (canEdit()) {
           <button type="button" class="btn ghost" (click)="showCategoryForm() ? cancelCategoryWizard() : openCategoryWizard()">
@@ -309,9 +309,9 @@
                     }
                   </div>
                 </td>
-                <td data-label="Allocated">{{ cat.allocated_amount }} {{ b.currency }}</td>
-                <td data-label="Spent">{{ cat.spent }} {{ b.currency }}</td>
-                <td data-label="Remaining" [class.neg]="+cat.remaining < 0">{{ cat.remaining }} {{ b.currency }}</td>
+                <td data-label="Allocated">{{ cat.allocated_amount | amount }} {{ b.currency }}</td>
+                <td data-label="Spent">{{ cat.spent | amount }} {{ b.currency }}</td>
+                <td data-label="Remaining" [class.neg]="+cat.remaining < 0">{{ cat.remaining | amount }} {{ b.currency }}</td>
                 <td data-label="">
                   @if (cat.id !== '_uncategorized_' && canEdit()) {
                     <button type="button" class="btn ghost" (click)="deleteCategory(cat)">Remove</button>
@@ -322,9 +322,9 @@
                 @for (sub of cat.sub_categories || []; track sub.id) {
                   <tr class="sub-row">
                     <td data-label="Category"><span class="sub-indent">{{ sub.name }}</span></td>
-                    <td data-label="Allocated">{{ sub.allocated_amount }} {{ b.currency }}</td>
-                    <td data-label="Spent">{{ sub.spent }} {{ b.currency }}</td>
-                    <td data-label="Remaining" [class.neg]="+sub.remaining < 0">{{ sub.remaining }} {{ b.currency }}</td>
+                    <td data-label="Allocated">{{ sub.allocated_amount | amount }} {{ b.currency }}</td>
+                    <td data-label="Spent">{{ sub.spent | amount }} {{ b.currency }}</td>
+                    <td data-label="Remaining" [class.neg]="+sub.remaining < 0">{{ sub.remaining | amount }} {{ b.currency }}</td>
                     <td data-label=""></td>
                   </tr>
                 }
@@ -361,7 +361,7 @@
                 <td data-label="Date">{{ t.date }}</td>
                 <td data-label="Description">{{ t.description || t.note || '—' }}</td>
                 <td data-label="Category">{{ categoryName(t.budget_category_id) }}</td>
-                <td data-label="Amount">{{ t.amount }} {{ t.currency }}</td>
+                <td data-label="Amount">{{ t.amount | amount }} {{ t.currency }}</td>
               </tr>
             } @empty {
               <tr><td colspan="4" class="muted">No transactions linked to this budget yet.</td></tr>

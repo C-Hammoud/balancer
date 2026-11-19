@@ -66,7 +66,7 @@
               <option value="">Select commitment…</option>
               @for (c of payableCommitments(); track c.id) {
                 <option [value]="c.id">
-                  {{ c.name }} — next {{ c.next_due_amount }} ({{ c.next_due_date || 'n/a' }})
+                  {{ c.name }} — next {{ c.next_due_amount | amount }} ({{ c.next_due_date || 'n/a' }})
                 </option>
               }
             </select>
@@ -217,6 +217,28 @@
         @if (allSelected()) { <span class="muted">· all of {{ monthLabel(month) }}</span> }
         <button type="button" class="btn ghost" (click)="clearSelection()" [disabled]="bulkBusy()">Clear</button>
       </div>
+      <div class="bulk-totals" aria-live="polite">
+        @for (s of selectionTotals(); track s.currency) {
+          <div class="bulk-total">
+            <span class="cur">{{ s.currency }}</span>
+            @if (s.expenseCount) {
+              <span>Expenses ({{ s.expenseCount }}) <strong>{{ s.expense | amount }}</strong></span>
+            }
+            @if (s.incomeCount) {
+              <span>Income ({{ s.incomeCount }}) <strong>{{ s.income | amount }}</strong></span>
+            }
+            @if (s.transferCount) {
+              <span>Transfers ({{ s.transferCount }}) <strong>{{ s.transfer | amount }}</strong></span>
+            }
+            @if (s.expenseCount && s.incomeCount) {
+              <span>Net <strong [class.neg]="s.net < 0">{{ s.net | amount }}</strong></span>
+            }
+            @if (s.expenseCount > 1) {
+              <span class="muted">Average expense {{ s.averageExpense | amount }}</span>
+            }
+          </div>
+        }
+      </div>
       <div class="bulk-fields">
         <label>
           Status
@@ -247,7 +269,11 @@
         <label>
           Merchant
           <select [(ngModel)]="bulkMerchantId" name="bulkMerchantId" [disabled]="!bulkGroupId">
-            <option value="">{{ bulkGroupId ? 'Select…' : 'Keep' }}</option>
+            @if (bulkGroupId) {
+              <option [value]="sameAsDescription">Keep each merchant's name</option>
+            } @else {
+              <option value="">Keep</option>
+            }
             @for (s of subcategoriesForGroup(bulkGroupId); track s.id) {
               <option [value]="s.id">{{ s.name }}</option>
             }
@@ -267,7 +293,13 @@
           </button>
         </div>
       </div>
-      @if (bulkGroupId) {
+      @if (bulkKeepsMerchantNames) {
+        <small class="muted">
+          Each selected expense moves to {{ groupName(bulkGroupId) }} and keeps its own merchant name
+          (added under {{ groupName(bulkGroupId) }} if it is new). Pick a merchant instead to give them all the same one.
+          Income, transfers and commitment payments keep theirs.
+        </small>
+      } @else if (bulkGroupId) {
         <small class="muted">A merchant applies to expenses only; income, transfers and commitment payments keep theirs.</small>
       }
     </div>
@@ -328,7 +360,7 @@
               <span class="pill">{{ t.direction }}</span>
               @if (t.status === 'pending') { <span class="pill warn">pending</span> }
             </td>
-            <td data-label="Amount">{{ t.amount }}</td>
+            <td data-label="Amount">{{ t.amount | amount }}</td>
             <td data-label="Currency">{{ t.currency || 'USD' }}</td>
             <td data-label="Note">{{ t.note || '—' }}</td>
             <td class="row-actions" data-label="">
@@ -493,7 +525,7 @@
               <div class="assign-meta">
                 <strong>{{ t.description || '—' }}</strong>
                 <span class="pill">{{ t.date }}</span>
-                <span class="pill">{{ t.amount }} {{ t.currency || 'USD' }}</span>
+                <span class="pill">{{ t.amount | amount }} {{ t.currency || 'USD' }}</span>
               </div>
               <div class="assign-row">
                 <label>
@@ -701,12 +733,12 @@
                 </td>
                 <td>
                   @for (tot of m.totals; track tot.currency) {
-                    <div>{{ tot.income }} {{ tot.currency }}</div>
+                    <div>{{ tot.income | amount }} {{ tot.currency }}</div>
                   } @empty { — }
                 </td>
                 <td>
                   @for (tot of m.totals; track tot.currency) {
-                    <div>{{ tot.expense }} {{ tot.currency }}</div>
+                    <div>{{ tot.expense | amount }} {{ tot.currency }}</div>
                   } @empty { — }
                 </td>
                 <td><button type="button" class="btn ghost" (click)="openMonth(m.month)">Open</button></td>
