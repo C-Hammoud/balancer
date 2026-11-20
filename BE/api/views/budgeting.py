@@ -2,6 +2,8 @@ from calendar import month_name
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.parsers import MultiPartParser
@@ -25,6 +27,7 @@ from api.serializers import (
 )
 from api.utils import decimal_to_json, transaction_to_dict, trigger_budget_alerts, user_id
 from api.currency import resolve_report_currency
+from budgeting import import_templates
 from budgeting.alert_state import alert_is_snoozed, alert_state
 from budgeting.category_access import (
     can_edit,
@@ -1105,6 +1108,27 @@ class TransactionBulkCategorizeView(APIView):
             "no_description": no_description,
             "created_categories": [_category_dict(c, group.name, request.user) for c in created],
         })
+
+
+class TransactionImportTemplateView(APIView):
+    """
+    A starting file for the import: GET .../transactions/import-template/<kind>/ with kind
+    csv | csv-debit-credit | xlsx | json. Headers the importer recognises plus two example rows
+    (one expense, one income), sent as a download.
+    """
+
+    def get(self, request, kind):
+        try:
+            content, content_type, filename = import_templates.build_template(kind, timezone.localdate())
+        except import_templates.UnknownTemplate:
+            return Response(
+                {"detail": f"Unknown template. Use one of: {', '.join(import_templates.TEMPLATE_KINDS)}."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        response = HttpResponse(content, content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Cache-Control"] = "no-store"
+        return response
 
 
 class TransactionUploadView(APIView):

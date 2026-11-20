@@ -265,4 +265,26 @@ th, td {
   .error-text {
     color: #b42318;
   }
+
+  .template-block {
+    display: grid;
+    gap: 0.35rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .template-title {
+    font-size: 0.9rem;
+  }
+
+  .template-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .template-row .btn {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.85rem;
+  }
 }

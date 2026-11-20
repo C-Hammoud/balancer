@@ -41,6 +41,7 @@ import {
   TransactionBulkChanges,
   TransactionBulkResult,
   TransactionImportOptions,
+  TransactionImportTemplateKind,
   TransactionMonth,
   TransactionUploadResult,
   TypeMapRow,
@@ -136,6 +137,11 @@ export class BudgetingService {
   /** Same change (status, account and/or merchant) on several transactions. */
   bulkUpdateTransactions(ids: string[], changes: TransactionBulkChanges): Observable<TransactionBulkResult> {
     return this.http.post<TransactionBulkResult>(`${this.api}/transactions/bulk/`, { ids, action: 'update', changes });
+  }
+
+  /** Starting file for the import: headers plus one example expense and one example income. */
+  transactionImportTemplate(kind: TransactionImportTemplateKind): Observable<Blob> {
+    return this.http.get(`${this.api}/transactions/import-template/${kind}/`, { responseType: 'blob' });
   }
 
   /**

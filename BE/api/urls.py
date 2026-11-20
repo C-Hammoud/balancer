@@ -118,6 +118,7 @@ from api.views.budgeting import (
     TransactionMonthsDeleteView,
     TransactionMonthsView,
     TransactionUploadView,
+    TransactionImportTemplateView,
     TypeMapListView,
     UtilizationReportView,
     YearlyOverviewView,
@@ -153,6 +154,11 @@ urlpatterns = [
     # Budgeting — transactions
     path("budgeting/transactions/", TransactionListCreateView.as_view(), name="transaction-list"),
     path("budgeting/transactions/upload/", TransactionUploadView.as_view(), name="transaction-upload"),
+    path(
+        "budgeting/transactions/import-template/<str:kind>/",
+        TransactionImportTemplateView.as_view(),
+        name="transaction-import-template",
+    ),
     path("budgeting/transactions/bulk/", TransactionBulkView.as_view(), name="transaction-bulk"),
     path(
         "budgeting/transactions/bulk/categorize/",

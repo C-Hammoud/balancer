@@ -244,6 +244,9 @@ export interface TransactionBulkResult {
   missing?: number;
 }
 
+/** Downloadable import templates (GET /budgeting/transactions/import-template/<kind>/). */
+export type TransactionImportTemplateKind = 'csv' | 'csv-debit-credit' | 'xlsx' | 'json';
+
 /** Result of moving a selection under one category, each expense keeping its merchant name. */
 export interface TransactionBulkCategorizeResult {
   updated: number;

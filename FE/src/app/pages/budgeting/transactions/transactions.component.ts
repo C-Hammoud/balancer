@@ -32,6 +32,7 @@ import {
   TransactionMonth,
   TransactionStatus,
   TransactionImportOptions,
+  TransactionImportTemplateKind,
   UnmatchedMerchant,
 } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
@@ -69,6 +70,20 @@ const DATE_FORMAT_LABELS: Record<ImportDateFormat, string> = {
   mdy: 'Month first (12/31/2026)',
   ymd: 'Year first (2026/12/31)',
 };
+interface ImportTemplateOption {
+  kind: TransactionImportTemplateKind;
+  label: string;
+  file: string;
+}
+
+/** Import templates offered in the import dialog; file names match the server's. */
+const IMPORT_TEMPLATES: readonly ImportTemplateOption[] = [
+  { kind: 'csv', label: 'CSV (Amount)', file: 'transactions-template.csv' },
+  { kind: 'csv-debit-credit', label: 'CSV (Debit / Credit)', file: 'transactions-template-debit-credit.csv' },
+  { kind: 'xlsx', label: 'Excel (.xlsx)', file: 'transactions-template.xlsx' },
+  { kind: 'json', label: 'JSON', file: 'transactions-template.json' },
+];
+
 /** Pseudo category values for non-expense transaction types */
 const COMMITMENT_CATEGORY = '__commitment__';
 const INCOME_CATEGORY = '__income__';
@@ -117,6 +132,9 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   /** Only for a password-protected PDF; never saved with the import preferences. */
   importPassword = '';
   importPasswordPrompt = signal('');
+  readonly importTemplates = IMPORT_TEMPLATES;
+  /** Kind of the template being downloaded, '' when none. */
+  downloadingTemplate = signal<TransactionImportTemplateKind | ''>('');
   readonly dateFormatOptions = (Object.keys(DATE_FORMAT_LABELS) as ImportDateFormat[]).map((code) => ({
     code,
     label: DATE_FORMAT_LABELS[code],
@@ -1290,6 +1308,27 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     if (this.uploading()) return;
     this.showImport.set(false);
     this.resetImportPassword();
+  }
+
+  /** Save one of the import templates (headers plus an example expense and income). */
+  downloadTemplate(t: ImportTemplateOption): void {
+    if (this.downloadingTemplate()) return;
+    this.downloadingTemplate.set(t.kind);
+    this.api.transactionImportTemplate(t.kind).subscribe({
+      next: (blob) => {
+        this.downloadingTemplate.set('');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = t.file;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.downloadingTemplate.set('');
+        this.toast.fromHttpError(err, 'Could not download the template.');
+      },
+    });
   }
 
   onImportFile(event: Event): void {

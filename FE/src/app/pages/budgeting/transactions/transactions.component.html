@@ -782,6 +782,24 @@
       <button type="button" class="icon-close" (click)="closeImport()" aria-label="Close">×</button>
     </header>
     <div class="modal-body import-form">
+      <div class="template-block">
+        <span class="template-title">Start from a template</span>
+        <div class="template-row">
+          @for (t of importTemplates; track t.kind) {
+            <button
+              type="button"
+              class="btn ghost small"
+              (click)="downloadTemplate(t)"
+              [disabled]="!!downloadingTemplate() || uploading()"
+            >
+              {{ downloadingTemplate() === t.kind ? 'Downloading…' : t.label }}
+            </button>
+          }
+        </div>
+        <small class="muted">
+          Replace the two example rows with your own. Dates as YYYY-MM-DD; expenses negative in Amount, or in Debit.
+        </small>
+      </div>
       <label>
         File <span class="req">*</span>
         <input
