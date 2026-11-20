@@ -26,7 +26,7 @@ from api.serializers import (
     TypeCategoryMapSerializer,
 )
 from api.utils import decimal_to_json, transaction_to_dict, trigger_budget_alerts, user_id
-from api.currency import resolve_report_currency
+from api.currency import convert_if_needed, resolve_report_currency
 from budgeting import import_templates
 from budgeting.alert_state import alert_is_snoozed, alert_state
 from budgeting.category_access import (
@@ -85,7 +85,7 @@ from budgeting.services import (
     effective_group_forecast,
     get_month_str,
     merchant_key_from_description,
-    savings_actual,
+    savings_figures,
     sub_forecast_sum,
     suggest_category_for_description,
     yearly_overview_report,
@@ -1440,49 +1440,45 @@ class BudgetDetailView(APIView):
         return Response(decimal_to_json({"forecast": b.forecast}))
 
 
+def _savings_dict(request, s) -> dict:
+    """
+    One savings month. Target and actual are in the month's own currency, so they can be compared;
+    ?report_currency= converts both to another currency for display.
+    """
+    target, actual, currency = savings_figures(request.user, s)
+    shown = currency
+    wanted = (request.query_params.get("report_currency") or "").strip().upper()
+    if wanted and wanted != currency:
+        shown = resolve_report_currency(request.user, wanted)
+        target = convert_if_needed(target, currency, shown)
+        actual = convert_if_needed(actual, currency, shown)
+    progress = (actual / target * 100).quantize(Decimal("1")) if target and target > 0 else None
+    return decimal_to_json({
+        "year": s.year,
+        "month": s.month,
+        "currency": currency,
+        "report_currency": shown,
+        "target": target,
+        "actual": actual,
+        "actual_is_manual": s.actual is not None,
+        "progress_pct": progress,
+        "goal_status": s.goal_status,
+        "goal_status_display": dict(GoalStatus.choices).get(s.goal_status, s.goal_status),
+    })
+
+
 class SavingsListView(APIView):
     def get(self, request):
-        uid = user_id(request.user)
-        data = SavingsFS.list_by_user(uid)
-        goal_labels = dict(GoalStatus.choices)
-        report_currency = resolve_report_currency(request.user, request.query_params.get("report_currency"))
-        out = []
-        for s in data:
-            actual = (
-                s.actual if s.actual is not None
-                else savings_actual(request.user, s.year, s.month, report_currency=report_currency)
-            )
-            out.append(decimal_to_json({
-                "year": s.year,
-                "month": s.month,
-                "report_currency": report_currency,
-                "target": s.target,
-                "actual": actual,
-                "goal_status": s.goal_status,
-                "goal_status_display": goal_labels.get(s.goal_status, s.goal_status),
-            }))
-        return Response(out)
+        rows = SavingsFS.list_by_user(user_id(request.user))
+        return Response([_savings_dict(request, s) for s in rows])
 
 
 class SavingsDetailView(APIView):
     def get(self, request, year, month):
-        uid = user_id(request.user)
-        obj = SavingsFS.get_by_user_month(uid, int(year), int(month))
+        obj = SavingsFS.get_by_user_month(user_id(request.user), int(year), int(month))
         if not obj:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        report_currency = resolve_report_currency(request.user, request.query_params.get("report_currency"))
-        actual = (
-            obj.actual if obj.actual is not None
-            else savings_actual(request.user, obj.year, obj.month, report_currency=report_currency)
-        )
-        return Response(decimal_to_json({
-            "year": obj.year,
-            "month": obj.month,
-            "target": obj.target,
-            "actual": actual,
-            "report_currency": report_currency,
-            "goal_status": obj.goal_status,
-        }))
+        return Response(_savings_dict(request, obj))
 
     def patch(self, request, year, month):
         uid = user_id(request.user)
@@ -1494,9 +1490,11 @@ class SavingsDetailView(APIView):
         cd = serializer.validated_data
         obj.target = cd["target"]
         obj.actual = cd.get("actual")
+        # Target and a manual actual are entered in this currency; the derived actual is calculated in it.
+        obj.currency = cd.get("currency") or obj.currency or resolve_report_currency(request.user)
         obj.goal_status = cd["goal_status"]
         obj.save()
-        return Response(decimal_to_json({"target": obj.target, "actual": obj.actual, "goal_status": obj.goal_status}))
+        return Response(_savings_dict(request, obj))
 
 
 class CommitmentListCreateView(APIView):

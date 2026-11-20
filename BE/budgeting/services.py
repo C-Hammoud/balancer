@@ -123,6 +123,25 @@ def savings_actual(user, year, month, *, report_currency=None):
     return inc - exp - comm
 
 
+def savings_currency(user, savings) -> str:
+    """Currency of a savings month: its own, else the user's main currency (older rows have none)."""
+    from api.currency import resolve_report_currency
+
+    return (getattr(savings, "currency", "") or "").strip().upper() or resolve_report_currency(user)
+
+
+def savings_figures(user, savings) -> tuple:
+    """
+    (target, actual, currency) of a savings month, all in the month's currency.
+    Actual is the manual figure when set, else income - expenses - commitments converted to it.
+    """
+    currency = savings_currency(user, savings)
+    actual = savings.actual
+    if actual is None:
+        actual = savings_actual(user, savings.year, savings.month, report_currency=currency)
+    return savings.target or Decimal("0"), actual, currency
+
+
 def budget_variance(actual, forecast):
     """Variance = actual - forecast (positive = overspend)."""
     a = actual or Decimal("0")

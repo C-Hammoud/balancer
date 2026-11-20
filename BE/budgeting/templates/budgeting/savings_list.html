@@ -17,8 +17,8 @@
     <thead>
       <tr>
         <th>Year-Month</th>
-        <th class="text-end">Target (SAR)</th>
-        <th class="text-end">Actual (SAR)</th>
+        <th class="text-end">Target</th>
+        <th class="text-end">Actual</th>
         <th>Goal status</th>
         <th></th>
       </tr>
@@ -27,8 +27,8 @@
       {% for s in savings_list %}
       <tr>
         <td>{{ s.year }}-{{ s.month|stringformat:"02d" }}</td>
-        <td class="text-end">{{ s.target|floatformat:2 }}</td>
-        <td class="text-end">{% if s.actual is not None %}{{ s.actual|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td class="text-end">{{ s.target|floatformat:2 }} {{ s.currency }}</td>
+        <td class="text-end">{% if s.actual is not None %}{{ s.actual|floatformat:2 }} {{ s.currency }}{% else %}—{% endif %}</td>
         <td><span class="badge {% if s.goal_status == 'met' %}bg-success{% elif s.goal_status == 'missed' %}bg-danger{% else %}bg-secondary{% endif %}">{{ s.goal_status_display }}</span></td>
         <td>
           <a href="{% url 'budgeting:savings_edit' s.year s.month %}" class="icon-btn" aria-label="Edit"><i class="fa fa-pen"></i></a>

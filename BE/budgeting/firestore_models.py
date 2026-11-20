@@ -399,6 +399,7 @@ class SavingsFS(BudgetingFirestoreModel):
     month: int = 0
     actual: Optional[Decimal] = None
     target: Decimal = Decimal("0")
+    currency: str = ""
     goal_status: str = "pending"
 
     def to_dict(self):
@@ -408,6 +409,7 @@ class SavingsFS(BudgetingFirestoreModel):
             "month": self.month,
             "actual": str(self.actual) if self.actual is not None else None,
             "target": str(self.target),
+            "currency": self.currency or "",
             "goal_status": self.goal_status,
         }
 
@@ -420,6 +422,7 @@ class SavingsFS(BudgetingFirestoreModel):
         a = data.get("actual")
         o.actual = _as_decimal(a) if a is not None else None
         o.target = _as_decimal(data.get("target", "0"))
+        o.currency = data.get("currency", "") or ""
         o.goal_status = data.get("goal_status", "pending") or "pending"
         return o
 

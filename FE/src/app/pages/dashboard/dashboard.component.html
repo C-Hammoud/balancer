@@ -16,8 +16,38 @@
         }
       </select>
     </label>
+    <button
+      type="button"
+      class="btn ghost customize-btn"
+      [attr.aria-expanded]="showCustomize()"
+      aria-controls="customize-panel"
+      (click)="showCustomize.set(!showCustomize())"
+    >
+      Customize@if (hiddenCount()) { ({{ hiddenCount() }} hidden) }
+    </button>
   </div>
 </section>
+
+@if (showCustomize()) {
+<section id="customize-panel" class="panel customize-panel" aria-label="Choose dashboard widgets">
+  <header>
+    <h2>Show on dashboard</h2>
+    <div class="customize-actions">
+      <button type="button" class="btn ghost" (click)="showAllWidgets()" [disabled]="!hiddenCount()">Show all</button>
+      <button type="button" class="btn ghost" (click)="showCustomize.set(false)">Done</button>
+    </div>
+  </header>
+  <div class="customize-grid">
+    @for (w of widgets; track w.id) {
+    <label class="check">
+      <input type="checkbox" [checked]="shown(w.id)" (change)="toggleWidget(w.id)" />
+      {{ w.label }}
+    </label>
+    }
+  </div>
+  <p class="muted hint">Saved in this browser.</p>
+</section>
+}
 
 @if (showIncomePrompt()) {
 <div class="setup-banner">
@@ -34,8 +64,22 @@
 
 <app-month-questions />
 
+@if (shown('risk')) {
 <app-risk-summary />
+}
 
+@if (shown('balances') || shown('upcoming')) {
+<div class="widget-grid">
+  @if (shown('balances')) {
+  <app-account-balances-widget [reportCurrency]="reportCurrency" />
+  }
+  @if (shown('upcoming')) {
+  <app-upcoming-payments-widget />
+  }
+</div>
+}
+
+@if (shown('year')) {
 <section class="panel year-panel">
   <header>
     <h2>{{ year }} overview</h2>
@@ -61,27 +105,39 @@
       <span>Year net</span>
       <strong [class.neg]="+y.net < 0">{{ fmt(y.net) }}</strong>
     </article>
+    <article class="stat">
+      <span>Year savings rate</span>
+      <strong [class.neg]="(yearSavingsRate() ?? 0) < 0">{{ rateText(yearSavingsRate()) }}</strong>
+      <small class="muted">of income kept</small>
+    </article>
   </div>
 
-  <div class="month-chart" role="list">
+  <ul class="chart-legend" aria-label="Chart legend">
+    <li><span class="swatch income"></span>Income</li>
+    <li><span class="swatch expense"></span>Expense</li>
+  </ul>
+  <div class="month-chart" role="list" aria-label="Income and expense per month">
     @for (row of y.months; track row.month) {
     <button type="button" class="month-col" role="listitem" [class.active]="month === row.month"
-      (click)="selectMonth(row.month)" [title]="row.month_name + ': expense ' + fmt(row.expense_total)">
+      (click)="selectMonth(row.month)" [title]="chartTitle(row)" [attr.aria-label]="chartTitle(row)">
       <div class="bar-track">
-        <div class="bar" [style.height.%]="barHeight(row)"></div>
+        <div class="bar income" [style.height.%]="barHeight(row.income_total)"></div>
+        <div class="bar expense" [style.height.%]="barHeight(row.expense_total)"></div>
       </div>
       <span class="m-label">{{ row.month_short }}</span>
-      <span class="m-val">{{ fmt(row.expense_total) }}</span>
+      <span class="m-val" [class.neg]="+row.net < 0">{{ fmt(row.net) }}</span>
     </button>
     }
   </div>
-  <p class="hint muted">Tap a month to see details below.</p>
+  <p class="hint muted">Net under each month. Tap a month to see details below.</p>
   } @else {
   <p class="muted">Could not load yearly data.</p>
   }
   }
 </section>
+}
 
+@if (shown('month') || shown('spend') || shown('alerts') || shown('budgetTable')) {
 <section class="panel month-panel">
   <header class="month-head">
     <div>
@@ -103,14 +159,30 @@
   @if (loadingMonth()) {
   <p class="muted">Loading month…</p>
   } @else {
-  <div class="stats">
+  @if (shown('month')) {
+  <div class="stats month-stats">
     <article class="stat">
       <span>Income</span>
       <strong>{{ fmt(budget()?.income_total) }}</strong>
+      @if (amountDelta('income'); as d) {
+      <small class="delta" [class.good]="d.good" [class.bad]="!d.good">{{ d.text }}</small>
+      }
     </article>
     <article class="stat">
       <span>Expense</span>
       <strong>{{ fmt(budget()?.expense_total) }}</strong>
+      @if (amountDelta('expense'); as d) {
+      <small class="delta" [class.good]="d.good" [class.bad]="!d.good">{{ d.text }}</small>
+      }
+    </article>
+    <article class="stat">
+      <span>Savings rate</span>
+      <strong [class.neg]="(monthSavingsRate() ?? 0) < 0">{{ rateText(monthSavingsRate()) }}</strong>
+      @if (savingsDelta(); as d) {
+      <small class="delta" [class.good]="d.good" [class.bad]="!d.good">{{ d.text }}</small>
+      } @else if (monthSavingsRate() === null) {
+      <small class="muted">no income this month</small>
+      }
     </article>
     <article class="stat">
       <span>Budget util</span>
@@ -126,18 +198,49 @@
     </article>
   </div>
 
-  <div class="grid">
+  @if (pace(); as p) {
+  <p class="pace">
+    Daily average <strong>{{ fmt(p.dailyAverage) }}</strong>
+    @if (p.projected !== null) {
+    · projected month-end <strong>{{ fmt(p.projected) }}</strong>
+    @if (paceBudgetGap(); as gap) {
+    · <span [class.bad]="gap > 0" [class.good]="gap <= 0">
+      {{ fmt(absAmount(gap)) }} {{ gap > 0 ? 'over' : 'under' }} budget
+    </span>
+    }
+    }
+  </p>
+  }
+  }
+
+  @if (shown('spend') || shown('alerts')) {
+  <div class="grid" [class.single]="!shown('spend') || !shown('alerts')">
+    @if (shown('spend')) {
     <section class="subpanel">
       <header>
         <h3>Spend by category</h3>
         <a routerLink="/budgeting/transactions">Transactions</a>
       </header>
       @if (spendByCategory().length) {
-      <ul class="list">
+      <ul class="progress-list">
         @for (row of spendByCategory(); track row.category_id) {
+        @let pr = progress(row);
         <li>
-          <span>{{ row.category_name }}</span>
-          <span>{{ fmt(row.actual) }} ({{ spendPercent(row) }}%)</span>
+          <div class="progress-head">
+            <span class="progress-name">{{ row.category_name }}</span>
+            <span class="progress-val">
+              {{ fmt(row.actual) }}
+              @if (pr.pct !== null) {
+              <small>of {{ fmt(row.forecast) }} · {{ pr.pct | number: '1.0-0' }}%</small>
+              } @else {
+              <small>no budget · {{ spendPercent(row) }}% of spend</small>
+              }
+            </span>
+          </div>
+          <div class="progress-track" role="progressbar" [attr.aria-valuenow]="pr.pct ?? spendPercent(row)"
+            aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="row.category_name">
+            <div class="progress-fill" [class]="'progress-fill tone-' + pr.tone" [style.width.%]="pr.width"></div>
+          </div>
         </li>
         }
       </ul>
@@ -145,7 +248,9 @@
       <p class="muted">No expenses this month. <a routerLink="/budgeting/transactions">Add a transaction</a></p>
       }
     </section>
+    }
 
+    @if (shown('alerts')) {
     <section class="subpanel">
       <header>
         <h3>Alerts</h3>
@@ -169,8 +274,11 @@
       <p class="muted">No open alerts.</p>
       }
     </section>
+    }
   </div>
+  }
 
+  @if (shown('budgetTable')) {
   <div class="table-wrap">
     <table class="stack-table">
       <thead>
@@ -208,8 +316,15 @@
     </table>
   </div>
   }
+  }
 </section>
+}
 
+@if (shown('recent')) {
+<app-recent-transactions-widget class="recent-widget" />
+}
+
+@if (shown('reports')) {
 <section class="panel report-panel no-print-hide">
   <header>
     <h2>Reports</h2>
@@ -234,3 +349,4 @@
     <a class="btn ghost" routerLink="/budgeting/utilization">Open utilization</a>
   </div>
 </section>
+}

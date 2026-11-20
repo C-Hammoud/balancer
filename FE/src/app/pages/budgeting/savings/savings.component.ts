@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { BudgetingService } from '../../../core/budgeting.service';
+import { LocaleService } from '../../../core/locale.service';
 import { SavingsRow } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 
@@ -17,20 +18,25 @@ export class SavingsComponent implements OnInit {
   private api = inject(BudgetingService);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private locale = inject(LocaleService);
+
+  readonly currencyOptions = this.locale.currencies;
 
   items = signal<SavingsRow[]>([]);
   loading = signal(true);
-  editing = signal<SavingsRow | null>(null);
+  editing = signal(false);
 
   form = this.fb.nonNullable.group({
     year: [new Date().getFullYear(), Validators.required],
     month: [new Date().getMonth() + 1, Validators.required],
+    currency: [this.locale.defaultCurrency(), Validators.required],
     target: ['0', Validators.required],
     actual: [''],
     goal_status: ['pending', Validators.required],
   });
 
   ngOnInit(): void {
+    this.locale.loadMeta().subscribe();
     this.reload();
   }
 
@@ -48,15 +54,30 @@ export class SavingsComponent implements OnInit {
     });
   }
 
+  add(): void {
+    const now = new Date();
+    this.form.reset({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      currency: this.locale.defaultCurrency(),
+      target: '0',
+      actual: '',
+      goal_status: 'pending',
+    });
+    this.editing.set(true);
+  }
+
   edit(row: SavingsRow): void {
-    this.editing.set(row);
-    this.form.patchValue({
+    this.form.reset({
       year: row.year,
       month: row.month,
-      target: String(row.target),
-      actual: row.actual != null ? String(row.actual) : '',
+      currency: row.currency || this.locale.defaultCurrency(),
+      target: String(Number(row.target)),
+      // Only a typed actual is editable; the calculated one is recalculated in the chosen currency.
+      actual: row.actual_is_manual && row.actual != null ? String(Number(row.actual)) : '',
       goal_status: row.goal_status || 'pending',
     });
+    this.editing.set(true);
   }
 
   submit(): void {
@@ -67,17 +88,22 @@ export class SavingsComponent implements OnInit {
     const raw = this.form.getRawValue();
     this.api
       .updateSavings(raw.year, raw.month, {
+        currency: raw.currency,
         target: raw.target,
-        actual: (raw.actual || null) as any,
+        actual: raw.actual === '' ? null : raw.actual,
         goal_status: raw.goal_status,
       })
       .subscribe({
         next: () => {
-          this.toast.success('Savings saved successfully.');
-          this.editing.set(null);
+          this.toast.success('Savings saved.');
+          this.editing.set(false);
           this.reload();
         },
         error: (err) => this.toast.fromHttpError(err, 'Could not save savings.'),
       });
+  }
+
+  progress(row: SavingsRow): number {
+    return Math.max(0, Math.min(Number(row.progress_pct) || 0, 100));
   }
 }

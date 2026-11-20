@@ -307,6 +307,8 @@ class SavingsSerializer(serializers.Serializer):
     month = serializers.IntegerField(min_value=1, max_value=12)
     target = serializers.DecimalField(max_digits=12, decimal_places=2)
     actual = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    # Currency of target and actual (defaults to the month's current one, else the user's main currency).
+    currency = serializers.ChoiceField(choices=CURRENCY_CHOICES, required=False)
     goal_status = serializers.ChoiceField(choices=GoalStatus.choices)
 
 

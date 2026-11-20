@@ -45,7 +45,7 @@ class BudgetAdmin(admin.ModelAdmin):
 
 @admin.register(Savings)
 class SavingsAdmin(admin.ModelAdmin):
-    list_display = ("year", "month", "actual", "target", "goal_status", "user")
+    list_display = ("year", "month", "actual", "target", "currency", "goal_status", "user")
     list_filter = ("goal_status", "user")
 
 

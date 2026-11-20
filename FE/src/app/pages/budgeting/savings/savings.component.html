@@ -1,31 +1,40 @@
 <section class="hero">
   <div>
     <h1>Savings</h1>
-    <p>Monthly savings targets. Actual defaults to income − expenses − commitments.</p>
+    <p>Monthly savings targets. Actual is income − expenses − commitments, calculated in the month's currency.</p>
   </div>
-  <button type="button" class="btn primary" (click)="editing.set({ year: form.value.year!, month: form.value.month!, target: '0', actual: '', goal_status: 'pending' })">
-    Add / edit month
-  </button>
+  <button type="button" class="btn primary" (click)="add()">Add / edit month</button>
 </section>
 
 @if (editing()) {
   <form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
     <label>Year <input type="number" formControlName="year" /></label>
     <label>Month <input type="number" min="1" max="12" formControlName="month" /></label>
-    <label>Target <input type="number" step="0.01" formControlName="target" /></label>
-    <label>Actual (optional) <input type="number" step="0.01" formControlName="actual" /></label>
+    <label>
+      Currency
+      <select formControlName="currency">
+        @for (cur of currencyOptions(); track cur.code) {
+          <option [value]="cur.code">{{ cur.code }}</option>
+        }
+      </select>
+    </label>
+    <label>Target ({{ form.controls.currency.value }}) <input type="number" step="0.01" formControlName="target" /></label>
+    <label>
+      Actual ({{ form.controls.currency.value }}, optional)
+      <input type="number" step="0.01" formControlName="actual" placeholder="Calculated" />
+    </label>
     <label>
       Status
       <select formControlName="goal_status">
         <option value="pending">Pending</option>
-        <option value="on_track">On track</option>
-        <option value="achieved">Achieved</option>
+        <option value="met">Met</option>
         <option value="missed">Missed</option>
       </select>
     </label>
+    <p class="hint muted">Leave Actual empty to calculate it from your income, expenses and commitments, converted to {{ form.controls.currency.value }}.</p>
     <div class="row">
       <button type="submit" class="btn primary">Save</button>
-      <button type="button" class="btn ghost" (click)="editing.set(null)">Cancel</button>
+      <button type="button" class="btn ghost" (click)="editing.set(false)">Cancel</button>
     </div>
   </form>
 }
@@ -38,8 +47,9 @@
       <thead>
         <tr>
           <th>Period</th>
-          <th>Target</th>
-          <th>Actual</th>
+          <th class="num">Target</th>
+          <th class="num">Actual</th>
+          <th>Progress</th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -48,13 +58,28 @@
         @for (s of items(); track s.year + '-' + s.month) {
           <tr>
             <td>{{ s.year }}-{{ s.month | number: '2.0-0' }}</td>
-            <td>{{ s.target }}</td>
-            <td>{{ s.actual | amount }}</td>
+            <td class="num">{{ s.target | amount }} <small class="muted">{{ s.currency }}</small></td>
+            <td class="num">
+              {{ s.actual | amount }} <small class="muted">{{ s.currency }}</small>
+              @if (!s.actual_is_manual) {
+                <small class="tag" title="Income − expenses − commitments">calculated</small>
+              }
+            </td>
+            <td>
+              @if (s.progress_pct != null) {
+                <div class="meter" [class.met]="+s.progress_pct >= 100" [class.neg]="+s.progress_pct < 0">
+                  <span [style.width.%]="progress(s)"></span>
+                </div>
+                <small class="muted">{{ s.progress_pct }}%</small>
+              } @else {
+                <small class="muted">No target</small>
+              }
+            </td>
             <td>{{ s.goal_status_display || s.goal_status }}</td>
             <td><button type="button" class="btn ghost" (click)="edit(s)">Edit</button></td>
           </tr>
         } @empty {
-          <tr><td colspan="5" class="muted">No savings records yet.</td></tr>
+          <tr><td colspan="6" class="muted">No savings records yet.</td></tr>
         }
       </tbody>
     </table>

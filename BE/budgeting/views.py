@@ -46,7 +46,7 @@ from .services import (
     actual_expense_by_category,
     actual_expense_total,
     actual_income_total,
-    savings_actual,
+    savings_figures,
     budget_variance,
     utilization_pct,
     suggest_category_for_description,
@@ -755,8 +755,7 @@ def savings_list(request):
     savings_list_data = SavingsFS.list_by_user(uid)
     goal_labels = dict(GoalStatus.choices)
     for s in savings_list_data:
-        if s.actual is None:
-            s.actual = savings_actual(request.user, s.year, s.month)
+        s.target, s.actual, s.currency = savings_figures(request.user, s)
         s.goal_status_display = goal_labels.get(s.goal_status, s.goal_status)
     return render(request, "budgeting/savings_list.html", {"savings_list": savings_list_data})
 

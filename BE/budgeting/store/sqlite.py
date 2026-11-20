@@ -592,6 +592,7 @@ class SavingsFS(SqliteAdapterMixin):
     month: int = 0
     actual: Optional[Decimal] = None
     target: Decimal = Decimal("0")
+    currency: str = ""
     goal_status: str = "pending"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -601,6 +602,7 @@ class SavingsFS(SqliteAdapterMixin):
             "month": self.month,
             "actual": str(self.actual) if self.actual is not None else None,
             "target": str(self.target),
+            "currency": self.currency or "",
             "goal_status": self.goal_status,
         }
 
@@ -613,6 +615,7 @@ class SavingsFS(SqliteAdapterMixin):
             month=int(obj.month),
             actual=obj.actual,
             target=obj.target,
+            currency=obj.currency or "",
             goal_status=obj.goal_status or "pending",
         )
 
@@ -625,6 +628,7 @@ class SavingsFS(SqliteAdapterMixin):
         a = data.get("actual")
         o.actual = _as_decimal(a) if a is not None else None
         o.target = _as_decimal(data.get("target", "0"))
+        o.currency = data.get("currency", "") or ""
         o.goal_status = data.get("goal_status", "pending") or "pending"
         return o
 
@@ -644,6 +648,7 @@ class SavingsFS(SqliteAdapterMixin):
         obj.month = int(self.month)
         obj.actual = self.actual
         obj.target = self.target
+        obj.currency = (self.currency or "")[:3]
         obj.goal_status = self.goal_status or "pending"
         obj.save()
         self.pk = _str_pk(obj.pk)

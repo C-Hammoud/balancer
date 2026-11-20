@@ -1,0 +1,121 @@
+// Shared look of the dashboard widgets (account balances, upcoming payments, recent transactions).
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// Same card as the dashboard's .panel (that style is scoped to the dashboard component).
+.widget {
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  background: #fff;
+  border: 1px solid rgba(15, 61, 62, 0.08);
+  border-radius: 0.85rem;
+  padding: 1rem 1.1rem;
+}
+
+.widget-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0f3d3e;
+  }
+
+  a {
+    font-size: 0.85rem;
+  }
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.rows li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.main {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+
+  strong,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.sub {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
+}
+
+.neg {
+  color: #b42318;
+}
+
+.pos {
+  color: #1d6b3a;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  border-top: 2px solid rgba(0, 0, 0, 0.08);
+  font-variant-numeric: tabular-nums;
+}
+
+.pill {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #eef1f1;
+  color: var(--muted);
+
+  &.danger {
+    background: #fde8e4;
+    color: #8a2f1d;
+  }
+
+  &.warn {
+    background: #fff1db;
+    color: #9a5b00;
+  }
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+}

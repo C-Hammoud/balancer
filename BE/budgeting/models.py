@@ -215,6 +215,9 @@ class Savings(models.Model):
         help_text="Actual savings (income - expenses - commitments)",
     )
     target = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # Currency of target and actual; the derived actual is calculated in it too.
+    # Empty (older rows) = the user's main currency.
+    currency = models.CharField(max_length=3, blank=True, default="")
     goal_status = models.CharField(
         max_length=20,
         choices=GoalStatus.choices,

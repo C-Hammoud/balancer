@@ -442,6 +442,8 @@ def accept_plan(user, obj):
         user_id=uid, year=obj.year, month=obj.month, target=ZERO, goal_status="pending"
     )
     s.target = max(plan["savings_amount"] + plan["invested_total"], ZERO)
+    # The target is in the plan's currency; the month's actual savings are then calculated in it too.
+    s.currency = obj.currency
     s.save()
     for other in BudgetPlanFS.list_for_month(uid, obj.year, obj.month):
         if other.pk != obj.pk and other.status in ("suggested", "accepted"):

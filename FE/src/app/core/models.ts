@@ -561,8 +561,15 @@ export interface PersonalBudgetListResponse {
 export interface SavingsRow {
   year: number;
   month: number;
+  /** Currency of target and actual; the derived actual is calculated in it. */
+  currency?: string;
+  report_currency?: string;
   target: string;
-  actual: string;
+  actual: string | null;
+  /** true = the user typed the actual; false = income − expenses − commitments */
+  actual_is_manual?: boolean;
+  /** actual / target × 100 (null when there is no target) */
+  progress_pct?: string | null;
   goal_status: string;
   goal_status_display?: string;
 }
