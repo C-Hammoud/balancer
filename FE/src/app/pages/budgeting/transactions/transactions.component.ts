@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Observable, Subscription, concatMap, defer, from, switchMap, toArray } from 'rxjs';
+import { Subscription, switchMap } from 'rxjs';
 import { BudgetingService } from '../../../core/budgeting.service';
 import { FinanceDataRefreshService } from '../../../core/finance-data-refresh.service';
 import {
@@ -13,7 +13,6 @@ import {
   expenseFieldsForAssignment,
   isAssignmentDraftReady,
   isUnassignedExpense,
-  merchantNameFromDescription,
   preserveDescriptionInNote,
   resolveSubcategoryId,
   transactionAccountId,
@@ -1118,83 +1117,33 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Move the selected expenses under one category while each keeps its own merchant name:
-   * rows are grouped by name, the subcategory is found or created under the category, then
-   * each group is updated in one bulk call. Calls run one after another so a name is created once.
+   * Move the selected expenses under one category while each keeps its own merchant name.
+   * One API call: the server finds or creates each merchant under the category and updates
+   * every row, applying the status/account changes too.
    */
   private applyBulkCategoryKeepingNames(ids: string[], changes: TransactionBulkChanges): void {
-    const groupId = this.bulkGroupId;
-    const picked = new Set(ids);
-    const byName = new Map<string, { description: string; ids: string[] }>();
-    const others: string[] = [];
-    let noName = 0;
-    for (const t of this.items()) {
-      if (!picked.has(t.id)) continue;
-      if (t.direction !== 'expense' || t.commitment_id) {
-        others.push(t.id);
-        continue;
-      }
-      const description = (t.description || '').trim();
-      if (!description || description === UNASSIGNED) {
-        noName += 1;
-        others.push(t.id);
-        continue;
-      }
-      const key = merchantNameFromDescription(description).toLowerCase();
-      const entry = byName.get(key) ?? { description, ids: [] };
-      entry.ids.push(t.id);
-      byName.set(key, entry);
-    }
-
-    const hasOtherChanges = Object.keys(changes).length > 0;
-    const steps: Observable<TransactionBulkResult>[] = [...byName.values()].map((entry) =>
-      defer(() =>
-        resolveSubcategoryId(this.api, this.categories(), groupId, SAME_AS_DESCRIPTION, entry.description, (cat) =>
-          this.addCreatedCategory(cat)
-        ).pipe(
-          switchMap((subcategoryId) =>
-            this.api.bulkUpdateTransactions(entry.ids, { ...changes, category_id: subcategoryId })
-          )
-        )
-      )
-    );
-    // Rows that keep their merchant (income, transfers, commitment payments, no description)
-    // still get the status and account changes.
-    if (others.length && hasOtherChanges) {
-      steps.push(defer(() => this.api.bulkUpdateTransactions(others, changes)));
-    }
-    if (!steps.length) {
-      this.toast.error('None of the selected rows is an expense with a description to keep.');
-      return;
-    }
+    const { status, account_id } = changes;
+    const extra: Pick<TransactionBulkChanges, 'status' | 'account_id'> = {};
+    if (status) extra.status = status;
+    if (account_id) extra.account_id = account_id;
 
     this.bulkBusy.set(true);
-    from(steps)
-      .pipe(
-        concatMap((step) => step),
-        toArray()
-      )
-      .subscribe({
-        next: (results) => {
-          this.bulkBusy.set(false);
-          const total = { updated: 0, skipped: hasOtherChanges ? 0 : others.length - noName, missing: 0 };
-          for (const r of results) {
-            total.updated += r.updated ?? 0;
-            total.skipped += r.skipped ?? 0;
-            total.missing += r.missing ?? 0;
-          }
-          let msg = this.bulkMessage(total, 'Updated');
-          if (noName) msg += ` ${noName} had no description, so their merchant was not changed.`;
-          this.toast.success(msg);
-          this.clearSelection();
-          this.reload();
-        },
-        error: (err) => {
-          this.bulkBusy.set(false);
-          this.toast.fromHttpError(err, 'Could not move every selected transaction. Check the list and try again.');
-          this.reload();
-        },
-      });
+    this.api.bulkCategorizeTransactions(ids, this.bulkGroupId, extra).subscribe({
+      next: (r) => {
+        this.bulkBusy.set(false);
+        r.created_categories.forEach((cat) => this.addCreatedCategory(cat));
+        let msg = this.bulkMessage(r, 'Updated');
+        if (r.created_categories.length) msg += ` Added ${r.created_categories.length} new merchant(s).`;
+        if (r.no_description) msg += ` ${r.no_description} had no description, so their merchant was not changed.`;
+        this.toast.success(msg);
+        this.clearSelection();
+        this.reload();
+      },
+      error: (err) => {
+        this.bulkBusy.set(false);
+        this.toast.fromHttpError(err, 'Could not update the selected transactions.');
+      },
+    });
   }
 
   deleteSelected(): void {

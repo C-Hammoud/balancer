@@ -26,12 +26,19 @@ export const guestGuard: CanActivateFn = () => {
  * Admin area: support staff and superusers only (the API enforces the same rule).
  * Asks the server, so a role granted or removed since sign-in applies right away.
  */
-export const staffGuard: CanActivateFn = () => {
+export const staffGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const dashboard = router.createUrlTree(['/dashboard']);
   return auth.loadMe().pipe(
     map((user) => (user.is_staff || user.is_superuser ? true : dashboard)),
-    catchError(() => of(dashboard))
+    catchError((err: unknown) =>
+      // Session over: sign in, then come back to this admin page (e.g. a ticket from an email).
+      of(
+        (err as { status?: number })?.status === 401
+          ? router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } })
+          : dashboard
+      )
+    )
   );
 };

@@ -120,7 +120,11 @@ export class AuthService {
     if (this.redirectingToLogin) return;
     const hadSession = !!this.getAccessToken() || !!this.getRefreshToken();
     this.clearSession();
-    const current = this.router.url;
+    // While a page is being opened (a link from an email, or the first page after a reload) its
+    // guards may be what hit the 401: router.url is still the previous page ("/" at start-up),
+    // so return to the page being opened instead.
+    const pending = this.router.getCurrentNavigation();
+    const current = pending ? this.router.serializeUrl(pending.finalUrl ?? pending.extractedUrl) : this.router.url;
     // Signed-out pages (verify-email, check-email, register, ...) stay where they are: a background
     // request refused with 401 there must not cut off what the page is doing, such as verifying
     // an email link. window.location is checked too: router.url is still "/" while the app starts.

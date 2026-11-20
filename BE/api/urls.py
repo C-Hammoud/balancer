@@ -112,6 +112,7 @@ from api.views.budgeting import (
     ThresholdDeleteView,
     ThresholdListCreateView,
     TransactionBulkView,
+    TransactionBulkCategorizeView,
     TransactionDetailView,
     TransactionListCreateView,
     TransactionMonthsDeleteView,
@@ -153,6 +154,11 @@ urlpatterns = [
     path("budgeting/transactions/", TransactionListCreateView.as_view(), name="transaction-list"),
     path("budgeting/transactions/upload/", TransactionUploadView.as_view(), name="transaction-upload"),
     path("budgeting/transactions/bulk/", TransactionBulkView.as_view(), name="transaction-bulk"),
+    path(
+        "budgeting/transactions/bulk/categorize/",
+        TransactionBulkCategorizeView.as_view(),
+        name="transaction-bulk-categorize",
+    ),
     path("budgeting/transactions/months/", TransactionMonthsView.as_view(), name="transaction-months"),
     path(
         "budgeting/transactions/months/delete/",

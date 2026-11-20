@@ -904,6 +904,83 @@ class TransactionMonthsDeleteView(APIView):
         return Response({"deleted": deleted, "months": sorted(wanted)})
 
 
+class _BulkError(Exception):
+    """A bulk request that cannot run; carries the 400/404 response to send back."""
+
+    def __init__(self, body, code=status.HTTP_400_BAD_REQUEST):
+        super().__init__(body)
+        self.response = Response(body, status=code)
+
+
+def _bulk_rows(uid: str, data: dict):
+    """The user's own transactions named in data["ids"], and how many ids were not theirs."""
+    ids = data.get("ids")
+    if not isinstance(ids, list) or not ids:
+        raise _BulkError({"ids": ["Select at least one transaction."]})
+    if len(ids) > BULK_MAX_IDS:
+        raise _BulkError({"ids": [f"Select at most {BULK_MAX_IDS} transactions at a time."]})
+    wanted = {str(i) for i in ids}
+    rows = [t for t in TransactionFS.list_all_for_user(uid) if t.pk in wanted]
+    if not rows:
+        raise _BulkError({"detail": "None of the selected transactions were found."}, status.HTTP_404_NOT_FOUND)
+    return rows, len(wanted) - len(rows)
+
+
+def _bulk_status_and_account(uid: str, changes: dict):
+    """Validated (status, account) from a bulk "changes" object; either may be None."""
+    new_status = changes.get("status")
+    if "status" in changes and new_status not in ("settled", "pending"):
+        raise _BulkError({"status": ['Use "settled" or "pending".']})
+    acc = None
+    if "account_id" in changes:
+        acc, acc_err = _resolve_account(uid, str(changes.get("account_id") or "").strip())
+        if acc_err:
+            raise _BulkError(acc_err)
+    return new_status, acc
+
+
+def _apply_status_and_account(t, new_status, acc) -> bool:
+    changed = False
+    if new_status and t.status != new_status:
+        t.status = new_status
+        changed = True
+    # A transfer cannot leave from the account it goes to.
+    if acc and t.income_source_id != acc.pk and t.to_account_id != acc.pk:
+        t.income_source_id = acc.pk
+        t.source_account = acc.name
+        changed = True
+    return changed
+
+
+def _apply_merchant(t, sub) -> bool:
+    """Set an expense's merchant (subcategory), keeping the bank text once in the note."""
+    if t.direction != "expense" or t.commitment_id or t.category_id == sub.pk:
+        return False
+    t.note = _keep_bank_text_in_note(t.description, sub.name, t.note)
+    t.description = sub.name[:500]
+    t.category_id = sub.pk
+    return True
+
+
+def _save_bulk_rows(user, changed_rows) -> None:
+    """Save the changed rows, then refresh budget alerts once per month they touch."""
+    months = set()
+    for t in changed_rows:
+        t.save()
+        if t.date and t.direction != "transfer":
+            months.add((t.date.year, t.date.month))
+    for year, month in sorted(months):
+        trigger_budget_alerts(user, year, month)
+
+
+MERCHANT_NAME_MAX = 80
+
+
+def _merchant_name_from_description(description: str) -> str:
+    """Same rule as the web app's merchantNameFromDescription: one-line text, at most 80 chars."""
+    return " ".join((description or "").split())[:MERCHANT_NAME_MAX].strip()
+
+
 class TransactionBulkView(APIView):
     """
     Act on several of the user's own transactions at once.
@@ -916,78 +993,118 @@ class TransactionBulkView(APIView):
     def post(self, request):
         data = request.data if isinstance(request.data, dict) else {}
         uid = user_id(request.user)
-        ids = data.get("ids")
-        if not isinstance(ids, list) or not ids:
-            return Response({"ids": ["Select at least one transaction."]}, status=status.HTTP_400_BAD_REQUEST)
-        if len(ids) > BULK_MAX_IDS:
-            return Response(
-                {"ids": [f"Select at most {BULK_MAX_IDS} transactions at a time."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        action = data.get("action")
-        if action not in ("delete", "update"):
-            return Response({"action": ['Use "delete" or "update".']}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if not isinstance(data.get("ids"), list) or not data.get("ids"):
+                raise _BulkError({"ids": ["Select at least one transaction."]})
+            action = data.get("action")
+            if action not in ("delete", "update"):
+                raise _BulkError({"action": ['Use "delete" or "update".']})
+            rows, missing = _bulk_rows(uid, data)
 
-        wanted = {str(i) for i in ids}
-        rows = [t for t in TransactionFS.list_all_for_user(uid) if t.pk in wanted]
-        missing = len(wanted) - len(rows)
-        if not rows:
-            return Response({"detail": "None of the selected transactions were found."},
-                            status=status.HTTP_404_NOT_FOUND)
+            if action == "delete":
+                return Response({"deleted": _delete_transaction_rows(request.user, rows), "missing": missing})
 
-        if action == "delete":
-            return Response({"deleted": _delete_transaction_rows(request.user, rows), "missing": missing})
+            changes = data.get("changes")
+            if not isinstance(changes, dict) or not changes:
+                raise _BulkError({"changes": ["Choose what to change."]})
+            unknown = sorted(set(changes) - set(BULK_UPDATE_FIELDS))
+            if unknown:
+                raise _BulkError({"changes": [f"Cannot change {', '.join(unknown)} in bulk."]})
+            new_status, acc = _bulk_status_and_account(uid, changes)
+            sub = None
+            if "category_id" in changes:
+                cid = str(changes.get("category_id") or "").strip()
+                sub = _require_subcategory(request.user, cid) if cid else None
+                if not sub:
+                    msg = _category_id_field_error(request.user, cid) if cid else "Pick a merchant (subcategory)."
+                    raise _BulkError({"category_id": [msg]})
+        except _BulkError as e:
+            return e.response
 
-        changes = data.get("changes")
-        if not isinstance(changes, dict) or not changes:
-            return Response({"changes": ["Choose what to change."]}, status=status.HTTP_400_BAD_REQUEST)
-        unknown = sorted(set(changes) - set(BULK_UPDATE_FIELDS))
-        if unknown:
-            return Response(
-                {"changes": [f"Cannot change {', '.join(unknown)} in bulk."]}, status=status.HTTP_400_BAD_REQUEST
-            )
-        new_status = changes.get("status")
-        if "status" in changes and new_status not in ("settled", "pending"):
-            return Response({"status": ['Use "settled" or "pending".']}, status=status.HTTP_400_BAD_REQUEST)
-        acc = None
-        if "account_id" in changes:
-            acc, acc_err = _resolve_account(uid, str(changes.get("account_id") or "").strip())
-            if acc_err:
-                return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
-        sub = None
-        if "category_id" in changes:
-            cid = str(changes.get("category_id") or "").strip()
-            sub = _require_subcategory(request.user, cid) if cid else None
-            if not sub:
-                msg = _category_id_field_error(request.user, cid) if cid else "Pick a merchant (subcategory)."
-                return Response({"category_id": [msg]}, status=status.HTTP_400_BAD_REQUEST)
-
-        updated, skipped, months = 0, 0, set()
+        changed_rows = []
         for t in rows:
-            changed = False
-            if new_status and t.status != new_status:
-                t.status = new_status
+            changed = _apply_status_and_account(t, new_status, acc)
+            if sub and _apply_merchant(t, sub):
                 changed = True
-            # A transfer cannot leave from the account it goes to.
-            if acc and t.income_source_id != acc.pk and t.to_account_id != acc.pk:
-                t.income_source_id = acc.pk
-                t.source_account = acc.name
-                changed = True
-            if sub and t.direction == "expense" and not t.commitment_id and t.category_id != sub.pk:
-                t.note = _keep_bank_text_in_note(t.description, sub.name, t.note)
-                t.description = sub.name[:500]
-                t.category_id = sub.pk
-                changed = True
-            if not changed:
-                skipped += 1
-                continue
-            t.save()
-            updated += 1
-            if t.date and t.direction != "transfer":
-                months.add((t.date.year, t.date.month))
-        for year, month in sorted(months):
-            trigger_budget_alerts(request.user, year, month)
-        return Response({"updated": updated, "skipped": skipped, "missing": missing})
+            if changed:
+                changed_rows.append(t)
+        _save_bulk_rows(request.user, changed_rows)
+        return Response({"updated": len(changed_rows), "skipped": len(rows) - len(changed_rows), "missing": missing})
+
+
+class TransactionBulkCategorizeView(APIView):
+    """
+    Move the selected transactions under one parent category in a single call, each expense
+    keeping its own merchant name:
+      {"ids": [...], "group_id": "<parent category>", "changes": {"status"?, "account_id"?}}
+    Every expense goes to the subcategory named after its description under that category; a
+    name that does not exist there yet is created (owned by the user). Income, transfers and
+    commitment payments keep their merchant but still get the optional status/account changes.
+    Expenses with no description keep their merchant and are counted in "no_description".
+    Returns {"updated", "skipped", "missing", "no_description", "created_categories": [...]}.
+    """
+
+    def post(self, request):
+        data = request.data if isinstance(request.data, dict) else {}
+        uid = user_id(request.user)
+        try:
+            group = get_visible_group(request.user, str(data.get("group_id") or "").strip())
+            if not group:
+                raise _BulkError({"group_id": ["Parent category not found."]})
+            changes = data.get("changes") or {}
+            if not isinstance(changes, dict):
+                raise _BulkError({"changes": ["Send the changes as an object."]})
+            unknown = sorted(set(changes) - {"status", "account_id"})
+            if unknown:
+                raise _BulkError({"changes": [f"Cannot change {', '.join(unknown)} here."]})
+            new_status, acc = _bulk_status_and_account(uid, changes)
+            rows, missing = _bulk_rows(uid, data)
+        except _BulkError as e:
+            return e.response
+
+        in_group = [c for c in visible_categories(request.user) if c.group_id == group.pk]
+        by_name = {}
+        for c in sorted(in_group, key=lambda c: (c.order, c.pk)):
+            # The user's own subcategory wins over a shared one with the same name.
+            key = c.name.strip().lower()
+            if key not in by_name or (c.user_id and not by_name[key].user_id):
+                by_name[key] = c
+        created = []
+
+        def subcategory_for(name: str):
+            key = name.lower()
+            if key not in by_name:
+                c = CategoryFS(
+                    name=name,
+                    group_id=group.pk,
+                    include_in_reports=True,
+                    order=len(in_group) + len(created),
+                    user_id=uid,
+                )
+                c.save()
+                created.append(c)
+                by_name[key] = c
+            return by_name[key]
+
+        changed_rows, no_description = [], 0
+        for t in rows:
+            changed = _apply_status_and_account(t, new_status, acc)
+            if t.direction == "expense" and not t.commitment_id:
+                name = _merchant_name_from_description(t.description)
+                if not name or name == "Unassigned":
+                    no_description += 1
+                elif _apply_merchant(t, subcategory_for(name)):
+                    changed = True
+            if changed:
+                changed_rows.append(t)
+        _save_bulk_rows(request.user, changed_rows)
+        return Response({
+            "updated": len(changed_rows),
+            "skipped": len(rows) - len(changed_rows),
+            "missing": missing,
+            "no_description": no_description,
+            "created_categories": [_category_dict(c, group.name, request.user) for c in created],
+        })
 
 
 class TransactionUploadView(APIView):

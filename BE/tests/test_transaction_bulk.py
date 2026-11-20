@@ -166,3 +166,101 @@ def test_bulk_update_rejects_bad_changes(api, make_user, client_for):
     assert post({"status": "pending"}, action="archive").status_code == 400
     r = api.post(B + "/transactions/bulk/", {"ids": [], "action": "delete"}, format="json")
     assert r.status_code == 400 and "ids" in r.json()
+
+
+# ---- One call: move a selection under a category, each expense keeping its merchant name ----
+
+CATEGORIZE = B + "/transactions/bulk/categorize/"
+
+
+def _subs(api, group_id):
+    r = api.get(B + "/config/categories/")
+    assert r.status_code == 200, r.content
+    body = r.json()
+    rows = body["categories"] if isinstance(body, dict) else body
+    return {c["name"]: c["id"] for c in rows if c["group_id"] == group_id}
+
+
+def test_categorize_keeps_each_merchant_name_in_one_call(api):
+    food, groceries = create_category(api, "Food", "Groceries")
+    bank = create_account(api, "Bank")
+    card = create_account(api, "Card")
+    othaim_1 = add_expense(api, bank, None, 54, description="Othaim")
+    othaim_2 = add_expense(api, bank, None, 20, description="  othaim ")
+    fruits = add_expense(api, bank, None, 69, description="Fruits")
+    grocer = add_expense(api, bank, None, 30, description="groceries")  # matches "Groceries" whatever the case
+    inc = _income(api, bank, 500, date.today())
+
+    ids = [othaim_1["id"], othaim_2["id"], fruits["id"], grocer["id"], inc["id"]]
+    r = api.post(CATEGORIZE, {"ids": ids, "group_id": food, "changes": {"status": "pending", "account_id": card}},
+                 format="json")
+    assert r.status_code == 200, r.content
+    body = r.json()
+    assert (body["updated"], body["skipped"], body["missing"], body["no_description"]) == (5, 0, 0, 0)
+    # Each new name is created once, under the chosen category, and returned for the web app.
+    assert sorted(c["name"] for c in body["created_categories"]) == ["Fruits", "Othaim"]
+    assert all(c["group_id"] == food for c in body["created_categories"])
+
+    subs = _subs(api, food)
+    assert set(subs) == {"Groceries", "Othaim", "Fruits"}
+    rows = {i: api.get("%s/transactions/%s/" % (B, i)).json() for i in ids}
+    assert rows[othaim_1["id"]]["category_id"] == subs["Othaim"]
+    assert rows[othaim_2["id"]]["category_id"] == subs["Othaim"]
+    assert rows[fruits["id"]]["category_id"] == subs["Fruits"]
+    assert rows[grocer["id"]]["category_id"] == groceries
+    assert all(row["status"] == "pending" and row["income_source_id"] == card for row in rows.values())
+    # Income keeps its own description and gets no merchant.
+    assert rows[inc["id"]]["category_id"] is None and rows[inc["id"]]["description"] == "Salary"
+
+    # Running it again changes nothing and creates nothing.
+    r = api.post(CATEGORIZE, {"ids": ids, "group_id": food, "changes": {"status": "pending"}}, format="json")
+    assert r.json()["updated"] == 0 and r.json()["skipped"] == 5 and r.json()["created_categories"] == []
+
+
+def test_categorize_moves_assigned_expenses_to_another_category(api):
+    food, groceries = create_category(api, "Food", "Groceries")
+    market = api.post(B + "/config/groups/", {"name": "Market"}, format="json").json()["id"]
+    bank = create_account(api)
+    t = add_expense(api, bank, groceries, 12, description="Groceries", note="weekly")
+
+    r = api.post(CATEGORIZE, {"ids": [t["id"]], "group_id": market}, format="json")
+    assert r.status_code == 200, r.content
+    assert [c["name"] for c in r.json()["created_categories"]] == ["Groceries"]
+    row = api.get("%s/transactions/%s/" % (B, t["id"])).json()
+    assert row["category_id"] == _subs(api, market)["Groceries"] != groceries
+    assert row["description"] == "Groceries" and row["note"] == "weekly"
+
+
+def test_categorize_skips_expenses_without_a_description(api):
+    food, _ = create_category(api)
+    bank = create_account(api)
+    t = add_expense(api, bank, None, 5, description="Unassigned")
+    r = api.post(CATEGORIZE, {"ids": [t["id"]], "group_id": food}, format="json")
+    assert r.status_code == 200, r.content
+    assert r.json()["updated"] == 0 and r.json()["no_description"] == 1 and r.json()["created_categories"] == []
+
+
+def test_categorize_validates_input(api, make_user, client_for):
+    food, _ = create_category(api)
+    bank = create_account(api)
+    t = add_expense(api, bank, None, 5, description="Shop")
+    other = client_for(make_user())
+    foreign_group, _ = create_category(other, "Theirs", "Private")
+    foreign_txn = add_expense(other, create_account(other), None, 7, description="Theirs")
+
+    def post(**payload):
+        return api.post(CATEGORIZE, {"ids": [t["id"]], "group_id": food, **payload}, format="json")
+
+    r = post(group_id="")
+    assert r.status_code == 400 and "group_id" in r.json()
+    assert post(group_id=foreign_group).status_code == 400  # another user's own category
+    r = post(changes={"category_id": "1"})
+    assert r.status_code == 400 and "changes" in r.json()
+    assert post(changes={"status": "done"}).status_code == 400
+    r = post(ids=[])
+    assert r.status_code == 400 and "ids" in r.json()
+    assert post(ids=[foreign_txn["id"]]).status_code == 404
+    # Ids that are not the user's are counted as missing and left alone.
+    r = post(ids=[t["id"], foreign_txn["id"]])
+    assert r.status_code == 200 and r.json()["missing"] == 1
+    assert other.get("%s/transactions/%s/" % (B, foreign_txn["id"])).json()["category_id"] is None

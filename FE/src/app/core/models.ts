@@ -244,6 +244,17 @@ export interface TransactionBulkResult {
   missing?: number;
 }
 
+/** Result of moving a selection under one category, each expense keeping its merchant name. */
+export interface TransactionBulkCategorizeResult {
+  updated: number;
+  skipped: number;
+  missing: number;
+  /** Expenses with no description: their merchant was left as it was. */
+  no_description: number;
+  /** Subcategories created under the category for names that did not exist yet. */
+  created_categories: BudgetCategory[];
+}
+
 export type AccountType = 'bank' | 'credit_card' | 'wallet' | 'other';
 
 export interface AccountBalance {

@@ -37,6 +37,7 @@ import {
   SavingsRow,
   ThresholdRow,
   Transaction,
+  TransactionBulkCategorizeResult,
   TransactionBulkChanges,
   TransactionBulkResult,
   TransactionImportOptions,
@@ -135,6 +136,22 @@ export class BudgetingService {
   /** Same change (status, account and/or merchant) on several transactions. */
   bulkUpdateTransactions(ids: string[], changes: TransactionBulkChanges): Observable<TransactionBulkResult> {
     return this.http.post<TransactionBulkResult>(`${this.api}/transactions/bulk/`, { ids, action: 'update', changes });
+  }
+
+  /**
+   * One call: move the selected expenses under a parent category, each keeping its own merchant
+   * name (missing subcategories are created). Status/account changes apply to every row.
+   */
+  bulkCategorizeTransactions(
+    ids: string[],
+    groupId: string,
+    changes: Pick<TransactionBulkChanges, 'status' | 'account_id'> = {}
+  ): Observable<TransactionBulkCategorizeResult> {
+    return this.http.post<TransactionBulkCategorizeResult>(`${this.api}/transactions/bulk/categorize/`, {
+      ids,
+      group_id: groupId,
+      changes,
+    });
   }
 
   /** Every month that has transactions, newest first. */

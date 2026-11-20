@@ -22,7 +22,8 @@
 		respond 404
 	}
 
-	@backend path /api/* /admin /admin/*
+	# /django-admin/ is Django's built-in admin; /admin/... is the web app's admin area (below).
+	@backend path /api/* /django-admin /django-admin/*
 	handle @backend {
 		reverse_proxy api:8000
 	}

@@ -9,7 +9,9 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from api.views.meta import HealthView
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # Django's built-in admin. Not at /admin/: that path belongs to the web app's admin pages
+    # (e.g. /admin/tickets/2 from notification emails), which the web server sends to Angular.
+    path("django-admin/", admin.site.urls),
     path("healthz/", HealthView.as_view(), name="health_check"),
     path("api/v1/", include("api.urls", namespace="api")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
