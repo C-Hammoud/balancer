@@ -15,7 +15,14 @@
       <div class="summary">
         <p class="level" [class]="'level ' + r.level">{{ levelLabel() }}</p>
         <dl>
-          <div><dt>Cash available</dt><dd>{{ money(r.inputs['liquid']) }}</dd></div>
+          <div><dt>Cash in accounts</dt><dd>{{ money(r.inputs['cash']) }}</dd></div>
+          @if (+(r.inputs['card_debt'] || 0) > 0) {
+            <div><dt>Owed on cards</dt><dd class="neg">− {{ money(r.inputs['card_debt']) }}</dd></div>
+          }
+          <div class="net">
+            <dt>Available after cards</dt>
+            <dd [class.neg]="+(r.inputs['liquid'] || 0) < 0">{{ money(r.inputs['liquid']) }}</dd>
+          </div>
           <div><dt>Monthly income</dt><dd>{{ money(r.inputs['monthly_income']) }}</dd></div>
           <div><dt>Installments this month</dt><dd>{{ money(r.inputs['installments_month']) }}</dd></div>
         </dl>

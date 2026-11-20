@@ -38,7 +38,14 @@
         in {{ r.currency }}, as of {{ r.as_of }}.
       </p>
       <dl class="inputs">
-        <div><dt>Liquid balance</dt><dd>{{ r.inputs['liquid'] | amount }}</dd></div>
+        <div><dt>Cash in accounts</dt><dd>{{ r.inputs['cash'] | amount }}</dd></div>
+        @if (+(r.inputs['card_debt'] || 0) > 0) {
+          <div><dt>Owed on cards</dt><dd class="neg">− {{ r.inputs['card_debt'] | amount }}</dd></div>
+        }
+        <div>
+          <dt>Available after cards</dt>
+          <dd [class.neg]="+(r.inputs['liquid'] || 0) < 0"><strong>{{ r.inputs['liquid'] | amount }}</strong></dd>
+        </div>
         <div>
           <dt>Monthly income</dt>
           <dd>

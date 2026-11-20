@@ -249,6 +249,18 @@ def test_card_holding_money_counts_as_cash(api):
     assert api.get(RISK).json()["inputs"]["liquid"] == "2000.00"
 
 
+def test_card_spending_is_taken_off_the_cash(api):
+    _, cat = create_category(api)
+    bank = _account(api, "Bank")
+    card = _account(api, "Card", "credit_card")
+    _income(api, bank, 5000)
+    add_expense(api, card, cat, 2000)
+    inputs = api.get(RISK).json()["inputs"]
+    assert inputs["cash"] == "5000.00"
+    assert inputs["card_debt"] == "2000.00"
+    assert inputs["liquid"] == "3000.00"
+
+
 def test_money_without_an_account_counts_as_cash(api, user):
     from budgeting.store import TransactionFS
 

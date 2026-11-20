@@ -275,6 +275,8 @@ export interface AccountBalance {
 export interface AccountBalancesResponse {
   currency: string;
   accounts: AccountBalance[];
+  /** Money recorded without an account (or on a deleted one), in `currency`. */
+  unassigned?: string;
 }
 
 export type PlannedItemKind = 'income' | 'expense';

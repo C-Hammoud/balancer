@@ -13,7 +13,7 @@ const TYPE_LABELS: Record<AccountType, string> = {
   other: 'Other',
 };
 
-/** Dashboard widget: every account's balance, and the total, in the main currency. */
+/** Dashboard widget: every account's balance (plus money recorded without one) and the total, in the main currency. */
 @Component({
   selector: 'app-account-balances-widget',
   standalone: true,
@@ -42,6 +42,15 @@ const TYPE_LABELS: Record<AccountType, string> = {
               <span class="amount" [class.neg]="+a.total < 0">{{ a.total | amount }} {{ currency() }}</span>
             </li>
           }
+          @if (unassigned() !== 0) {
+            <li>
+              <span class="main">
+                <strong>No account</strong>
+                <span class="sub">Transactions recorded without an account</span>
+              </span>
+              <span class="amount" [class.neg]="unassigned() < 0">{{ unassigned() | amount }} {{ currency() }}</span>
+            </li>
+          }
         </ul>
         <div class="total">
           <strong>Total</strong>
@@ -62,6 +71,7 @@ export class AccountBalancesWidgetComponent implements OnInit, OnChanges {
   accounts = signal<AccountBalance[]>([]);
   currency = signal('');
   total = signal(0);
+  unassigned = signal(0);
   loading = signal(true);
   error = signal(false);
   private started = false;
@@ -82,7 +92,9 @@ export class AccountBalancesWidgetComponent implements OnInit, OnChanges {
         const active = res.accounts.filter((a) => a.is_active);
         this.accounts.set(active);
         this.currency.set(res.currency);
-        this.total.set(active.reduce((sum, a) => sum + (Number(a.total) || 0), 0));
+        const unassigned = Number(res.unassigned) || 0;
+        this.unassigned.set(unassigned);
+        this.total.set(active.reduce((sum, a) => sum + (Number(a.total) || 0), unassigned));
         this.error.set(false);
         this.loading.set(false);
       },

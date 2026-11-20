@@ -71,3 +71,6 @@ dd { margin: 0; font-weight: 600; color: var(--ink); }
 @media (max-width: 640px) {
   .body { grid-template-columns: 1fr; justify-items: start; }
 }
+dd.neg { color: #8a2f1d; }
+dl .net { padding-top: 0.25rem; border-top: 1px solid #e6eeec; }
+dl .net dt { color: var(--ink); font-weight: 600; }

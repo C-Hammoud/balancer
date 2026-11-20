@@ -8,9 +8,11 @@ Factors (thresholds are percentages unless noted; every one can be overridden pe
   debt_to_income        installments due this month / expected monthly income      36 / 50
   overdue_installments  outstanding installments past their due date               any -> high
   balloon_exposure      balloon payments due within the horizon / liquid balance   50 / 100
-  debt_to_assets        (liabilities + card debt) / (assets or liquid balance)     50 / 80
+  debt_to_assets        (liabilities + card debt) / (assets or cash)               50 / 80
   emergency_fund        liquid balance / average monthly spending (months)         < 3 / < 1
   month_cash_flow       money left at month end after known flows                  < 10% of income / < 0
+
+Liquid balance = cash in accounts - what is owed on credit cards (card spending is money already spent).
 """
 from __future__ import annotations
 
@@ -168,14 +170,14 @@ def _balloon(inp: dict, th: dict) -> dict:
         f.update(explanation="Add your accounts with their current balance (record it as income) so balloon payments can be compared to your cash.")
         return f
     if liquid <= 0:
-        f.update(status="high", explanation=f"Balloon payments of {_q(total)} are due and your liquid balance is {_q(liquid)}.",
+        f.update(status="high", explanation=f"Balloon payments of {_q(total)} are due and your cash after card debt is {_q(liquid)}.",
                  recommendation="Start setting money aside now or arrange refinancing before the due date.")
         return f
     pct = _q(total / liquid * HUNDRED, "0.1")
     f.update(
         value=pct,
         status=_ratio_status(pct, th["balloon_warn"], th["balloon_high"]),
-        explanation=f"Balloon payments of {_q(total)} due in the next {horizon} months equal {pct}% of your liquid balance.",
+        explanation=f"Balloon payments of {_q(total)} due in the next {horizon} months equal {pct}% of your cash after card debt.",
         recommendation="Set money aside each month for the balloon, or arrange refinancing early."
         if pct >= th["balloon_warn"] else "",
     )
@@ -186,10 +188,12 @@ def _debt_to_assets(inp: dict, th: dict) -> dict:
     standing = inp.get("standing")
     card_debt = inp.get("card_debt") or ZERO
     liabilities = (standing["liabilities"] if standing else ZERO) + card_debt
-    assets = standing["assets"] if standing and standing["assets"] > 0 else inp.get("liquid")
+    # Card debt is already a liability here, so compare with the cash before it is taken off.
+    cash = inp["cash"] if "cash" in inp else inp.get("liquid")
+    assets = standing["assets"] if standing and standing["assets"] > 0 else cash
     f = _factor("debt_to_assets", "debt", "Debt vs assets", warn_at=th["debt_assets_warn"], high_at=th["debt_assets_high"])
     if liabilities <= 0:
-        if standing is None and inp.get("liquid") is None:
+        if standing is None and cash is None:
             f.update(explanation="Record your assets and liabilities (net worth) to measure this.")
         else:
             f.update(value=ZERO, status="ok", explanation="You have no recorded debt.")
@@ -217,6 +221,18 @@ def _emergency(inp: dict, th: dict) -> dict:
     if liquid is None:
         f.update(explanation="Add your accounts with their current balance (record it as income) to see how long your cash would last.")
         return f
+    card_debt = inp.get("card_debt") or ZERO
+    if liquid <= 0 and card_debt > 0:
+        cash = inp.get("cash")
+        f.update(
+            value=ZERO,
+            status="high",
+            explanation=f"What you owe on your cards ({_q(card_debt)}) is more than your cash"
+                        + (f" ({_q(cash)})." if cash is not None else "."),
+            recommendation="Pay down your card balance and build savings up to at least "
+                           f"{warn} months of spending.",
+        )
+        return f
     if not spending or spending <= 0:
         f.update(explanation=f"Record a few months of expenses to measure how long your cash would last.")
         return f
@@ -226,7 +242,7 @@ def _emergency(inp: dict, th: dict) -> dict:
     f.update(
         value=months,
         status=status,
-        explanation=f"Your liquid balance would cover {months} month(s) of your usual spending ({_q(spending)} a month).",
+        explanation=f"Your cash after card debt would cover {months} month(s) of your usual spending ({_q(spending)} a month).",
         recommendation=f"Build savings up to at least {warn} months of spending." if status != "ok" else "",
     )
     return f
@@ -401,7 +417,11 @@ def gather_inputs(user, currency: str, thresholds: dict, settings_obj=None, toda
     # Without accounts, or when money never entered them (no income or opening balance
     # recorded), the balances only measure spending: liquidity is unknown, not negative.
     known = bool(totals["accounts"]) and totals["has_inflows"]
-    liquid = totals["liquid"] if known else None
+    cash = totals["liquid"] if known else None
+    card_debt = totals["card_debt"]
+    # What is really available: card spending is money already spent from that cash. This holds
+    # whether or not card repayments are recorded (a repayment moves both figures by the same amount).
+    liquid = cash - card_debt if cash is not None else None
 
     standing = None
     standings = FinancialStandingFS.list_by_user(uid)
@@ -442,8 +462,9 @@ def gather_inputs(user, currency: str, thresholds: dict, settings_obj=None, toda
         "income_source": income_source,
         "installments_month": installments_month,
         "installment_items": [{**i, "amount": _q(i["amount"])} for i in installment_items],
+        "cash": cash,
         "liquid": liquid,
-        "card_debt": totals["card_debt"],
+        "card_debt": card_debt,
         "liquid_account_ids": totals["liquid_account_ids"],
         "standing": standing,
         "avg_spending": _avg_spending(uid, currency, today),
@@ -489,6 +510,7 @@ def build_report(user, currency: Optional[str] = None, *, save_snapshot: bool = 
             "monthly_income": _money(inputs["monthly_income"]),
             "income_source": inputs["income_source"],
             "installments_month": _money(inputs["installments_month"]),
+            "cash": _money(inputs["cash"]),
             "liquid": _money(inputs["liquid"]),
             "card_debt": _money(inputs["card_debt"]),
             "avg_spending": _money(inputs["avg_spending"]),
