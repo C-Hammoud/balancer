@@ -232,6 +232,24 @@ Database migrations run automatically when the API restarts. Check `ps` and the 
 3. Run `docker compose -f deploy/docker-compose.yml up -d`. Caddy gets the certificate within a minute and renews it
    by itself.
 
+**No domain yet?** `sslip.io` gives every IP a free name: `208-73-205-140.sslip.io` (dashes instead of dots) already
+points at `208.73.205.140`. Use it as the domain above (`SITE_ADDRESS=208-73-205-140.sslip.io`, the same name in
+`DJANGO_ALLOWED_HOSTS` and the `https://` addresses); Let's Encrypt issues a certificate for it like for any domain.
+Port 443 must be open (step 2 and 3).
+
+### Install as an app (PWA)
+
+The web app can be installed on phones and computers and opens like a normal app, also offline (pages viewed
+recently stay readable; saving needs a connection). **This only works over HTTPS** (above): on plain
+`http://<SERVER_IP>` browsers refuse to install it.
+
+- **Android (Chrome):** open the site, tap **Install app** in the menu (or the browser's *Install* prompt).
+- **iPhone / iPad (Safari):** tap **Share → Add to Home Screen**. The app's **Install app** button shows these steps.
+- **Computer (Chrome / Edge):** click **Install app** next to Logout, or the install icon in the address bar.
+
+After a deploy the installed app updates itself the next time it is opened (Caddy marks `index.html`, `ngsw.json`
+and the service worker as no-cache). Signing out deletes the offline copies of that user's data on the device.
+
 ## 13. Mobile app (beta testers using Expo Go)
 
 In the mobile project set `EXPO_PUBLIC_API_URL=http://<SERVER_IP>/api/v1` (or `https://app.example.com/api/v1`), then

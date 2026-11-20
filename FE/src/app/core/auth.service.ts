@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthResponse, AuthTokens, RegisterResponse, User } from './models';
 import { LocaleService } from './locale.service';
+import { clearOfflineData } from './pwa.service';
 
 const ACCESS_KEY = 'ft_access';
 const REFRESH_KEY = 'ft_refresh';
@@ -35,6 +36,7 @@ export class AuthService {
       .post<AuthTokens>(`${this.api}/auth/login/`, { username, password })
       .pipe(
         tap((tokens) => {
+          void clearOfflineData(); // a new session starts without anyone's saved offline data
           this.storeTokens(tokens);
           this.loadMe().subscribe();
         })
@@ -151,6 +153,8 @@ export class AuthService {
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
     this.userSignal.set(null);
+    // Logout or expired session: drop the offline copies of this user's data (pwa.service.ts).
+    void clearOfflineData();
   }
 
   requestPasswordReset(identifier: string): Observable<{ detail: string }> {

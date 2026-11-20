@@ -5,6 +5,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/auth.service';
 import { BudgetingService } from '../core/budgeting.service';
 import { FinanceDataRefreshService } from '../core/finance-data-refresh.service';
+import { PwaInstallService } from '../core/pwa-install.service';
 import { CommitmentDuePromptComponent } from '../shared/commitment-due-prompt/commitment-due-prompt.component';
 import { NotificationBellComponent } from '../shared/notification-bell/notification-bell.component';
 
@@ -39,6 +40,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   private budgeting = inject(BudgetingService);
   private refresh = inject(FinanceDataRefreshService);
   private router = inject(Router);
+  private pwa = inject(PwaInstallService);
 
   user = this.auth.user;
   alertCount = signal(0);
@@ -112,6 +114,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
+    this.showIosInstall.set(false);
     this.menuOpen.set(false);
     this.openGroup.set(null);
     this.syncBodyScrollLock();
@@ -144,5 +147,20 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   logout(): void {
     this.auth.logout();
+  }
+
+  // ---- Install as an app (PWA) ----
+
+  /** Android / desktop Chrome & Edge offer an install prompt; iPhone gets instructions. */
+  showInstall = computed(() => this.pwa.canInstall() || this.pwa.iosInstructions());
+  showIosInstall = signal(false);
+
+  installApp(): void {
+    this.closeMenu();
+    if (this.pwa.canInstall()) {
+      void this.pwa.install();
+    } else if (this.pwa.iosInstructions()) {
+      this.showIosInstall.set(true);
+    }
   }
 }

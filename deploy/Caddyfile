@@ -31,6 +31,14 @@
 	# Angular app: unknown paths fall back to index.html (client-side routes).
 	handle {
 		root * /srv/app
+		# Build files with a content hash in the name (main-ABCD1234.js) never change: cache them for
+		# a year. Everything else (index.html and app routes, ngsw.json, ngsw-worker.js, the manifest,
+		# icons) is checked with the server on each use, so the installed app (PWA) picks up a new
+		# version right after a deploy.
+		@hashed path_regexp -[A-Z0-9]+\.(js|css)$
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@unhashed not path_regexp -[A-Z0-9]+\.(js|css)$
+		header @unhashed Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
 	}

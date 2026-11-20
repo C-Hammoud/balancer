@@ -96,3 +96,19 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+      # Installed app (PWA): always check these with the server so a deploy is picked up at once.
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /ngsw.json
+        name: Cache-Control
+        value: no-cache
+      - path: /ngsw-worker.js
+        name: Cache-Control
+        value: no-cache
+      - path: /safety-worker.js
+        name: Cache-Control
+        value: no-cache
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: no-cache

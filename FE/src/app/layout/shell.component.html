@@ -53,6 +53,9 @@
       <app-notification-bell />
       <a routerLink="/support" class="help-link" title="Help & support">Help</a>
       <a routerLink="/profile" class="username profile-link">{{ user()?.username || 'User' }}</a>
+      @if (showInstall()) {
+        <button type="button" class="btn ghost install-btn" (click)="installApp()">Install app</button>
+      }
       <button type="button" class="btn ghost" (click)="logout()">Logout</button>
     </div>
   </div>
@@ -98,8 +101,28 @@
         }
       }
     </nav>
+    @if (showInstall()) {
+      <button type="button" class="btn ghost drawer-install" (click)="installApp()">Install app</button>
+    }
     <button type="button" class="btn primary drawer-logout" (click)="logout()">Logout</button>
   </aside>
+}
+
+@if (showIosInstall()) {
+  <div class="drawer-backdrop" (click)="showIosInstall.set(false)"></div>
+  <div class="ios-install" role="dialog" aria-modal="true" aria-labelledby="ios-install-title">
+    <div class="drawer-head">
+      <h2 id="ios-install-title">Install Finance Tracker</h2>
+      <button type="button" class="icon-close" (click)="showIosInstall.set(false)" aria-label="Close">×</button>
+    </div>
+    <ol>
+      <li>Open this page in <strong>Safari</strong>.</li>
+      <li>Tap the <strong>Share</strong> button (the square with an arrow).</li>
+      <li>Choose <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+    </ol>
+    <p class="muted">The app then opens from your home screen like any other app.</p>
+    <button type="button" class="btn primary" (click)="showIosInstall.set(false)">Got it</button>
+  </div>
 }
 
 <main class="page">

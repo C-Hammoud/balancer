@@ -265,6 +265,50 @@
   margin-top: 0.75rem;
 }
 
+.drawer-install {
+  margin-top: 0.75rem;
+  border-color: #c9d5d4;
+  color: #0f3d3e;
+}
+
+.install-btn {
+  white-space: nowrap;
+}
+
+// iPhone / iPad: Safari has no install prompt, so explain "Add to Home Screen".
+.ios-install {
+  position: fixed;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(24rem, calc(100vw - 2rem));
+  z-index: 70;
+  background: #fff;
+  color: #314242;
+  border-radius: 0.85rem;
+  box-shadow: 0 12px 40px rgba(15, 61, 62, 0.3);
+  padding: 1rem 1.1rem;
+  display: grid;
+  gap: 0.6rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.88rem;
+  }
+}
+
 .mobile-bell {
   display: none;
 }
