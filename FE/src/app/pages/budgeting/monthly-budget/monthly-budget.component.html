@@ -1,260 +1,247 @@
 <section class="hero">
   <div>
-    <h1>Budget plan</h1>
-    <p>Enter your income. We take out the commitments due this month and suggest how to split the rest.</p>
+    <h1>Monthly budget</h1>
+    <p>How much you can spend in {{ monthName() }}, and how it's going.</p>
   </div>
   <div class="actions">
-    <input type="month" [(ngModel)]="monthValue" (ngModelChange)="onMonthChange()" aria-label="Plan month" />
-    <a class="btn ghost" routerLink="/profile">Plan settings</a>
+    <input type="month" [(ngModel)]="monthValue" (ngModelChange)="onMonthChange()" aria-label="Budget month" />
+    <a class="btn ghost" routerLink="/profile">Savings target</a>
   </div>
 </section>
 
-<section class="panel income">
+<!-- How much can I spend? -->
+<section class="summary" aria-label="Month summary">
+  <article class="tile">
+    <span class="label">Available</span>
+    @if (hasIncome()) {
+      <strong>{{ available() | amount: 0 }} <small>{{ currency() }}</small></strong>
+      <small class="sub">Income {{ basis()?.income_total | amount: 0 }} − commitments {{ basis()?.commitments_total | amount: 0 }}</small>
+    } @else {
+      <strong class="muted">—</strong>
+      <button type="button" class="link-btn sub" (click)="openIncome()">Add your income</button>
+    }
+  </article>
+  <article class="tile">
+    <span class="label">Budgeted</span>
+    <strong>{{ budgeted() | amount: 0 }}</strong>
+    <small class="sub">
+      @if (reserved() > 0) { + {{ reserved() | amount: 0 }} for projects · }
+      @if (hasIncome()) {
+        @if (unbudgeted() >= 0) { {{ unbudgeted() | amount: 0 }} left for savings }
+        @else { <span class="neg">{{ -unbudgeted() | amount: 0 }} more than available</span> }
+      }
+    </small>
+  </article>
+  <article class="tile">
+    <span class="label">Spent so far</span>
+    <strong>{{ spent() | amount: 0 }}</strong>
+    @if (budgeted() > 0) {
+      <div class="meter" [class.warn]="spentPct() >= 85" [class.over]="spentPct() > 100">
+        <span [style.width.%]="spentPct() > 100 ? 100 : spentPct()"></span>
+      </div>
+      <small class="sub">{{ spentPct() | number: '1.0-0' }}% of budget</small>
+    }
+  </article>
+  <article class="tile highlight" [class.negative]="leftToSpend() < 0">
+    <span class="label">Left to spend</span>
+    <strong>{{ leftToSpend() | amount: 0 }}</strong>
+    <small class="sub">
+      @if (budgeted() <= 0) { Set a budget to see this }
+      @else if (leftToSpend() < 0) { Over budget this month }
+      @else if (daysLeft() > 0) { ≈ {{ perDay() | amount: 0 }} a day for {{ daysLeft() }} days }
+      @else { for {{ monthName() }} }
+    </small>
+  </article>
+</section>
+
+@switch (mode()) {
+  @case ('loading') {
+    <p class="muted">Loading {{ monthName() }}…</p>
+  }
+
+  <!-- No budget yet: pick how to start -->
+  @case ('start') {
+    <ng-container *ngTemplateOutlet="startOptions" />
+  }
+
+  <!-- A suggestion to review before it becomes the budget -->
+  @case ('review') {
+    @if (suggestion(); as p) {
+      <section class="panel review">
+        <header class="section-head">
+          <div>
+            <h2>Review the suggested budget: {{ p.label }}</h2>
+            <small class="muted">{{ reasonLabel(p) }} · change any amount, then use it as your {{ monthName() }} budget.</small>
+          </div>
+          <span class="status">Suggestion</span>
+        </header>
+
+        @if (segments().length) {
+          <div class="bar" role="img" aria-label="Income split into commitments, needs, wants and savings">
+            @for (seg of segments(); track seg.key) {
+              <span class="seg" [ngClass]="seg.key" [style.width.%]="seg.pct" [title]="seg.label"></span>
+            }
+          </div>
+          <ul class="legend">
+            @for (seg of segments(); track seg.key) {
+              <li>
+                <span class="dot" [ngClass]="seg.key"></span>
+                {{ seg.label }} <strong>{{ seg.amount | amount: 0 }}</strong>
+                <small class="muted">({{ seg.pct | number: '1.0-0' }}%)</small>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (p.warnings.length) {
+          <ul class="warnings">
+            @for (w of p.warnings; track w) {
+              <li>{{ w }}</li>
+            }
+          </ul>
+        }
+
+        <div class="table-wrap">
+          <table class="stack-table lines">
+            <thead>
+              <tr><th>Category</th><th>Type</th><th class="num">Usually spent</th><th class="num">Budget</th></tr>
+            </thead>
+            <tbody>
+              @for (l of p.lines; track l.group_id) {
+                <tr>
+                  <td data-label="Category"><strong>{{ l.group_name }}</strong></td>
+                  <td data-label="Type"><span class="pill" [ngClass]="l.bucket">{{ l.bucket }}</span></td>
+                  <td data-label="Usually spent" class="num">{{ l.average_spend | amount: 0 }}</td>
+                  <td data-label="Budget" class="num">
+                    <input type="number" min="0" step="any" class="amount" [(ngModel)]="amounts[l.group_id]"
+                           [name]="'amount-' + l.group_id" [attr.aria-label]="'Budget for ' + l.group_name" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="3">Total budget</th>
+                <th class="num">{{ draftTotal() | amount: 0 }}</th>
+              </tr>
+              <tr>
+                <th colspan="3">Left for savings</th>
+                <th class="num" [class.neg]="draftSavings() < 0">{{ draftSavings() | amount: 0 }}</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="review-actions">
+          <button type="button" class="btn ghost" (click)="dismiss()" [disabled]="busy()">Not now</button>
+          <button type="button" class="btn primary" (click)="accept()" [disabled]="busy()">
+            Use as my {{ monthName() }} budget
+          </button>
+        </div>
+      </section>
+    }
+  }
+
+  @case ('budget') {
+    @if (showStart()) {
+      <ng-container *ngTemplateOutlet="startOptions" />
+    }
+  }
+}
+
+<!-- The month's budget (always loaded so the page knows whether the month has one). -->
+<section class="panel budget" [hidden]="mode() !== 'budget'">
   <header class="section-head">
-    <h2>1. Your income</h2>
-    @if (income(); as inc) {
-      <strong class="total">{{ inc.monthly_total | number: '1.0-0' }} {{ inc.currency }} / month</strong>
+    <div>
+      <h2>{{ monthName() }} {{ year() }}</h2>
+      <small class="muted">
+        @if (accepted(); as a) {
+          Started from the {{ a.label }} suggestion{{ a.accepted_at ? ' on ' + (a.accepted_at | date: 'MMM d') : '' }}.
+        }
+        Change any amount and save. Open a category to split it into subcategories.
+      </small>
+    </div>
+    @if (!showStart()) {
+      <button type="button" class="btn ghost" (click)="showStart.set(true)">Start over</button>
     }
   </header>
-  @if (income()?.streams?.length) {
-    <ul class="streams">
-      @for (s of income()!.streams; track s.id) {
-        <li>
-          <div>
-            <strong>{{ s.name }}</strong>
-            <small class="muted">
-              {{ s.amount | number: '1.0-2' }} {{ s.currency }} · {{ s.frequency }}
-              @if (s.frequency !== 'monthly') {
-                (≈ {{ s.monthly_amount | number: '1.0-0' }} / month)
-              }
-            </small>
-          </div>
-          <div class="row-actions">
-            <button type="button" class="btn ghost" (click)="editStream(s)">Edit</button>
-            <button type="button" class="btn ghost danger" (click)="removeStream(s)">Remove</button>
-          </div>
-        </li>
-      }
-    </ul>
-  } @else {
-    <p class="muted">No income yet. Add your salary or other regular income to get a plan.</p>
-  }
-  <form class="stream-form" (ngSubmit)="saveStream()">
-    <label>
-      Name
-      <input name="streamName" [(ngModel)]="streamDraft.name" placeholder="Salary" />
-    </label>
-    <label>
-      Amount
-      <input name="streamAmount" type="number" min="0" step="any" [(ngModel)]="streamDraft.amount" />
-    </label>
-    <label>
-      Currency
-      <select name="streamCurrency" [(ngModel)]="streamDraft.currency">
-        @for (cur of currencyOptions(); track cur.code) {
-          <option [value]="cur.code">{{ cur.code }}</option>
-        }
-      </select>
-    </label>
-    <label>
-      How often
-      <select name="streamFrequency" [(ngModel)]="streamDraft.frequency">
-        @for (f of frequencies; track f.code) {
-          <option [value]="f.code">{{ f.label }}</option>
-        }
-      </select>
-    </label>
-    <div class="form-actions">
-      <button type="submit" class="btn primary" [disabled]="busy()">
-        {{ editingStreamId() ? 'Save income' : 'Add income' }}
-      </button>
-      @if (editingStreamId()) {
-        <button type="button" class="btn ghost" (click)="cancelStream()">Cancel</button>
-      }
-    </div>
-  </form>
+  <app-budget-table [year]="year()" [month]="month()" [currency]="currency()" (loaded)="onTableLoaded($event)" />
 </section>
 
-<app-plan-sub-budgets (changed)="onSubBudgetsChanged()" />
+<!-- Setup: what the suggestions are built from -->
+<section class="setup">
+  <h2 class="setup-title">What your budget is built from</h2>
 
-@if (segments().length) {
-  <section class="panel flow" aria-label="Where your money goes">
-    <h2>Where your money goes</h2>
-    <div class="bar" role="img" [attr.aria-label]="'Income split into commitments, needs, wants and savings'">
-      @for (seg of segments(); track seg.key) {
-        <span class="seg" [ngClass]="seg.key" [style.width.%]="seg.pct" [title]="seg.label"></span>
+  <details id="income" class="panel" [open]="incomeOpen" (toggle)="incomeOpen = $any($event.target).open">
+    <summary>
+      <span>Income</span>
+      @if (income(); as inc) {
+        <strong class="total">{{ inc.monthly_total | amount: 0 }} {{ inc.currency }} / month</strong>
       }
-    </div>
-    <ul class="legend">
-      @for (seg of segments(); track seg.key) {
-        <li>
-          <span class="dot" [ngClass]="seg.key"></span>
-          {{ seg.label }} <strong>{{ seg.amount | number: '1.0-0' }}</strong>
-          <small class="muted">({{ seg.pct | number: '1.0-0' }}%)</small>
-        </li>
-      }
-    </ul>
-  </section>
-}
-
-@if (active(); as p) {
-  <section class="panel active-plan" [class.accepted]="p.status === 'accepted'">
-    <header class="section-head">
-      <div>
-        <h2>2. {{ p.status === 'accepted' ? 'Your plan' : 'Suggested plan' }}: {{ p.label }}</h2>
-        <small class="muted">
-          {{ reasonLabel(p) }}
-          @if (p.status === 'accepted' && p.accepted_at) {
-            · accepted {{ p.accepted_at | date: 'MMM d' }}
-          }
-        </small>
-      </div>
-      <span class="status" [ngClass]="p.status || ''">{{ p.status }}</span>
-    </header>
-
-    <dl class="totals">
-      <div><dt>Income</dt><dd>{{ p.income_total | number: '1.0-0' }} {{ p.currency }}</dd></div>
-      <div><dt>Commitments</dt><dd>− {{ p.commitments_total | number: '1.0-0' }}</dd></div>
-      <div><dt>Main budget</dt><dd>{{ p.available | number: '1.0-0' }}</dd></div>
-      @if (+(p.reserved_total || 0) > 0) {
-        <div><dt>Sub-budgets</dt><dd>− {{ p.reserved_total | number: '1.0-0' }}</dd></div>
-      }
-      <div class="savings" [class.negative]="(isEditable() ? draftSavings() : +p.savings_amount) < 0">
-        <dt>Savings</dt>
-        <dd>{{ (isEditable() ? draftSavings() : +p.savings_amount) | number: '1.0-0' }}</dd>
-      </div>
-    </dl>
-
-    @if (p.warnings.length) {
-      <ul class="warnings">
-        @for (w of p.warnings; track w) {
-          <li>{{ w }}</li>
+    </summary>
+    @if (income()?.streams?.length) {
+      <ul class="streams">
+        @for (s of income()!.streams; track s.id) {
+          <li>
+            <div>
+              <strong>{{ s.name }}</strong>
+              <small class="muted">
+                {{ s.amount | amount }} {{ s.currency }} · {{ s.frequency }}
+                @if (s.frequency !== 'monthly') {
+                  (≈ {{ s.monthly_amount | amount: 0 }} / month)
+                }
+              </small>
+            </div>
+            <div class="row-actions">
+              <button type="button" class="btn ghost" (click)="editStream(s)">Edit</button>
+              <button type="button" class="btn ghost danger" (click)="removeStream(s)">Remove</button>
+            </div>
+          </li>
         }
       </ul>
+    } @else {
+      <p class="muted">No income yet. Add your salary or other regular income to get suggestions.</p>
     }
-
-    @if (p.commitments?.length) {
-      <p class="muted commitments">
-        Commitments this month:
-        @for (c of p.commitments; track c.commitment_id; let last = $last) {
-          {{ c.name }} {{ c.amount | number: '1.0-0' }}{{ last ? '' : ', ' }}
-        }
-      </p>
-    }
-
-    <div class="table-wrap">
-      <table class="stack-table lines">
-        <thead>
-          <tr><th>Category</th><th>Type</th><th>Average spend</th><th>Current budget</th><th>Plan</th></tr>
-        </thead>
-        <tbody>
-          @for (l of p.lines; track l.group_id) {
-            <tr>
-              <td data-label="Category"><strong>{{ l.group_name }}</strong></td>
-              <td data-label="Type"><span class="pill" [ngClass]="l.bucket">{{ l.bucket }}</span></td>
-              <td data-label="Average spend">{{ l.average_spend | number: '1.0-0' }}</td>
-              <td data-label="Current budget">{{ l.current_forecast | number: '1.0-0' }}</td>
-              <td data-label="Plan">
-                @if (isEditable()) {
-                  <input type="number" min="0" step="any" class="amount" [(ngModel)]="amounts[l.group_id]"
-                         [name]="'amount-' + l.group_id" [attr.aria-label]="'Plan amount for ' + l.group_name" />
-                } @else {
-                  <strong>{{ l.amount | number: '1.0-0' }}</strong>
-                }
-              </td>
-            </tr>
+    <form class="stream-form" (ngSubmit)="saveStream()">
+      <label>
+        Name
+        <input name="streamName" [(ngModel)]="streamDraft.name" placeholder="Salary" />
+      </label>
+      <label>
+        Amount
+        <input name="streamAmount" type="number" min="0" step="any" [(ngModel)]="streamDraft.amount" />
+      </label>
+      <label>
+        Currency
+        <select name="streamCurrency" [(ngModel)]="streamDraft.currency">
+          @for (cur of currencyOptions(); track cur.code) {
+            <option [value]="cur.code">{{ cur.code }}</option>
           }
-        </tbody>
-      </table>
-    </div>
-
-    @if (p.sub_budgets?.length) {
-      <h3 class="sub-title">Sub-budgets this month</h3>
-      <div class="table-wrap">
-        <table class="stack-table lines">
-          <thead>
-            <tr><th>Sub-budget</th><th>Dates</th><th>Set aside before</th><th>Spent</th><th>This month</th></tr>
-          </thead>
-          <tbody>
-            @for (s of p.sub_budgets; track s.budget_id) {
-              <tr>
-                <td data-label="Sub-budget">
-                  <a [routerLink]="['/budgeting/budgets', s.budget_id]"><strong>{{ s.name }}</strong></a>
-                  <small class="muted">of {{ s.total | number: '1.0-0' }}</small>
-                </td>
-                <td data-label="Dates">{{ s.start_date || '—' }}{{ s.end_date ? ' → ' + s.end_date : '' }}</td>
-                <td data-label="Set aside before">{{ s.funded_before | number: '1.0-0' }}</td>
-                <td data-label="Spent">{{ s.spent | number: '1.0-0' }}</td>
-                <td data-label="This month"><strong>{{ s.amount | number: '1.0-0' }}</strong></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-
-    @if (p.status === 'accepted' && subBudgetsChangedAfterAccept()) {
-      <p class="warn-line">Your sub-budgets changed after you accepted this plan. Pick a plan below to update it.</p>
-    }
-
-    @if (isEditable()) {
-      <div class="plan-actions">
-        <button type="button" class="btn ghost" (click)="dismiss()" [disabled]="busy()">Dismiss</button>
-        @if (amountsChanged()) {
-          <button type="button" class="btn ghost" (click)="saveAmounts()" [disabled]="busy()">Save changes</button>
-        }
-        <button type="button" class="btn primary" (click)="accept()" [disabled]="busy()">
-          Accept plan
+        </select>
+      </label>
+      <label>
+        How often
+        <select name="streamFrequency" [(ngModel)]="streamDraft.frequency">
+          @for (f of frequencies; track f.code) {
+            <option [value]="f.code">{{ f.label }}</option>
+          }
+        </select>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn primary" [disabled]="busy()">
+          {{ editingStreamId() ? 'Save income' : 'Add income' }}
         </button>
+        @if (editingStreamId()) {
+          <button type="button" class="btn ghost" (click)="cancelStream()">Cancel</button>
+        }
       </div>
-      <p class="muted hint">Accepting sets these as your monthly budgets for {{ p.year }}-{{ p.month | number: '2.0-0' }}
-        and your savings target.</p>
-    }
-  </section>
-}
+    </form>
+  </details>
 
-<section class="compare">
-  <h2>{{ active() ? 'Other options' : '2. Pick a plan' }}</h2>
-  @if (loading()) {
-    <p class="muted">Calculating…</p>
-  } @else {
-    <div class="cards">
-      @for (opt of previews(); track opt.plan_type) {
-        <article class="panel card">
-          <h3>{{ opt.label }}</h3>
-          <p class="muted desc">
-            @if (opt.plan_type === 'rule_50_30_20') {
-              50% needs (including commitments), 30% wants, 20% savings. Shifts toward debt when commitments are high.
-            } @else {
-              Starts from what you actually spent over the last 3 months and trims wants to reach your savings target.
-            }
-          </p>
-          <dl class="mini">
-            <div><dt>Needs</dt><dd>{{ opt.needs_total | number: '1.0-0' }}</dd></div>
-            <div><dt>Wants</dt><dd>{{ opt.wants_total | number: '1.0-0' }}</dd></div>
-            @if (+(opt.reserved_total || 0) > 0) {
-              <div><dt>Sub-budgets</dt><dd>{{ opt.reserved_total | number: '1.0-0' }}</dd></div>
-            }
-            <div><dt>Savings</dt><dd>{{ opt.savings_amount | number: '1.0-0' }} ({{ opt.savings_pct }}%)</dd></div>
-          </dl>
-          @for (w of opt.warnings; track w) {
-            <p class="warn-line">{{ w }}</p>
-          }
-          <button type="button" class="btn primary" (click)="choose(opt.plan_type)"
-                  [disabled]="busy() || +opt.income_total <= 0">
-            Use this plan
-          </button>
-        </article>
-      }
-    </div>
-  }
-</section>
+  <app-plan-sub-budgets (changed)="onSubBudgetsChanged()" />
 
-<section class="panel buckets">
-  <button type="button" class="link-btn" (click)="showBuckets.set(!showBuckets())" [attr.aria-expanded]="showBuckets()">
-    {{ showBuckets() ? '▾' : '▸' }} Needs, wants and savings categories
-  </button>
-  @if (showBuckets()) {
+  <details class="panel">
+    <summary><span>Needs, wants and savings</span></summary>
     <p class="muted">Tell the planner which categories are essentials. Guessed ones are marked.</p>
     <ul class="bucket-list">
       @for (b of buckets(); track b.group_id) {
@@ -269,5 +256,75 @@
       }
     </ul>
     <button type="button" class="btn primary" (click)="saveBuckets()" [disabled]="busy()">Save</button>
-  }
+  </details>
 </section>
+
+<ng-template #startOptions>
+  <section class="start">
+    <header class="section-head">
+      <div>
+        <h2>{{ hasBudgets() ? 'Start ' + monthName() + ' over' : 'Set up ' + monthName() }}</h2>
+        <small class="muted">
+          {{ hasBudgets() ? 'Pick a starting point. It replaces the amounts below.' : 'Pick a starting point. You can change every amount afterwards.' }}
+        </small>
+      </div>
+      @if (hasBudgets()) {
+        <button type="button" class="btn ghost" (click)="showStart.set(false)">Cancel</button>
+      }
+    </header>
+
+    @if (!hasIncome() && !loadingPreviews()) {
+      <p class="info-line">
+        Add your income below to get suggestions based on what you earn.
+        <button type="button" class="link-btn" (click)="openIncome()">Add income</button>
+      </p>
+    }
+
+    <div class="cards">
+      @if (canCopy()) {
+        <article class="panel card">
+          <span class="card-icon" aria-hidden="true">↻</span>
+          <h3>Copy last month</h3>
+          <p class="muted desc">Same amounts as last month, {{ prevTotal() | amount: 0 }} in total.</p>
+          <button type="button" class="btn primary" (click)="copyLastMonth()" [disabled]="busy()">Copy</button>
+        </article>
+      }
+
+      @for (opt of previews(); track opt.plan_type) {
+        <article class="panel card">
+          <span class="card-icon" aria-hidden="true">{{ opt.plan_type === 'rule_50_30_20' ? '◔' : '≈' }}</span>
+          <h3>{{ opt.label }}</h3>
+          <p class="muted desc">
+            @if (opt.plan_type === 'rule_50_30_20') {
+              50% needs (including commitments), 30% wants, 20% savings.
+            } @else {
+              Starts from what you spent in the last 3 months and trims wants to reach your savings target.
+            }
+          </p>
+          @if (+opt.income_total > 0) {
+            <dl class="mini">
+              <div><dt>Needs</dt><dd>{{ opt.needs_total | amount: 0 }}</dd></div>
+              <div><dt>Wants</dt><dd>{{ opt.wants_total | amount: 0 }}</dd></div>
+              <div><dt>Savings</dt><dd>{{ opt.savings_amount | amount: 0 }} <small>({{ opt.savings_pct }}%)</small></dd></div>
+            </dl>
+          }
+          <button type="button" class="btn primary" (click)="choose(opt.plan_type)"
+                  [disabled]="busy() || +opt.income_total <= 0">
+            Review amounts
+          </button>
+        </article>
+      } @empty {
+        @if (loadingPreviews()) {
+          <p class="muted">Calculating suggestions…</p>
+        }
+      }
+
+      <article class="panel card">
+        <span class="card-icon" aria-hidden="true">✎</span>
+        <h3>Set it myself</h3>
+        <p class="muted desc">Type an amount for each category.</p>
+        <button type="button" class="btn ghost" (click)="startManual()" [disabled]="busy()">Start</button>
+      </article>
+    </div>
+  </section>
+</ng-template>

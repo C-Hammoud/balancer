@@ -55,10 +55,9 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'Budget',
       items: [
         { label: 'Overview', path: '/budgeting', exact: true },
-        { label: 'Plan', path: '/budgeting/plan' },
+        { label: 'Monthly budget', path: '/budgeting/monthly-budget' },
         { label: 'Utilization', path: '/budgeting/utilization' },
-        { label: 'Budgets', path: '/budgeting/budgets' },
-        { label: 'Monthly forecasts', path: '/budgeting/monthly-forecasts' },
+        { label: 'Projects', path: '/budgeting/projects' },
         { label: 'Savings', path: '/budgeting/savings' },
         { label: 'Commitments', path: '/budgeting/commitments' },
         { label: 'Net worth', path: '/budgeting/financial-standing' },

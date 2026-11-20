@@ -103,13 +103,13 @@ export class PlanSubBudgetsComponent implements OnInit {
           this.busy.set(false);
           this.showForm.set(false);
           this.draft = this.emptyDraft();
-          this.toast.success('Sub-budget added to your plan.');
+          this.toast.success('Project added to your budget.');
           this.load();
           this.changed.emit();
         },
         error: (err) => {
           this.busy.set(false);
-          this.toast.fromHttpError(err, 'Could not create the sub-budget.');
+          this.toast.fromHttpError(err, 'Could not create the project.');
         },
       });
   }
@@ -143,7 +143,7 @@ export class PlanSubBudgetsComponent implements OnInit {
       },
       error: (err) => {
         this.busy.set(false);
-        this.toast.fromHttpError(err, 'Could not update the sub-budget.');
+        this.toast.fromHttpError(err, 'Could not update the project.');
       },
     });
   }

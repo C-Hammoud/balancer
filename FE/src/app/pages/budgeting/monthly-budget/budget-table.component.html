@@ -1,163 +1,98 @@
-<section class="hero">
-  <div>
-    <h1>Monthly forecasts</h1>
-    <p>Select a category, set its maximum utilization forecast, then optionally split across subcategories.</p>
-  </div>
-  <div class="actions">
-    <select [(ngModel)]="year" (ngModelChange)="reload()">
-      @for (y of years; track y) {
-        <option [ngValue]="y">{{ y }}</option>
-      }
-    </select>
-    <select [(ngModel)]="month" (ngModelChange)="reload()">
-      @for (m of months; track m.v) {
-        <option [ngValue]="m.v">{{ m.n }}</option>
-      }
-    </select>
-  </div>
-</section>
-
-<section class="panel add">
-  <h2>Add category budget</h2>
-  <p class="hint">Step 1 — select a parent category and set its maximum utilization forecast for this month.</p>
-  <div class="row">
-    <select [(ngModel)]="newGroupId" (ngModelChange)="onNewGroupChange()">
-      <option value="">Select category</option>
-      @for (g of availableGroups(); track g.id) {
-        <option [value]="g.id">{{ g.name }}</option>
-      }
-    </select>
-    <input
-      type="number"
-      step="0.01"
-      min="0.01"
-      [(ngModel)]="newGroupForecast"
-      placeholder="Max utilization"
-    />
-    <button type="button" class="btn primary" (click)="saveNewGroupBudget()" [disabled]="!newGroupId">Save &amp; continue</button>
-  </div>
-  @if (!availableGroups().length && !newGroupId) {
-    <p class="hint muted">All categories already have a forecast this month, or none are configured yet.</p>
-  }
-
-  @if (showSubStep() && newGroupId) {
-    <div class="sub-step">
-      <h3>Step 2 — subcategories (optional)</h3>
-      <p class="hint">
-        Set utilization amounts per subcategory. Leave blank to track only the category total.
-      </p>
-      @if (subDrafts().length) {
-        <ul class="sub-list">
-          @for (s of subDrafts(); track s.category_id; let i = $index) {
-            <li>
-              <span>{{ s.category_name }}</span>
-              <input
-                type="number"
-                step="0.01"
-                [ngModel]="s.forecast"
-                (ngModelChange)="updateSubDraft(i, $event)"
-                placeholder="Amount"
-              />
-            </li>
-          }
-        </ul>
-        <div class="row sub-actions">
-          <button type="button" class="btn primary" [disabled]="savingSubs()" (click)="saveOptionalSubBudgets()">
-            {{ savingSubs() ? 'Saving…' : 'Save subcategory budgets' }}
-          </button>
-          <button type="button" class="btn ghost" (click)="skipSubBudgets()">Skip — category total only</button>
-        </div>
-      } @else {
-        <p class="muted">This category has no subcategories yet.</p>
-        <button type="button" class="btn ghost" (click)="skipSubBudgets()">Done</button>
-      }
-    </div>
-  }
-</section>
-
-@if (loading()) {
-  <p class="muted">Loading…</p>
+@if (loading() && !rows().length) {
+  <p class="muted">Loading budgets…</p>
 } @else {
-  <div class="panel table-wrap">
-    <div class="table-toolbar">
-      <button type="button" class="btn ghost" (click)="expandAll()">Expand all</button>
-      <button type="button" class="btn ghost" (click)="collapseAll()">Collapse all</button>
-    </div>
-    <table>
+  <div class="table-wrap">
+    <table class="stack-table budget-table">
       <thead>
         <tr>
           <th>Category</th>
-          <th>Forecast</th>
-          <th>Actual</th>
-          <th></th>
+          <th class="num">Budget</th>
+          <th class="num">Spent</th>
+          <th class="num">Left</th>
+          <th class="progress-col"><span class="sr-only">Progress</span></th>
         </tr>
       </thead>
       <tbody>
-        @for (r of rows(); track r.group_id || r.category_id) {
-          <tr class="group-row" [class.is-collapsed]="r.group_id && !isExpanded(r.group_id!)">
-            <td>
+        @for (r of rows(); track r.group_id) {
+          <tr class="group-row" [ngClass]="tone(r)">
+            <td data-label="Category">
               <div class="category-cell">
-                @if (r.group_id && hasSubs(r)) {
-                  <button
-                    type="button"
-                    class="expand-btn"
-                    (click)="toggleGroup(r.group_id!)"
-                    [attr.aria-expanded]="isExpanded(r.group_id!)"
-                    [attr.aria-label]="isExpanded(r.group_id!) ? 'Collapse subcategories' : 'Expand subcategories'"
-                  >
+                @if (hasSubs(r)) {
+                  <button type="button" class="expand-btn" (click)="toggle(r.group_id!)"
+                          [attr.aria-expanded]="isExpanded(r.group_id!)"
+                          [attr.aria-label]="(isExpanded(r.group_id!) ? 'Hide' : 'Split into') + ' subcategories of ' + r.category_name">
                     <span class="chev" [class.open]="isExpanded(r.group_id!)">▸</span>
                   </button>
-                } @else {
-                  <span class="expand-spacer" aria-hidden="true"></span>
                 }
                 <strong>{{ r.category_name }}</strong>
-                @if (r.group_id && hasSubs(r)) {
-                  <span class="sub-count">{{ r.sub_budgets!.length }} sub{{ r.sub_budgets!.length === 1 ? '' : 's' }}</span>
-                }
               </div>
             </td>
-            <td>
-              @if (r.group_id) {
-                <div class="forecast-cell">
-                  <input
-                    class="forecast"
-                    [(ngModel)]="groupForecasts[r.group_id]"
-                    [placeholder]="subSum(r)"
-                  />
-                  @if (!groupForecasts[r.group_id] && r.forecast_is_derived) {
-                    <span class="derived-hint">Sum of subs: {{ r.forecast | amount }}</span>
-                  } @else if (groupForecasts[r.group_id] && r.forecast_from_subs) {
-                    <span class="derived-hint">Subs total: {{ r.forecast_from_subs | amount }}</span>
-                  }
-                </div>
-              } @else {
-                {{ r.forecast | amount }}
+            <td data-label="Budget" class="num">
+              <input type="number" min="0" step="any" class="amount"
+                     [(ngModel)]="groupDraft[r.group_id!]" [name]="'g-' + r.group_id"
+                     [placeholder]="subTotal(r) > 0 ? (subTotal(r) | amount: 0) : '0'"
+                     [attr.aria-label]="'Budget for ' + r.category_name" />
+              @if (!groupDraft[r.group_id!] && subTotal(r) > 0) {
+                <small class="derived">sum of subcategories</small>
               }
             </td>
-            <td>{{ r.actual | amount }}</td>
-            <td class="row-actions">
-              @if (r.group_id) {
-                <button type="button" class="btn ghost" (click)="saveGroup(r.group_id!)">Save</button>
-                @if (subsForGroup(r.group_id).length) {
-                  <button type="button" class="btn ghost" (click)="openSubEditor(r.group_id!)">Subcategories</button>
-                }
+            <td data-label="Spent" class="num">{{ spentOf(r) | amount: 0 }}</td>
+            <td data-label="Left" class="num left" [class.neg]="leftOf(r) < 0">
+              {{ budgetOf(r) > 0 ? (leftOf(r) | amount: 0) : '—' }}
+            </td>
+            <td data-label="Used" class="progress-col">
+              @if (budgetOf(r) > 0) {
+                <div class="meter" [attr.aria-label]="(pct(r) | number: '1.0-0') + '% used'">
+                  <span [style.width.%]="pct(r) > 100 ? 100 : pct(r)"></span>
+                </div>
+                <small class="pct">{{ pct(r) | number: '1.0-0' }}%</small>
+              } @else if (spentOf(r) > 0) {
+                <small class="unset-note">No budget set</small>
               }
             </td>
           </tr>
-          @if (!r.group_id || isExpanded(r.group_id!)) {
+          @if (isExpanded(r.group_id!)) {
             @for (s of r.sub_budgets || []; track s.category_id) {
               <tr class="sub-row">
-                <td><span class="sub-indent">{{ s.category_name }}</span></td>
-                <td><input class="forecast" [(ngModel)]="subForecasts[s.category_id]" placeholder="0" /></td>
-                <td>{{ s.actual | amount }}</td>
-                <td><button type="button" class="btn ghost" (click)="saveSub(s.category_id)">Save</button></td>
+                <td data-label="Subcategory"><span class="sub-indent">{{ s.category_name }}</span></td>
+                <td data-label="Budget" class="num">
+                  <input type="number" min="0" step="any" class="amount"
+                         [(ngModel)]="subDraft[s.category_id]" [name]="'s-' + s.category_id" placeholder="0"
+                         [attr.aria-label]="'Budget for ' + s.category_name" />
+                </td>
+                <td data-label="Spent" class="num">{{ s.actual | amount: 0 }}</td>
+                <td class="num"></td>
+                <td class="progress-col"></td>
               </tr>
             }
           }
         } @empty {
-          <tr><td colspan="4" class="muted">No budgets for this month yet. Add a category above.</td></tr>
+          <tr><td colspan="5" class="muted">No categories yet. Add some under Setup → Categories.</td></tr>
         }
       </tbody>
+      @if (rows().length) {
+        <tfoot>
+          <tr>
+            <th>Total</th>
+            <th class="num">{{ totalBudget() | amount: 0 }}</th>
+            <th class="num">{{ totalSpent() | amount: 0 }}</th>
+            <th class="num" [class.neg]="totalBudget() - totalSpent() < 0">{{ (totalBudget() - totalSpent()) | amount: 0 }}</th>
+            <th class="progress-col">{{ currency }}</th>
+          </tr>
+        </tfoot>
+      }
     </table>
   </div>
+
+  @if (isDirty()) {
+    <div class="save-bar" role="status">
+      <span>You have unsaved changes.</span>
+      <div class="actions">
+        <button type="button" class="btn ghost" (click)="discard()" [disabled]="saving()">Discard</button>
+        <button type="button" class="btn primary" (click)="save()" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save changes' }}
+        </button>
+      </div>
+    </div>
+  }
 }

@@ -1,4 +1,4 @@
-<a class="back" routerLink="/budgeting/budgets">← Back to budgets</a>
+<a class="back" routerLink="/budgeting/projects">← Back to projects</a>
 
 @if (loading()) {
   <p class="muted">Loading…</p>
@@ -21,7 +21,7 @@
       <div class="hero-actions">
         <span class="pill" [class]="b.status">{{ statusLabel(b.status) }}</span>
         @if (b.in_plan) {
-          <a class="pill in-plan" routerLink="/budgeting/plan" title="Part of your monthly plan">In plan</a>
+          <a class="pill in-plan" routerLink="/budgeting/monthly-budget" title="Money is set aside for it in your monthly budget">In monthly budget</a>
         }
         @if (canShare() && (b.status === 'active' || b.status === 'draft')) {
           <button type="button" class="btn ghost" (click)="togglePlan()">

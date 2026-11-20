@@ -93,22 +93,27 @@ export const routes: Routes = [
               ),
           },
           {
-            path: 'budgets',
+            path: 'monthly-budget',
+            loadComponent: () =>
+              import('./pages/budgeting/monthly-budget/monthly-budget.component').then(
+                (m) => m.MonthlyBudgetComponent
+              ),
+          },
+          {
+            path: 'projects',
             loadComponent: () =>
               import('./pages/budgeting/budgets/budgets.component').then((m) => m.BudgetsComponent),
           },
           {
-            path: 'budgets/:id',
+            path: 'projects/:id',
             loadComponent: () =>
               import('./pages/budgeting/budgets/budget-detail.component').then((m) => m.BudgetDetailComponent),
           },
-          {
-            path: 'monthly-forecasts',
-            loadComponent: () =>
-              import('./pages/budgeting/monthly-forecasts/monthly-forecasts.component').then(
-                (m) => m.MonthlyForecastsComponent
-              ),
-          },
+          // Old addresses (still used by notifications and emails); query params such as ?id= are kept.
+          { path: 'plan', redirectTo: 'monthly-budget', pathMatch: 'full' },
+          { path: 'monthly-forecasts', redirectTo: 'monthly-budget', pathMatch: 'full' },
+          { path: 'budgets', redirectTo: 'projects', pathMatch: 'full' },
+          { path: 'budgets/:id', redirectTo: 'projects/:id' },
           {
             path: 'savings',
             loadComponent: () =>
@@ -139,11 +144,6 @@ export const routes: Routes = [
             path: 'alerts',
             loadComponent: () =>
               import('./pages/alerts/alerts.component').then((m) => m.AlertsComponent),
-          },
-          {
-            path: 'plan',
-            loadComponent: () =>
-              import('./pages/budgeting/plan/plan.component').then((m) => m.PlanComponent),
           },
           {
             path: 'config/thresholds',

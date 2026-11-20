@@ -15,6 +15,7 @@ import { ToastService } from '../../core/toast.service';
 import { LocaleService } from '../../core/locale.service';
 import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
 import { RiskSummaryComponent } from '../../shared/risk-summary/risk-summary.component';
+import { MonthQuestionsComponent } from '../../shared/month-questions/month-questions.component';
 import { formatAmount } from '../../shared/amount.pipe';
 
 const DISMISS_KEY = 'ft_dismiss_accounts_prompt';
@@ -22,7 +23,7 @@ const DISMISS_KEY = 'ft_dismiss_accounts_prompt';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RiskSummaryComponent],
+  imports: [CommonModule, FormsModule, RouterLink, MonthQuestionsComponent, RiskSummaryComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

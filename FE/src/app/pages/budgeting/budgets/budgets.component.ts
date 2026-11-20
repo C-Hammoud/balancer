@@ -97,7 +97,7 @@ export class BudgetsComponent implements OnInit {
     this.api.markPersonalBudgetNotificationRead(n.id).subscribe({
       next: () => {
         this.notifications.update((list) => list.filter((x) => x.id !== n.id));
-        this.router.navigate(['/budgeting/budgets', n.budget_id]);
+        this.router.navigate(['/budgeting/projects', n.budget_id]);
       },
     });
   }
@@ -151,7 +151,7 @@ export class BudgetsComponent implements OnInit {
   }
 
   open(b: PersonalBudget): void {
-    this.router.navigate(['/budgeting/budgets', b.id]);
+    this.router.navigate(['/budgeting/projects', b.id]);
   }
 
   submit(): void {
@@ -166,7 +166,7 @@ export class BudgetsComponent implements OnInit {
         this.saving.set(false);
         this.toast.success('Budget created.');
         this.showForm.set(false);
-        this.router.navigate(['/budgeting/budgets', created.id]);
+        this.router.navigate(['/budgeting/projects', created.id]);
       },
       error: (err) => {
         this.saving.set(false);

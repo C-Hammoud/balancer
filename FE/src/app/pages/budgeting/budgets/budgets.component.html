@@ -1,12 +1,12 @@
 <section class="hero">
   <div>
-    <h1>My budgets</h1>
-    <p>Create and manage separate budgets for different goals — vacations, renovations, monthly expenses, and more.</p>
+    <h1>Projects</h1>
+    <p>Budgets for one goal each — a trip, a renovation, a big purchase. Share them, track what you spend, and set money aside for them in your monthly budget.</p>
   </div>
   <div class="actions">
-    <a class="btn ghost" routerLink="/budgeting/monthly-forecasts">Monthly forecasts</a>
+    <a class="btn ghost" routerLink="/budgeting/monthly-budget">Monthly budget</a>
     <button type="button" class="btn primary" (click)="toggleForm()">
-      {{ showForm() ? 'Close' : 'Create budget' }}
+      {{ showForm() ? 'Close' : 'New project' }}
     </button>
   </div>
 </section>
@@ -14,7 +14,7 @@
 @if (dashboard(); as d) {
   <div class="stats">
     <article class="stat">
-      <span>Total budgets</span>
+      <span>Projects</span>
       <strong>{{ d.total_budgets }}</strong>
     </article>
     <article class="stat">
@@ -40,7 +40,7 @@
           <strong>{{ n.title }}</strong>
           <p class="muted">{{ n.message }}</p>
         </div>
-        <button type="button" class="btn primary" (click)="dismissNotification(n)">View budget</button>
+        <button type="button" class="btn primary" (click)="dismissNotification(n)">View project</button>
       </article>
     }
   </section>
@@ -48,7 +48,7 @@
 
 @if (showForm()) {
   <form class="panel form" [formGroup]="form" (ngSubmit)="submit()">
-    <h2>New budget</h2>
+    <h2>New project</h2>
     <label>Name <span class="req">*</span> <input formControlName="name" /></label>
     <label>Description <textarea formControlName="description" rows="2"></textarea></label>
     <label>
@@ -75,7 +75,7 @@
     </label>
     <label>Project / category <input formControlName="project_tag" placeholder="Optional" /></label>
     <label>Notes <textarea formControlName="notes" rows="2"></textarea></label>
-    <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create budget' }}</button>
+    <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Creating…' : 'New project' }}</button>
   </form>
 }
 
@@ -83,7 +83,7 @@
   <div class="row">
     <label>
       Search
-      <input [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Budget name…" />
+      <input [(ngModel)]="search" (ngModelChange)="applyFilters()" placeholder="Project name…" />
     </label>
     <label>
       Status
@@ -115,7 +115,7 @@
 @if (loading()) {
   <p class="muted">Loading…</p>
 } @else {
-  <h2 class="section-title">My budgets</h2>
+  <h2 class="section-title">My projects</h2>
   <div class="budget-grid">
     @for (b of budgets(); track b.id) {
       <article class="budget-card clickable" (click)="open(b)">
@@ -123,7 +123,7 @@
           <h2>{{ b.name }}</h2>
           <span class="pill" [class]="b.status">{{ statusLabel(b.status) }}</span>
           @if (b.in_plan) {
-            <span class="pill in-plan" title="Sub-budget of your monthly plan">In plan</span>
+            <span class="pill in-plan" title="Money is set aside for it in your monthly budget">In monthly budget</span>
           }
         </header>
         @if (b.description) {
@@ -144,7 +144,7 @@
         }
       </article>
     } @empty {
-      <p class="muted empty">No budgets yet. Create your first budget to get started.</p>
+      <p class="muted empty">No projects yet. Create one for a trip, a renovation or a big purchase.</p>
     }
   </div>
 
@@ -170,7 +170,7 @@
         </div>
       </article>
     } @empty {
-      <p class="muted empty">No budgets have been shared with you yet.</p>
+      <p class="muted empty">No projects have been shared with you yet.</p>
     }
   </div>
 }

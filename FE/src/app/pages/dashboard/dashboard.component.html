@@ -32,6 +32,8 @@
 </div>
 }
 
+<app-month-questions />
+
 <app-risk-summary />
 
 <section class="panel year-panel">
@@ -199,7 +201,7 @@
         </tr>
         } @empty {
         <tr>
-          <td colspan="5" class="muted">No budget rows. Set forecasts under Monthly forecasts.</td>
+          <td colspan="5" class="muted">No budget for this month yet. <a routerLink="/budgeting/monthly-budget">Set up your monthly budget</a>.</td>
         </tr>
         }
       </tbody>

@@ -1,12 +1,12 @@
 <section class="panel subs">
   <header class="section-head">
     <div>
-      <h2>Sub-budgets</h2>
+      <h2>Projects set aside each month</h2>
       <small class="muted">Trips and projects inside your plan. Their money is set aside each month, and expenses you
         tag to them count only there.</small>
     </div>
     <button type="button" class="btn primary" (click)="showForm.set(!showForm())">
-      {{ showForm() ? 'Close' : 'New sub-budget' }}
+      {{ showForm() ? 'Close' : 'New project' }}
     </button>
   </header>
 
@@ -43,7 +43,7 @@
       @for (b of attached(); track b.id) {
         <li>
           <div class="sub-main">
-            <a [routerLink]="['/budgeting/budgets', b.id]"><strong>{{ b.name }}</strong></a>
+            <a [routerLink]="['/budgeting/projects', b.id]"><strong>{{ b.name }}</strong></a>
             <small class="muted">
               {{ b.total_amount | number: '1.0-2' }} {{ b.currency }}
               @if (b.start_date) { · {{ b.start_date }}{{ b.end_date ? ' → ' + b.end_date : '' }} }
@@ -64,7 +64,7 @@
       }
     </ul>
   } @else if (!showForm()) {
-    <p class="muted">No sub-budgets yet. Add a trip or project to set money aside for it.</p>
+    <p class="muted">No projects in your budget yet. Add a trip or a big purchase to set money aside for it.</p>
   }
 
   @if (candidates().length) {

@@ -1,273 +1,183 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, Observable } from 'rxjs';
 import { BudgetingService } from '../../../core/budgeting.service';
-import { BudgetCategory, BudgetGroup, BudgetRow } from '../../../core/models';
+import { FinanceDataRefreshService } from '../../../core/finance-data-refresh.service';
+import { BudgetRow } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
+import { AmountPipe } from '../../../shared/amount.pipe';
 
-interface SubDraft {
-  category_id: string;
-  category_name: string;
-  forecast: string;
-}
-
+/**
+ * The month's budgets: one editable amount per category group (optionally split into
+ * subcategories), with what was spent and what is left. Used inside the Monthly budget page.
+ */
 @Component({
-  selector: 'app-monthly-forecasts',
+  selector: 'app-budget-table',
   standalone: true,
   imports: [CommonModule, FormsModule, AmountPipe],
-  templateUrl: './monthly-forecasts.component.html',
-  styleUrl: './monthly-forecasts.component.scss',
+  templateUrl: './budget-table.component.html',
+  styleUrl: './budget-table.component.scss',
 })
-export class MonthlyForecastsComponent implements OnInit {
+export class BudgetTableComponent implements OnChanges {
   private api = inject(BudgetingService);
   private toast = inject(ToastService);
+  private refresh = inject(FinanceDataRefreshService);
 
-  now = new Date();
-  year = this.now.getFullYear();
-  month = this.now.getMonth() + 1;
-  years = Array.from({ length: 5 }, (_, i) => this.year - 2 + i);
-  months = [
-    { v: 1, n: 'Jan' }, { v: 2, n: 'Feb' }, { v: 3, n: 'Mar' }, { v: 4, n: 'Apr' },
-    { v: 5, n: 'May' }, { v: 6, n: 'Jun' }, { v: 7, n: 'Jul' }, { v: 8, n: 'Aug' },
-    { v: 9, n: 'Sep' }, { v: 10, n: 'Oct' }, { v: 11, n: 'Nov' }, { v: 12, n: 'Dec' },
-  ];
+  @Input({ required: true }) year!: number;
+  @Input({ required: true }) month!: number;
+  @Input() currency = '';
+  /** Emits the rows after every load, so the page knows whether the month has budgets. */
+  @Output() loaded = new EventEmitter<BudgetRow[]>();
+  /** Emits after amounts were saved. */
+  @Output() saved = new EventEmitter<void>();
 
   rows = signal<BudgetRow[]>([]);
-  groups = signal<BudgetGroup[]>([]);
-  categories = signal<BudgetCategory[]>([]);
-  groupForecasts: Record<string, string> = {};
-  subForecasts: Record<string, string> = {};
   loading = signal(true);
+  saving = signal(false);
+  expanded = signal<Set<string>>(new Set());
 
-  newGroupId = '';
-  newGroupForecast = '';
-  showSubStep = signal(false);
-  subDrafts = signal<SubDraft[]>([]);
-  savingSubs = signal(false);
-  collapsedGroups = signal<Set<string>>(new Set());
-  private collapseInitialized = false;
+  // Editable amounts: group_id -> amount and category_id -> amount ('' = not set)
+  groupDraft: Record<string, string> = {};
+  subDraft: Record<string, string> = {};
+  private groupSaved: Record<string, string> = {};
+  private subSaved: Record<string, string> = {};
 
-  ngOnInit(): void {
-    this.api.categories().subscribe({
-      next: (c) => {
-        this.groups.set([...c.groups].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)));
-        this.categories.set(c.categories.filter((x) => x.include_in_reports));
-      },
-      error: () => {
-        this.groups.set([]);
-        this.categories.set([]);
-      },
-    });
+  ngOnChanges(): void {
     this.reload();
   }
 
-  subsForGroup(groupId: string): BudgetCategory[] {
-    return this.categories()
-      .filter((c) => c.group_id === groupId)
-      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
-  }
-
-  availableGroups(): BudgetGroup[] {
-    const budgeted = new Set(this.rows().map((r) => r.group_id).filter(Boolean));
-    return this.groups().filter((g) => !budgeted.has(g.id));
-  }
-
-  reload(clearSubStep = true): void {
+  reload(): void {
     this.loading.set(true);
-    if (clearSubStep) {
-      this.showSubStep.set(false);
-    }
     this.api.budgets(this.year, this.month).subscribe({
       next: (res) => {
-        this.rows.set(res.rows);
-        this.groupForecasts = {};
-        this.subForecasts = {};
-        for (const r of res.rows) {
-          if (r.group_id) {
-            const explicit = r.forecast_explicit;
-            this.groupForecasts[r.group_id] =
-              explicit != null && explicit !== '' ? String(explicit) : '';
-          }
-          for (const s of r.sub_budgets || []) {
-            this.subForecasts[s.category_id] = String(s.forecast);
-          }
+        const rows = res.rows.filter((r) => r.group_id);
+        this.groupSaved = {};
+        this.subSaved = {};
+        for (const r of rows) {
+          this.groupSaved[r.group_id!] = this.clean(r.forecast_explicit);
+          for (const s of r.sub_budgets || []) this.subSaved[s.category_id] = this.clean(s.forecast);
         }
-        if (!this.collapseInitialized) {
-          const collapsed = new Set<string>();
-          for (const r of res.rows) {
-            if (r.group_id && (r.sub_budgets?.length ?? 0) > 0) {
-              collapsed.add(r.group_id);
-            }
-          }
-          this.collapsedGroups.set(collapsed);
-          this.collapseInitialized = true;
-        }
+        this.discard();
+        this.rows.set(rows);
         this.loading.set(false);
+        this.loaded.emit(rows);
       },
       error: (err) => {
         this.loading.set(false);
-        this.toast.fromHttpError(err, 'Could not load monthly forecasts.');
+        this.toast.fromHttpError(err, 'Could not load this month’s budgets.');
       },
     });
   }
 
-  saveGroup(groupId: string): void {
-    const raw = (this.groupForecasts[groupId] ?? '').trim();
-    const value = raw === '' ? '0' : raw;
-    this.api.updateGroupBudget(this.year, this.month, groupId, value).subscribe({
+  private clean(v: string | number | null | undefined): string {
+    const n = Number(v);
+    return v != null && v !== '' && n > 0 ? String(n) : '';
+  }
+
+  discard(): void {
+    this.groupDraft = { ...this.groupSaved };
+    this.subDraft = { ...this.subSaved };
+  }
+
+  private changedKeys(draft: Record<string, string>, saved: Record<string, string>): string[] {
+    return Object.keys(draft).filter((k) => (Number(draft[k]) || 0) !== (Number(saved[k]) || 0));
+  }
+
+  isDirty(): boolean {
+    return (
+      this.changedKeys(this.groupDraft, this.groupSaved).length > 0 ||
+      this.changedKeys(this.subDraft, this.subSaved).length > 0
+    );
+  }
+
+  save(): void {
+    const all = { ...this.groupDraft, ...this.subDraft };
+    if (Object.values(all).some((v) => v !== '' && v != null && (isNaN(Number(v)) || Number(v) < 0))) {
+      this.toast.error('Amounts must be zero or more.');
+      return;
+    }
+    const calls: Observable<unknown>[] = [
+      ...this.changedKeys(this.groupDraft, this.groupSaved).map((gid) =>
+        this.api.updateGroupBudget(this.year, this.month, gid, this.groupDraft[gid] || '0')
+      ),
+      ...this.changedKeys(this.subDraft, this.subSaved).map((cid) =>
+        this.api.updateBudget(this.year, this.month, cid, this.subDraft[cid] || '0')
+      ),
+    ];
+    if (!calls.length) return;
+    this.saving.set(true);
+    forkJoin(calls).subscribe({
       next: () => {
-        this.toast.success('Category budget saved.');
+        this.saving.set(false);
+        this.toast.success('Budget saved.');
+        this.refresh.notify();
+        this.saved.emit();
         this.reload();
       },
-      error: (err) => this.toast.fromHttpError(err, 'Could not save budget.'),
-    });
-  }
-
-  saveSub(categoryId: string): void {
-    const val = (this.subForecasts[categoryId] || '').trim();
-    this.api.updateBudget(this.year, this.month, categoryId, val || '0').subscribe({
-      next: () => {
-        this.toast.success('Subcategory budget saved.');
-        this.reload();
+      error: (err) => {
+        this.saving.set(false);
+        this.toast.fromHttpError(err, 'Could not save the budget.');
       },
-      error: (err) => this.toast.fromHttpError(err, 'Could not save subcategory budget.'),
     });
   }
 
-  onNewGroupChange(): void {
-    this.showSubStep.set(false);
-    this.subDrafts.set([]);
+  // ---- Live figures (follow the drafts while typing) ----
+
+  subTotal(row: BudgetRow): number {
+    return (row.sub_budgets || []).reduce((sum, s) => sum + (Number(this.subDraft[s.category_id]) || 0), 0);
   }
 
-  saveNewGroupBudget(): void {
-    if (!this.newGroupId) {
-      this.toast.error('Select a category first.');
-      return;
-    }
-    const raw = (this.newGroupForecast ?? '').trim();
-    if (!raw || Number(raw) <= 0) {
-      this.toast.error('Enter a maximum utilization forecast greater than zero.');
-      return;
-    }
-    this.api.updateGroupBudget(this.year, this.month, this.newGroupId, raw).subscribe({
-      next: () => {
-        this.toast.success('Category forecast saved.');
-        const subs = this.subsForGroup(this.newGroupId);
-        this.subDrafts.set(
-          subs.map((c) => ({
-            category_id: c.id,
-            category_name: c.name,
-            forecast: this.subForecasts[c.id] || '',
-          }))
-        );
-        this.showSubStep.set(true);
-        this.reload(false);
-      },
-      error: (err) => this.toast.fromHttpError(err, 'Could not save category forecast.'),
-    });
+  /** Group budget: its own amount, else the sum of its subcategory amounts. */
+  budgetOf(row: BudgetRow): number {
+    const own = Number(this.groupDraft[row.group_id!]) || 0;
+    return own > 0 ? own : this.subTotal(row);
   }
 
-  skipSubBudgets(): void {
-    this.newGroupId = '';
-    this.newGroupForecast = '';
-    this.showSubStep.set(false);
-    this.subDrafts.set([]);
+  spentOf(row: BudgetRow): number {
+    return Number(row.actual) || 0;
   }
 
-  saveOptionalSubBudgets(): void {
-    const drafts = this.subDrafts().filter((s) => (s.forecast || '').trim() !== '');
-    if (!drafts.length) {
-      this.skipSubBudgets();
-      this.toast.success('Category budget saved without subcategory splits.');
-      return;
-    }
-    this.savingSubs.set(true);
-    let done = 0;
-    for (const s of drafts) {
-      this.api.updateBudget(this.year, this.month, s.category_id, s.forecast).subscribe({
-        next: () => {
-          done += 1;
-          if (done === drafts.length) {
-            this.savingSubs.set(false);
-            this.toast.success('Subcategory budgets saved.');
-            this.skipSubBudgets();
-            this.reload();
-          }
-        },
-        error: (err) => {
-          this.savingSubs.set(false);
-          this.toast.fromHttpError(err, `Could not save ${s.category_name}.`);
-        },
-      });
-    }
+  leftOf(row: BudgetRow): number {
+    return this.budgetOf(row) - this.spentOf(row);
   }
 
-  effectiveForecast(row: BudgetRow): string {
-    const explicit = (this.groupForecasts[row.group_id!] ?? '').trim();
-    if (explicit !== '') return explicit;
-    return row.forecast_from_subs || row.forecast || '0';
+  pct(row: BudgetRow): number {
+    const b = this.budgetOf(row);
+    return b > 0 ? (this.spentOf(row) / b) * 100 : 0;
   }
 
-  subSum(row: BudgetRow): string {
-    return row.forecast_from_subs || '0';
+  tone(row: BudgetRow): string {
+    const b = this.budgetOf(row);
+    if (b <= 0) return this.spentOf(row) > 0 ? 'unset' : 'empty';
+    const p = this.pct(row);
+    return p > 100 ? 'over' : p >= 85 ? 'warn' : 'ok';
   }
+
+  totalBudget(): number {
+    return this.rows().reduce((sum, r) => sum + this.budgetOf(r), 0);
+  }
+
+  totalSpent(): number {
+    return this.rows().reduce((sum, r) => sum + this.spentOf(r), 0);
+  }
+
+  // ---- Subcategory rows ----
 
   hasSubs(row: BudgetRow): boolean {
     return (row.sub_budgets?.length ?? 0) > 0;
   }
 
   isExpanded(groupId: string): boolean {
-    return !this.collapsedGroups().has(groupId);
+    return this.expanded().has(groupId);
   }
 
-  toggleGroup(groupId: string): void {
-    this.collapsedGroups.update((set) => {
+  toggle(groupId: string): void {
+    this.expanded.update((set) => {
       const next = new Set(set);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
       return next;
     });
-  }
-
-  expandAll(): void {
-    this.collapsedGroups.set(new Set());
-  }
-
-  collapseAll(): void {
-    const collapsed = new Set<string>();
-    for (const r of this.rows()) {
-      if (r.group_id && this.hasSubs(r)) {
-        collapsed.add(r.group_id);
-      }
-    }
-    this.collapsedGroups.set(collapsed);
-  }
-
-  openSubEditor(groupId: string): void {
-    this.collapsedGroups.update((set) => {
-      const next = new Set(set);
-      next.delete(groupId);
-      return next;
-    });
-    this.newGroupId = groupId;
-    this.newGroupForecast = this.groupForecasts[groupId] || '';
-    this.subDrafts.set(
-      this.subsForGroup(groupId).map((c) => ({
-        category_id: c.id,
-        category_name: c.name,
-        forecast: this.subForecasts[c.id] || '',
-      }))
-    );
-    this.showSubStep.set(true);
-  }
-
-  updateSubDraft(index: number, forecast: string): void {
-    this.subDrafts.update((list) =>
-      list.map((row, i) => (i === index ? { ...row, forecast } : row))
-    );
   }
 }

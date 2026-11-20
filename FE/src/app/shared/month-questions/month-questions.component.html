@@ -1,0 +1,95 @@
+<section class="panel questions" aria-labelledby="mq-title">
+  <header class="head">
+    <div>
+      <h2 id="mq-title">{{ monthName }} at a glance</h2>
+      <p class="muted">Day {{ day }} of {{ daysInMonth }}</p>
+    </div>
+    <a routerLink="/budgeting/monthly-budget" class="open-link">Monthly budget →</a>
+  </header>
+
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else if (failed()) {
+    <p class="muted">Could not load this month.</p>
+  } @else {
+    <div class="grid">
+      <!-- 1. How much can I spend? -->
+      <article class="q spend" [class.negative]="pace() !== 'none' && left() < 0">
+        <h3><span class="num" aria-hidden="true">1</span> How much can I spend this month?</h3>
+        @if (pace() === 'none') {
+          <p class="answer muted-answer">No budget yet</p>
+          <p class="detail">Set one up in a minute. Copy last month, or let us suggest amounts from your income.</p>
+          <a class="btn primary cta" routerLink="/budgeting/monthly-budget">Set up {{ monthName }}</a>
+        } @else if (left() >= 0) {
+          <p class="answer">{{ money(left()) }}</p>
+          <p class="detail">
+            left of {{ money(budget()) }}
+            @if (daysLeft > 0) { · about <strong>{{ money(perDay()) }}</strong> a day for {{ daysLeft }} days }
+          </p>
+          <a class="link" routerLink="/budgeting/monthly-budget">See by category →</a>
+        } @else {
+          <p class="answer">{{ money(-left()) }} over</p>
+          <p class="detail">You've spent {{ money(spent()) }} of a {{ money(budget()) }} budget.</p>
+          <a class="link" routerLink="/budgeting/monthly-budget">Adjust the budget →</a>
+        }
+      </article>
+
+      <!-- 2. How am I doing so far? -->
+      <article class="q pace" [ngClass]="pace()">
+        <h3><span class="num" aria-hidden="true">2</span> How am I doing so far?</h3>
+        @if (pace() === 'none') {
+          <p class="answer muted-answer">{{ money(spent()) }} spent</p>
+          <p class="detail">Set a budget to see whether you're on pace.</p>
+        } @else {
+          <p class="answer"><span class="badge" [ngClass]="pace()">{{ paceLabel() }}</span></p>
+          <div class="track" role="img"
+               [attr.aria-label]="(usedPct() | number: '1.0-0') + '% of budget used, ' + (monthPct | number: '1.0-0') + '% of the month passed'">
+            <span class="fill" [style.width.%]="clamp(usedPct())"></span>
+            <span class="today" [style.left.%]="monthPct" title="Today"></span>
+          </div>
+          <p class="detail">
+            {{ usedPct() | number: '1.0-0' }}% of the budget used, {{ monthPct | number: '1.0-0' }}% of the month gone.
+            @if (projected(); as proj) {
+              At this pace you'll spend about <strong>{{ money(proj) }}</strong>.
+            }
+          </p>
+          @if (overCategories().length) {
+            <p class="detail warn-text">
+              At the limit: {{ overCategories().slice(0, 2).join(', ') }}@if (overCategories().length > 2) { and {{ overCategories().length - 2 }} more }
+            </p>
+          }
+          <a class="link" routerLink="/budgeting/utilization">See utilization →</a>
+        }
+      </article>
+
+      <!-- 3. Am I on track for my projects? -->
+      <article class="q projects">
+        <h3><span class="num" aria-hidden="true">3</span> Am I on track for my projects?</h3>
+        @if (projectViews().length) {
+          <ul class="project-list">
+            @for (p of projectViews(); track p.id) {
+              <li>
+                <a [routerLink]="['/budgeting/projects', p.id]" class="project" [ngClass]="p.tone">
+                  <span class="p-head">
+                    <strong>{{ p.name }}</strong>
+                    <small>{{ p.note }}</small>
+                  </span>
+                  <span class="bar"><span [style.width.%]="clamp(p.pct)"></span></span>
+                  <small class="muted">
+                    {{ money(p.remaining, p.currency) }} left
+                    @if (p.endDate) { · ends {{ p.endDate | date: 'MMM d' }} }
+                  </small>
+                </a>
+              </li>
+            }
+          </ul>
+          <a class="link" routerLink="/budgeting/projects">All projects →</a>
+        } @else {
+          <p class="answer muted-answer">No projects yet</p>
+          <p class="detail">Planning a trip, a renovation or a big purchase? Give it its own budget.</p>
+          <a class="btn ghost cta" routerLink="/budgeting/projects">New project</a>
+        }
+      </article>
+    </div>
+  }
+</section>

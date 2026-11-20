@@ -89,7 +89,7 @@ export class BudgetDetailComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
-      this.router.navigate(['/budgeting/budgets']);
+      this.router.navigate(['/budgeting/projects']);
       return;
     }
     this.api.categories().subscribe({
@@ -135,7 +135,7 @@ export class BudgetDetailComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         this.toast.fromHttpError(err, 'Could not load budget.');
-        this.router.navigate(['/budgeting/budgets']);
+        this.router.navigate(['/budgeting/projects']);
       },
     });
   }
@@ -465,7 +465,7 @@ export class BudgetDetailComponent implements OnInit {
       next: (cloned) => {
         this.cloning.set(false);
         this.toast.success('Budget cloned.');
-        this.router.navigate(['/budgeting/budgets', cloned.id]);
+        this.router.navigate(['/budgeting/projects', cloned.id]);
       },
       error: (err) => {
         this.cloning.set(false);
