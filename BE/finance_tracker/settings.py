@@ -108,6 +108,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # First, so the logged duration covers the whole request and every log line has its id.
+    "api.request_logging.ApiRequestLogMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -119,7 +121,10 @@ MIDDLEWARE = [
 ]
 # Serves the Django admin's CSS/JS where no web server does it for us (Render).
 if not DEBUG:
-    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+    )
 
 ROOT_URLCONF = "finance_tracker.urls"
 
@@ -337,18 +342,35 @@ if DEBUG:
 else:
     CORS_ALLOW_CREDENTIALS = True
 
+# One line per API call (api/request_logging.py): method, path, status, duration, user, request id.
+# Calls slower than this many milliseconds are logged as warnings.
+API_LOG_SLOW_MS = int(os.environ.get("API_LOG_SLOW_MS", "2000"))
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'request_id': {'()': 'api.request_logging.RequestIdFilter'},
+    },
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s %(levelname)s %(name)s [%(request_id)s] %(message)s',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'filters': ['request_id'],
+            'formatter': 'standard',
         },
     },
     'loggers': {
         '': {
             'handlers': ['console'],
             'level': os.environ.get("LOG_LEVEL", "DEBUG" if DEBUG else "INFO"),
+        },
+        'api.requests': {
+            'level': os.environ.get("API_LOG_LEVEL", "INFO"),
         },
     },
 }
