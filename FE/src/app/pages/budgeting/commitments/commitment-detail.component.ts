@@ -4,7 +4,7 @@ import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BudgetingService } from '../../../core/budgeting.service';
-import { Commitment, CommitmentScheduleLine } from '../../../core/models';
+import { BudgetGroup, Commitment, CommitmentScheduleLine } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 
 @Component({
@@ -26,8 +26,11 @@ export class CommitmentDetailComponent implements OnInit {
   loading = signal(true);
   filter: 'upcoming' | 'all' | 'paid' = 'upcoming';
   payingId = signal<string | null>(null);
+  groups = signal<BudgetGroup[]>([]);
 
   reminderForm = this.fb.nonNullable.group({
+    /** Parent budget category the payments count in. */
+    category_id: [''],
     reminder_enabled: [true],
     reminder_days_before: [3, [Validators.required, Validators.min(0), Validators.max(90)]],
   });
@@ -42,6 +45,10 @@ export class CommitmentDetailComponent implements OnInit {
       this.router.navigate(['/budgeting/commitments']);
       return;
     }
+    this.api.categories().subscribe({
+      next: (c) => this.groups.set([...c.groups].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))),
+      error: () => this.groups.set([]),
+    });
     this.load(id);
   }
 
@@ -52,6 +59,7 @@ export class CommitmentDetailComponent implements OnInit {
         this.commitment.set(detail);
         this.schedule.set(detail.schedule || []);
         this.reminderForm.setValue({
+          category_id: detail.category_id || '',
           reminder_enabled: detail.reminder_enabled ?? true,
           reminder_days_before: detail.reminder_days_before ?? 3,
         });
@@ -95,7 +103,11 @@ export class CommitmentDetailComponent implements OnInit {
         this.payingId.set(null);
         this.load(c.id);
       },
-      error: (err) => this.toast.fromHttpError(err, 'Could not mark payment.'),
+      error: (err) =>
+        this.toast.fromHttpError(
+          err,
+          c.category_id ? 'Could not mark payment.' : 'Choose a category for this commitment first (settings above).'
+        ),
     });
   }
 
@@ -140,12 +152,12 @@ export class CommitmentDetailComponent implements OnInit {
   saveReminders(): void {
     const c = this.commitment();
     if (!c || this.reminderForm.invalid) {
-      this.toast.error('Check reminder settings.');
+      this.toast.error('Check the settings.');
       return;
     }
     this.api.updateCommitment(c.id, this.reminderForm.getRawValue()).subscribe({
       next: () => {
-        this.toast.success('Reminder settings saved.');
+        this.toast.success('Settings saved.');
         this.load(c.id);
       },
       error: (err) => this.toast.fromHttpError(err, 'Could not save reminders.'),

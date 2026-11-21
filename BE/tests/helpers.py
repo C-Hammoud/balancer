@@ -12,6 +12,13 @@ def create_category(api, group_name="Food", name="Groceries"):
     return g.json()["id"], c.json()["id"]
 
 
+def create_group(api, name="Loans"):
+    """A parent budget category; returns its id."""
+    r = api.post(B + "/config/groups/", {"name": name}, format="json")
+    assert r.status_code == 201, r.content
+    return r.json()["id"]
+
+
 def create_account(api, name="Main bank"):
     r = api.post(B + "/config/accounts/", {"name": name}, format="json")
     assert r.status_code == 201, r.content

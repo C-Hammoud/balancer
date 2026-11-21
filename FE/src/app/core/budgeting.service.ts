@@ -49,6 +49,24 @@ import {
   YearlyOverview,
 } from './models';
 
+/** Optional choices when paying a commitment installment; omitted ones use the defaults. */
+export interface CommitmentPaymentChoice {
+  /** Parent category; default: the commitment's category. */
+  groupId?: string;
+  /** Merchant (subcategory); default: one named after the commitment. */
+  merchantId?: string;
+  /** Account; default: the default expense account. */
+  accountId?: string;
+}
+
+function commitmentPaymentBody(c: CommitmentPaymentChoice): Record<string, string> {
+  return {
+    ...(c.groupId ? { group_id: c.groupId } : {}),
+    ...(c.merchantId ? { category_id: c.merchantId } : {}),
+    ...(c.accountId ? { account_id: c.accountId } : {}),
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class BudgetingService {
   private readonly api = `${environment.apiUrl}/budgeting`;
@@ -117,7 +135,11 @@ export class BudgetingService {
     return this.http.get<Transaction[]>(`${this.api}/transactions/`, { params });
   }
 
-  createTransaction(payload: Partial<Transaction>): Observable<Transaction> {
+  /**
+   * Commitment payments may also send `group_id` (category) instead of a merchant in `category_id`;
+   * the account and category then default to the default account and the commitment's category.
+   */
+  createTransaction(payload: Partial<Transaction> & { group_id?: string }): Observable<Transaction> {
     return this.http.post<Transaction>(`${this.api}/transactions/`, payload);
   }
 
@@ -351,10 +373,14 @@ export class BudgetingService {
     return this.http.get<CommitmentScheduleLine[]>(`${this.api}/commitments/${id}/schedule/`);
   }
 
-  markCommitmentPaid(commitmentId: string, lineId: string, payment_date?: string) {
-    return this.http.post<CommitmentScheduleLine>(
+  /** Mark an installment paid (records its expense); category/account default as in recordCommitmentDue. */
+  markCommitmentPaid(commitmentId: string, lineId: string, payment_date?: string, choice: CommitmentPaymentChoice = {}) {
+    return this.http.post<CommitmentScheduleLine & { transaction_id?: string }>(
       `${this.api}/commitments/${commitmentId}/schedule/${lineId}/pay/`,
-      payment_date ? { payment_date, paid_date: payment_date } : {}
+      {
+        ...(payment_date ? { payment_date, paid_date: payment_date } : {}),
+        ...commitmentPaymentBody(choice),
+      }
     );
   }
 
@@ -424,10 +450,13 @@ export class BudgetingService {
     );
   }
 
+  /**
+   * Record a due installment from its alert. Category: `groupId`, else the commitment's own;
+   * `merchantId` is optional. Account: `accountId`, else the default expense account.
+   */
   recordCommitmentDue(
     alertId: string,
-    categoryId: string,
-    opts: { accountId?: string; paymentDate?: string } = {}
+    opts: CommitmentPaymentChoice & { paymentDate?: string } = {}
   ) {
     return this.http.post<{
       id: string;
@@ -436,8 +465,7 @@ export class BudgetingService {
       transaction?: Transaction;
     }>(`${this.api}/alerts/${alertId}/record-commitment/`, {
       record_expense: true,
-      category_id: categoryId,
-      ...(opts.accountId ? { account_id: opts.accountId } : {}),
+      ...commitmentPaymentBody(opts),
       ...(opts.paymentDate ? { payment_date: opts.paymentDate } : {}),
     });
   }

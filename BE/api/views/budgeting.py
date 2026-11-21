@@ -138,6 +138,80 @@ def _resolve_account(uid: str, account_id: str):
     return acc, None
 
 
+def _default_expense_account(uid: str):
+    """The user's default account for expenses, else their first active account, else None."""
+    accounts = [a for a in IncomeSourceFS.list_by_user(uid) if getattr(a, "is_active", True)]
+    for a in accounts:
+        if getattr(a, "is_default_for_expenses", False):
+            return a
+    accounts.sort(key=lambda a: (int(getattr(a, "order", 0) or 0), (a.name or "").lower()))
+    return accounts[0] if accounts else None
+
+
+def _payment_account(uid: str, data):
+    """
+    Account for a commitment payment: the one chosen, or the default expense account when none
+    is chosen (None only when the user has no account yet). Returns (account, error).
+    """
+    account_id = _parse_account_id(data)
+    if account_id:
+        return _resolve_account(uid, account_id)
+    return _default_expense_account(uid), None
+
+
+COMMITMENT_CATEGORY_REQUIRED = "Choose the category this commitment's payments count in."
+
+
+def _subcategory_named(user, group, name: str):
+    """The subcategory called `name` under `group` (the user's own first), created when missing."""
+    name = _merchant_name_from_description(name) or "Commitment"
+    in_group = [c for c in visible_categories(user) if c.group_id == group.pk]
+    matches = [c for c in in_group if (c.name or "").strip().lower() == name.lower()]
+    if matches:
+        return next((c for c in matches if c.user_id), matches[0])
+    c = CategoryFS(
+        name=name,
+        group_id=group.pk,
+        include_in_reports=True,
+        order=len(in_group),
+        user_id=user_id(user),
+    )
+    c.save()
+    return c
+
+
+def _commitment_payment_category(user, commitment, data):
+    """
+    Merchant (subcategory) a commitment payment is saved under. Returns (subcategory, error).
+      - "category_id" in the request: that merchant (optional).
+      - otherwise the merchant named after the commitment under the category: "group_id" from the
+        request, else the category saved on the commitment. Created when missing.
+    A commitment without a saved category remembers the one used for its first payment.
+    """
+    data = data if isinstance(data, dict) else {}
+    merchant_id = str(data.get("category_id") or "").strip()
+    group_id = str(data.get("group_id") or "").strip()
+    if merchant_id:
+        sub = _require_subcategory(user, merchant_id)
+        if not sub:
+            return None, {"category_id": [_category_id_field_error(user, merchant_id)]}
+    else:
+        if group_id:
+            group = get_visible_group(user, group_id)
+            if not group:
+                return None, {"group_id": ["Category not found."]}
+        else:
+            # The saved category may have been deleted since: then ask for one.
+            group = get_visible_group(user, commitment.category_id) if commitment.category_id else None
+            if not group:
+                return None, {"group_id": [COMMITMENT_CATEGORY_REQUIRED]}
+        sub = _subcategory_named(user, group, commitment.name)
+    if not (commitment.category_id or "").strip() and sub.group_id:
+        commitment.category_id = sub.group_id
+        commitment.save()
+    return sub, None
+
+
 class BudgetingDashboardView(APIView):
     def get(self, request):
         today = date.today()
@@ -545,11 +619,15 @@ class TransactionListCreateView(APIView):
         txn_currency = cd.get("currency") or "USD"
         source_account = ""
 
-        acc, acc_err = _resolve_account(user_id(request.user), account_id)
+        if commitment_id and direction != "income":
+            # Commitment payment: the chosen account, else the default expense account.
+            acc, acc_err = _payment_account(user_id(request.user), request.data)
+        else:
+            acc, acc_err = _resolve_account(user_id(request.user), account_id)
         if acc_err:
             return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
-        source_account = acc.name
-        income_source_id = acc.pk
+        source_account = acc.name if acc else ""
+        income_source_id = acc.pk if acc else ""
 
         to_account_id = cd.get("to_account_id") or ""
         if to_account_id:
@@ -587,6 +665,12 @@ class TransactionListCreateView(APIView):
             if paid_line.due_date and not request.data.get("date"):
                 txn_date = paid_line.due_date
             txn_currency = getattr(c, "currency", None) or txn_currency or "USD"
+            # Category (and optional merchant) the payment counts in; see _commitment_payment_category.
+            sub, cat_err = _commitment_payment_category(request.user, c, request.data)
+            if cat_err:
+                return Response(cat_err, status=status.HTTP_400_BAD_REQUEST)
+            category_id = sub.pk
+            include_in_utilization = True
 
         if direction == "income":
             category_id = None
@@ -1497,6 +1581,30 @@ class SavingsDetailView(APIView):
         return Response(_savings_dict(request, obj))
 
 
+def _commitment_group_id(user, value):
+    """Validated parent category id for a commitment ("" clears it). Returns (id, error)."""
+    gid = str(value or "").strip()
+    if not gid:
+        return "", None
+    group = get_visible_group(user, gid)
+    if not group:
+        return "", {"category_id": ["Category not found."]}
+    return group.pk, None
+
+
+def _commitment_category_fields(user, c, group_names: dict | None = None) -> dict:
+    """category_id / category_name of a commitment for the API ("" when none or deleted)."""
+    gid = (getattr(c, "category_id", "") or "").strip()
+    if not gid:
+        return {"category_id": "", "category_name": ""}
+    if group_names is not None:
+        name = group_names.get(gid, "")
+    else:
+        group = get_visible_group(user, gid)
+        name = group.name if group else ""
+    return {"category_id": gid if name else "", "category_name": name}
+
+
 class CommitmentListCreateView(APIView):
     def get(self, request):
         uid = user_id(request.user)
@@ -1506,6 +1614,7 @@ class CommitmentListCreateView(APIView):
         except Exception:
             pass
         items = CommitmentFS.list_by_user(uid)
+        group_names = {g.pk: g.name for g in visible_groups(request.user)}
         seen_ids = set()
         out = []
         for c in items:
@@ -1523,6 +1632,7 @@ class CommitmentListCreateView(APIView):
                 "payment_amount": c.payment_amount,
                 "balloon": c.balloon,
                 "currency": getattr(c, "currency", None) or "USD",
+                **_commitment_category_fields(request.user, c, group_names),
                 "reminder_enabled": c.reminder_enabled,
                 "reminder_days_before": c.reminder_days_before,
                 "remaining_principal": progress["remaining_principal"],
@@ -1541,6 +1651,9 @@ class CommitmentListCreateView(APIView):
         serializer = CommitmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         cd = serializer.validated_data
+        category_id, cat_err = _commitment_group_id(request.user, cd.get("category_id"))
+        if cat_err:
+            return Response(cat_err, status=status.HTTP_400_BAD_REQUEST)
         c = CommitmentFS(
             user_id=user_id(request.user),
             name=cd["name"],
@@ -1551,6 +1664,7 @@ class CommitmentListCreateView(APIView):
             payment_amount=cd["payment_amount"],
             balloon=cd.get("balloon") or Decimal("0"),
             currency=cd.get("currency") or "USD",
+            category_id=category_id,
             reminder_enabled=cd.get("reminder_enabled", True),
             reminder_days_before=cd.get("reminder_days_before", 3),
         )
@@ -1586,6 +1700,7 @@ class CommitmentDetailView(APIView):
             "payment_amount": c.payment_amount,
             "balloon": c.balloon,
             "currency": getattr(c, "currency", None) or "USD",
+            **_commitment_category_fields(request.user, c),
             "reminder_enabled": c.reminder_enabled,
             "reminder_days_before": c.reminder_days_before,
             "remaining_principal": progress["remaining_principal"],
@@ -1605,7 +1720,13 @@ class CommitmentDetailView(APIView):
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         serializer = CommitmentSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        cd = serializer.validated_data
+        cd = dict(serializer.validated_data)
+        if "category_id" in request.data:
+            cd["category_id"], cat_err = _commitment_group_id(request.user, request.data.get("category_id"))
+            if cat_err:
+                return Response(cat_err, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            cd.pop("category_id", None)
         schedule_fields = {"start_date", "term_months", "frequency", "payment_amount", "balloon"}
         touched_schedule = False
         for field, value in cd.items():
@@ -1651,25 +1772,18 @@ class CommitmentSchedulePayView(APIView):
         paid_date = serializer.validated_data.get("paid_date") or date.today()
         uid = user_id(request.user)
 
-        category_id = (request.data.get("category_id") or "").strip() or None
-        if category_id:
-            sub = _require_subcategory(request.user, category_id)
-            if not sub:
-                return Response(
-                    {"category_id": [_category_id_field_error(request.user, category_id)]},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            category_id = sub.pk
-        acc = None
-        account_id = _parse_account_id(request.data)
-        if account_id:
-            acc, acc_err = _resolve_account(uid, account_id)
-            if acc_err:
-                return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
+        # Category from the request or the commitment (merchant optional); the chosen account,
+        # else the default expense account.
+        sub, cat_err = _commitment_payment_category(request.user, c, request.data)
+        if cat_err:
+            return Response(cat_err, status=status.HTTP_400_BAD_REQUEST)
+        acc, acc_err = _payment_account(uid, request.data)
+        if acc_err:
+            return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
 
         # Marking paid always records the expense, so savings stay correct.
         _, txn = record_line_payment(
-            request.user, c, line, paid_date, category_id=category_id, account=acc
+            request.user, c, line, paid_date, category_id=sub.pk, account=acc
         )
         trigger_budget_alerts(request.user, paid_date.year, paid_date.month)
         out = line_to_dict(line)
@@ -1946,27 +2060,10 @@ class AlertRecordCommitmentView(APIView):
             resolve_alert(request.user, pk)
             return Response({"id": pk, "recorded": False, "is_resolved": True})
 
-        category_id = (request.data.get("category_id") or "").strip()
-        if not category_id:
-            return Response(
-                {"category_id": ["Category is required to add to expenses and utilization."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        sub = _require_subcategory(request.user, category_id)
-        if not sub:
-            return Response(
-                {"category_id": [_category_id_field_error(request.user, category_id)]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        category_id = sub.pk
-
-        # Account is optional here (older clients don't send it).
-        acc = None
-        account_id = _parse_account_id(request.data)
-        if account_id:
-            acc, acc_err = _resolve_account(uid, account_id)
-            if acc_err:
-                return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
+        # The chosen account, else the default expense account.
+        acc, acc_err = _payment_account(uid, request.data)
+        if acc_err:
+            return Response(acc_err, status=status.HTTP_400_BAD_REQUEST)
 
         commitment_id = (getattr(alert, "commitment_id", "") or "").strip()
         schedule_line_id = (getattr(alert, "schedule_line_id", "") or "").strip()
@@ -1997,6 +2094,12 @@ class AlertRecordCommitmentView(APIView):
                 {"commitment_id": ["This installment is no longer outstanding."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Category from the request or the commitment; the merchant is optional.
+        sub, cat_err = _commitment_payment_category(request.user, c, request.data)
+        if cat_err:
+            return Response(cat_err, status=status.HTTP_400_BAD_REQUEST)
+        category_id = sub.pk
 
         ext_id = f"commitment_line:{schedule_line_id}"
         if TransactionFS.exists_by_external_id(uid, ext_id):

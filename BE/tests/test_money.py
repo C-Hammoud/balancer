@@ -7,7 +7,7 @@ import pytest
 from api.currency import convert_amount
 from budgeting.services import savings_actual
 from budgeting.store import TransactionFS
-from tests.helpers import B, create_account
+from tests.helpers import B, create_account, create_group
 
 pytestmark = pytest.mark.django_db
 
@@ -16,7 +16,8 @@ def _loan(api, start, currency="USD", term=3, payment="100"):
     r = api.post(
         B + "/commitments/",
         {"name": "Car loan", "amount": "300", "start_date": start.isoformat(), "term_months": term,
-         "frequency": "monthly", "payment_amount": payment, "currency": currency},
+         "frequency": "monthly", "payment_amount": payment, "currency": currency,
+         "category_id": create_group(api)},
         format="json",
     )
     assert r.status_code == 201, r.content

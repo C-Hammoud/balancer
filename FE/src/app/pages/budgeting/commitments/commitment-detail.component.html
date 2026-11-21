@@ -38,6 +38,15 @@
   </div>
 
   <form class="panel reminder" [formGroup]="reminderForm" (ngSubmit)="saveReminders()">
+    <label>
+      Category
+      <select formControlName="category_id">
+        <option value="">— Select category —</option>
+        @for (g of groups(); track g.id) {
+          <option [value]="g.id">{{ g.name }}</option>
+        }
+      </select>
+    </label>
     <label class="check">
       <input type="checkbox" formControlName="reminder_enabled" />
       Email reminder before due date
@@ -46,9 +55,16 @@
       Days before due
       <input type="number" formControlName="reminder_days_before" min="0" max="90" />
     </label>
-    <button type="submit" class="btn primary">Save reminders</button>
+    <button type="submit" class="btn primary">Save settings</button>
     <button type="button" class="btn ghost" (click)="regenerate()">Regenerate schedule</button>
   </form>
+
+  @if (!c.category_id) {
+    <p class="category-hint">
+      Choose a <strong>category</strong> above so this commitment's payments count in your budget.
+      Payments go to your default account unless you pick another one.
+    </p>
+  }
 
   <section class="panel">
     <header class="sec-head">

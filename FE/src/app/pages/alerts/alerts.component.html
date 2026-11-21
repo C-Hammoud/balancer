@@ -261,17 +261,26 @@
     <div class="modal-body pay-form">
       <label>
         Budget category <span class="req">*</span>
-        <select [(ngModel)]="payCategoryId" name="payCategory">
+        <select [(ngModel)]="payGroupId" name="payGroup" (ngModelChange)="payCategoryId = ''">
           <option value="">Select category…</option>
-          @for (c of categories(); track c.id) {
-            <option [value]="c.id">{{ c.group_name }} — {{ c.name }}</option>
+          @for (g of groups(); track g.id) {
+            <option [value]="g.id">{{ g.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Merchant (optional)
+        <select [(ngModel)]="payCategoryId" name="payCategory" [disabled]="!payGroupId">
+          <option value="">Named after the commitment</option>
+          @for (c of payMerchants(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
           }
         </select>
       </label>
       <label>
         Paid from account
         <select [(ngModel)]="payAccountId" name="payAccount">
-          <option value="">No account</option>
+          <option value="">Default account</option>
           @for (acc of accounts(); track acc.id) {
             <option [value]="acc.id">{{ acc.name }}</option>
           }

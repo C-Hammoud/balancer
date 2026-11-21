@@ -252,6 +252,8 @@ class Commitment(models.Model):
         help_text="Balloon payment at end if any",
     )
     currency = models.CharField(max_length=3, default="USD")
+    # Parent budget category (CategoryGroup id) its payments count in; "" until chosen.
+    category_id = models.CharField(max_length=64, blank=True, default="")
     reminder_enabled = models.BooleanField(default=True)
     reminder_days_before = models.PositiveSmallIntegerField(default=3)
     user = models.ForeignKey(

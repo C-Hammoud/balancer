@@ -4,7 +4,7 @@ import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BudgetingService } from '../../../core/budgeting.service';
-import { Commitment } from '../../../core/models';
+import { BudgetGroup, Commitment } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 import { LocaleService } from '../../../core/locale.service';
 
@@ -25,6 +25,8 @@ export class CommitmentsComponent implements OnInit {
   readonly currencyOptions = this.locale.currencies;
 
   items = signal<Commitment[]>([]);
+  /** Parent budget categories a commitment's payments can count in. */
+  groups = signal<BudgetGroup[]>([]);
   loading = signal(true);
   showForm = signal(false);
 
@@ -32,6 +34,7 @@ export class CommitmentsComponent implements OnInit {
     name: ['', Validators.required],
     amount: ['', Validators.required],
     currency: [this.locale.defaultCurrency(), Validators.required],
+    category_id: ['', Validators.required],
     start_date: [this.locale.todayIso(), Validators.required],
     term_months: [12, Validators.required],
     frequency: ['monthly', Validators.required],
@@ -43,6 +46,10 @@ export class CommitmentsComponent implements OnInit {
 
   ngOnInit(): void {
     this.form.controls.currency.setValue(this.locale.defaultCurrency());
+    this.api.categories().subscribe({
+      next: (c) => this.groups.set([...c.groups].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))),
+      error: () => this.groups.set([]),
+    });
     this.reload();
   }
 

@@ -208,6 +208,8 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     time: [''],
     merchant: [UNASSIGNED],
     commitment_id: [''],
+    /** Commitment payment: category it counts in (prefilled from the commitment). */
+    commitment_group: [''],
     amount: ['', Validators.required],
     currency: ['', Validators.required],
     note: [''],
@@ -452,6 +454,7 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     }
     this.form.patchValue({
       commitment_id: '',
+      commitment_group: '',
       account_id: accountId,
       income_description: '',
       amount: '',
@@ -479,7 +482,28 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     this.form.controls.commitment_id.updateValueAndValidity();
     this.form.controls.income_description.updateValueAndValidity();
     this.form.controls.merchant.updateValueAndValidity();
+    this.syncCommitmentControls();
     this.syncAddFormNoteValidator();
+  }
+
+  /**
+   * Commitment payment: the account is optional (the server uses the default expense account)
+   * and the currency is the commitment's, so it cannot be changed here.
+   */
+  private syncCommitmentControls(): void {
+    const account = this.form.controls.account_id;
+    if (this.isCommitment) {
+      account.clearValidators();
+      this.form.controls.currency.disable({ emitEvent: false });
+    } else {
+      account.setValidators([Validators.required]);
+      this.form.controls.currency.enable({ emitEvent: false });
+    }
+    account.updateValueAndValidity();
+  }
+
+  onCommitmentGroupChange(): void {
+    this.form.patchValue({ merchant: UNASSIGNED });
   }
 
   onFormMerchantChange(): void {
@@ -522,6 +546,8 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
       date: c.next_due_date || this.form.controls.date.value,
       currency: c.currency || this.locale.defaultCurrency(),
       note: `Commitment payment — ${c.name}`,
+      commitment_group: c.category_id || '',
+      merchant: UNASSIGNED,
     });
   }
 
@@ -735,23 +761,28 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
         this.toast.error('Select a commitment with an outstanding payment.');
         return;
       }
-      if (!raw.account_id) {
-        this.toast.error('Select an account.');
+      if (!raw.commitment_group) {
+        this.toast.error('Choose the category this payment counts in.');
         return;
       }
+      const merchantId = raw.merchant && raw.merchant !== UNASSIGNED ? raw.merchant : null;
       this.api
         .createTransaction({
           date: raw.date,
           time: raw.time || '',
           description: c.name,
           amount: raw.amount || c.next_due_amount,
-          currency: raw.currency || c.currency || this.locale.defaultCurrency(),
+          // Always the commitment's currency.
+          currency: c.currency || raw.currency || this.locale.defaultCurrency(),
           note,
           direction: 'expense',
-          category_id: null,
+          // No merchant: the server saves it under one named after the commitment.
+          category_id: merchantId,
+          group_id: raw.commitment_group,
           commitment_id: c.id,
           schedule_line_id: c.next_due_line_id,
-          account_id: raw.account_id,
+          // Empty: the server uses the default expense account.
+          account_id: raw.account_id || undefined,
           classification: null,
         })
         .subscribe({
@@ -835,6 +866,7 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
       time: this.currentTime(),
       merchant: UNASSIGNED,
       commitment_id: '',
+      commitment_group: '',
       amount: '',
       currency: this.locale.defaultCurrency(),
       note: '',
@@ -851,6 +883,7 @@ export class BudgetTransactionsComponent implements OnInit, OnDestroy {
     this.form.controls.merchant.updateValueAndValidity();
     this.form.controls.note.clearValidators();
     this.form.controls.note.updateValueAndValidity();
+    this.syncCommitmentControls();
   }
 
   openEdit(t: Transaction): void {

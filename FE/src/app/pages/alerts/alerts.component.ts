@@ -13,6 +13,7 @@ import {
   AlertTab,
   BudgetAlert,
   BudgetCategory,
+  BudgetGroup,
   UNMAPPED_CATEGORY_ID,
 } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
@@ -69,7 +70,10 @@ export class AlertsComponent implements OnInit {
   // Pay dialog
   payAlert = signal<BudgetAlert | null>(null);
   categories = signal<BudgetCategory[]>([]);
+  groups = signal<BudgetGroup[]>([]);
   accounts = signal<Account[]>([]);
+  /** Category the payment counts in (prefilled from the commitment); merchant optional. */
+  payGroupId = '';
   payCategoryId = '';
   payAccountId = '';
   payDate = '';
@@ -321,13 +325,26 @@ export class AlertsComponent implements OnInit {
 
   openPay(a: BudgetAlert): void {
     this.payAlert.set(a);
+    this.payGroupId = '';
     this.payCategoryId = '';
     this.payAccountId = '';
     this.payDate = new Date().toISOString().slice(0, 10);
     if (!this.categories().length) {
       this.api.categories().subscribe({
-        next: (c) => this.categories.set(c.categories),
+        next: (c) => {
+          this.categories.set(c.categories);
+          this.groups.set([...c.groups].sort((x, y) => x.order - y.order || x.name.localeCompare(y.name)));
+        },
         error: () => this.categories.set([]),
+      });
+    }
+    // Start from the category saved on the commitment.
+    if (a.commitment_id) {
+      this.api.commitment(a.commitment_id).subscribe({
+        next: (c) => {
+          if (!this.payGroupId && this.payAlert()?.id === a.id) this.payGroupId = c.category_id || '';
+        },
+        error: () => undefined,
       });
     }
     this.api.accounts(true).subscribe({
@@ -338,6 +355,13 @@ export class AlertsComponent implements OnInit {
       },
       error: () => this.accounts.set([]),
     });
+  }
+
+  /** Merchants under the chosen category. */
+  payMerchants(): BudgetCategory[] {
+    return this.categories()
+      .filter((c) => c.group_id === this.payGroupId)
+      .sort((x, y) => x.order - y.order || x.name.localeCompare(y.name));
   }
 
   closePay(): void {
@@ -352,13 +376,15 @@ export class AlertsComponent implements OnInit {
   confirmPay(): void {
     const a = this.payAlert();
     if (!a || this.paying()) return;
-    if (!this.payCategoryId) {
+    if (!this.payGroupId && !this.payCategoryId) {
       this.toast.error('Pick the budget category for this payment.');
       return;
     }
     this.paying.set(true);
     this.api
-      .recordCommitmentDue(a.id, this.payCategoryId, {
+      .recordCommitmentDue(a.id, {
+        groupId: this.payGroupId || undefined,
+        merchantId: this.payCategoryId || undefined,
         accountId: this.payAccountId || undefined,
         paymentDate: this.payDate || undefined,
       })

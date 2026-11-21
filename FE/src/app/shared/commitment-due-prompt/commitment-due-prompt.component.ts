@@ -4,7 +4,7 @@ import { AmountPipe } from '../amount.pipe';
 import { FormsModule } from '@angular/forms';
 import { BudgetingService } from '../../core/budgeting.service';
 import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
-import { BudgetAlert } from '../../core/models';
+import { BudgetAlert, BudgetCategory, BudgetGroup } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 
 const DISMISS_KEY = 'commitment_due_dismissed';
@@ -23,13 +23,20 @@ export class CommitmentDuePromptComponent implements OnInit {
 
   current = signal<BudgetAlert | null>(null);
   queue = signal<BudgetAlert[]>([]);
-  categories = signal<{ id: string; name: string; group_name: string }[]>([]);
+  categories = signal<BudgetCategory[]>([]);
+  groups = signal<BudgetGroup[]>([]);
+  /** Category the payment counts in (prefilled from the commitment). */
+  groupId = '';
+  /** Optional merchant; empty: one named after the commitment. */
   categoryId = '';
   saving = signal(false);
 
   ngOnInit(): void {
     this.api.categories().subscribe({
-      next: (c) => this.categories.set(c.categories),
+      next: (c) => {
+        this.categories.set(c.categories);
+        this.groups.set([...c.groups].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)));
+      },
       error: () => this.categories.set([]),
     });
     this.loadDuePrompts();
@@ -92,6 +99,7 @@ export class CommitmentDuePromptComponent implements OnInit {
 
   private closeCurrent(): void {
     this.current.set(null);
+    this.groupId = '';
     this.categoryId = '';
     this.saving.set(false);
   }
@@ -99,7 +107,24 @@ export class CommitmentDuePromptComponent implements OnInit {
   private showNext(): void {
     const next = this.queue()[0] ?? null;
     this.current.set(next);
+    this.groupId = '';
     this.categoryId = '';
+    // Start from the category saved on the commitment.
+    if (next?.commitment_id) {
+      this.api.commitment(next.commitment_id).subscribe({
+        next: (c) => {
+          if (this.current()?.id === next.id && !this.groupId) this.groupId = c.category_id || '';
+        },
+        error: () => undefined,
+      });
+    }
+  }
+
+  /** Merchants under the chosen category. */
+  merchants(): BudgetCategory[] {
+    return this.categories()
+      .filter((c) => c.group_id === this.groupId)
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
   }
 
   private finishAlert(alertId: string): void {
@@ -142,12 +167,13 @@ export class CommitmentDuePromptComponent implements OnInit {
   confirmAdd(): void {
     const alert = this.current();
     if (!alert || this.saving()) return;
-    if (!this.categoryId) {
+    if (!this.groupId && !this.categoryId) {
       this.toast.error('Pick a budget category to include in utilization.');
       return;
     }
     this.saving.set(true);
-    this.api.recordCommitmentDue(alert.id, this.categoryId).subscribe({
+    // Account: the default expense account (server side).
+    this.api.recordCommitmentDue(alert.id, { groupId: this.groupId || undefined, merchantId: this.categoryId || undefined }).subscribe({
       next: () => {
         this.toast.success('Payment recorded. It appears under Expenses and Transactions.');
         this.finishAlert(alert.id);

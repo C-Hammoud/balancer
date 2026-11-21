@@ -457,6 +457,7 @@ class CommitmentFS(BudgetingFirestoreModel):
     payment_amount: Decimal = Decimal("0")
     balloon: Decimal = Decimal("0")
     currency: str = "USD"
+    category_id: str = ""
     reminder_enabled: bool = True
     reminder_days_before: int = 3
     created_at: Optional[datetime] = None
@@ -473,6 +474,7 @@ class CommitmentFS(BudgetingFirestoreModel):
             "payment_amount": str(self.payment_amount),
             "balloon": str(self.balloon),
             "currency": self.currency or "USD",
+            "category_id": self.category_id or "",
             "reminder_enabled": self.reminder_enabled,
             "reminder_days_before": int(self.reminder_days_before),
             "created_at": self.created_at,
@@ -491,6 +493,7 @@ class CommitmentFS(BudgetingFirestoreModel):
         o.payment_amount = _as_decimal(data.get("payment_amount", "0"))
         o.balloon = _as_decimal(data.get("balloon", "0"))
         o.currency = data.get("currency", "USD") or "USD"
+        o.category_id = data.get("category_id", "") or ""
         o.reminder_enabled = bool(data.get("reminder_enabled", True))
         o.reminder_days_before = int(data.get("reminder_days_before", 3) or 3)
         o.created_at = _as_datetime(data.get("created_at"))

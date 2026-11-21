@@ -8,7 +8,7 @@ from django.core import mail
 from budgeting.alerts import evaluate_risk_alerts, refresh_alerts_for_user
 from budgeting.risk import DEFAULTS, compute_factors, score
 from budgeting.store import BudgetAlertFS
-from tests.helpers import B, add_expense, create_account, create_category, set_budget
+from tests.helpers import B, add_expense, create_account, create_category, create_group, set_budget
 
 pytestmark = pytest.mark.django_db
 
@@ -118,7 +118,7 @@ def _overdue_commitment(api):
     start = date.today() - timedelta(days=40)
     r = api.post(B + "/commitments/", {"name": "Car loan", "amount": "1200", "start_date": start.isoformat(),
                                        "term_months": 12, "frequency": "monthly", "payment_amount": "100",
-                                       "currency": "USD"}, format="json")
+                                       "currency": "USD", "category_id": create_group(api)}, format="json")
     assert r.status_code == 201, r.content
     return r.json()["id"]
 

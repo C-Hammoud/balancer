@@ -272,7 +272,8 @@ class TransactionSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"description": ["Enter what this income is (e.g. Salary)."]}
             )
-        if not account_id:
+        # A commitment payment without an account uses the default expense account (view).
+        if not account_id and not (commitment_id and direction != "income"):
             raise serializers.ValidationError(
                 {"account_id": ["Select the account this transaction was done from."]}
             )
@@ -321,6 +322,8 @@ class CommitmentSerializer(serializers.Serializer):
     payment_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     balloon = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     currency = serializers.ChoiceField(choices=CURRENCY_CHOICES, required=False, default="USD")
+    # Parent budget category its payments count in (checked against the user's categories in the view).
+    category_id = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
     reminder_enabled = serializers.BooleanField(required=False, default=True)
     reminder_days_before = serializers.IntegerField(required=False, default=3, min_value=0, max_value=90)
 

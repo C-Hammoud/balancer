@@ -20,6 +20,16 @@
         }
       </select>
     </label>
+    <label>
+      Category <span class="req">*</span>
+      <select formControlName="category_id">
+        <option value="">— Select category —</option>
+        @for (g of groups(); track g.id) {
+          <option [value]="g.id">{{ g.name }}</option>
+        }
+      </select>
+      <small class="muted">Its payments count in this budget category.</small>
+    </label>
     <label>Start date <input type="date" formControlName="start_date" /></label>
     <label>Term (months) <input type="number" formControlName="term_months" /></label>
     <label>
@@ -64,7 +74,10 @@
           <tr class="clickable" (click)="open(c)">
             <td>
               <strong>{{ c.name }}</strong>
-              <small>{{ c.frequency }} · {{ c.term_months }} mo</small>
+              <small>
+                {{ c.frequency }} · {{ c.term_months }} mo ·
+                @if (c.category_name) { {{ c.category_name }} } @else { <span class="warn-text">no category</span> }
+              </small>
             </td>
             <td>
               <div class="progress">

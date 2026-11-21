@@ -581,6 +581,9 @@ export interface Commitment {
   name: string;
   amount: string;
   currency?: string;
+  /** Parent budget category its payments count in ('' until chosen). */
+  category_id?: string;
+  category_name?: string;
   start_date: string | null;
   term_months: number;
   frequency: string;

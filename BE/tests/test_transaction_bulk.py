@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 
 from budgeting.store import TransactionFS
-from tests.helpers import B, add_expense, create_account, create_category
+from tests.helpers import B, add_expense, create_account, create_category, create_group
 
 pytestmark = pytest.mark.django_db
 
@@ -102,6 +102,7 @@ def test_bulk_delete_reopens_paid_installments(api):
     r = api.post(B + "/commitments/", {
         "name": "Car loan", "amount": "300", "start_date": "2026-10-05", "term_months": 3,
         "frequency": "monthly", "payment_amount": "100", "currency": "USD",
+        "category_id": create_group(api),
     }, format="json")
     cid = r.json()["id"]
     line_id = api.get("%s/commitments/%s/" % (B, cid)).json()["schedule"][0]["id"]
