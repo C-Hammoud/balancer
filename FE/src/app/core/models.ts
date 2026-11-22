@@ -258,6 +258,37 @@ export interface TransactionBulkCategorizeResult {
   created_categories: BudgetCategory[];
 }
 
+/** One row of the quick-add screen (POST transactions/bulk/create/). */
+export interface QuickTransactionInput {
+  date: string;
+  time?: string;
+  direction: 'expense' | 'income';
+  description: string;
+  amount: string;
+  /** Empty: the user's default currency. */
+  currency?: string;
+  /** Empty: the default expense account. */
+  account_id?: string;
+  /** Expense: parent category (required). */
+  group_id?: string;
+  /** Expense: one of the category's merchants; empty = merchant named after the description. */
+  category_id?: string;
+  note?: string;
+}
+
+export interface TransactionBulkCreateResult {
+  created: number;
+  transactions: Transaction[];
+  /** Merchants created under their category for descriptions that had none yet. */
+  created_categories: BudgetCategory[];
+}
+
+/** 400 from bulk create: field errors per row index ("0", "1", …). Nothing was saved. */
+export interface TransactionBulkCreateErrors {
+  rows?: Record<string, Record<string, string[]>>;
+  transactions?: string[];
+}
+
 export type AccountType = 'bank' | 'credit_card' | 'wallet' | 'other';
 
 export interface AccountBalance {

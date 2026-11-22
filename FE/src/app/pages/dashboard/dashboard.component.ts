@@ -19,6 +19,7 @@ import { AuthService } from '../../core/auth.service';
 import { AccountBalancesWidgetComponent } from './widgets/account-balances.component';
 import { UpcomingPaymentsWidgetComponent } from './widgets/upcoming-payments.component';
 import { RecentTransactionsWidgetComponent } from './widgets/recent-transactions.component';
+import { QuickAddWidgetComponent } from './widgets/quick-add.component';
 import {
   BudgetProgress,
   SpendingPace,
@@ -37,6 +38,7 @@ const HIDDEN_WIDGETS_KEY = 'ft_dashboard_hidden';
 
 /** Dashboard sections the user can show or hide (Customize). */
 export const DASHBOARD_WIDGETS = [
+  { id: 'quickAdd', label: 'Quick add' },
   { id: 'risk', label: 'Risk summary' },
   { id: 'year', label: 'Year overview' },
   { id: 'month', label: 'Monthly statistics' },
@@ -69,6 +71,7 @@ export interface TileDelta {
     AccountBalancesWidgetComponent,
     UpcomingPaymentsWidgetComponent,
     RecentTransactionsWidgetComponent,
+    QuickAddWidgetComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',

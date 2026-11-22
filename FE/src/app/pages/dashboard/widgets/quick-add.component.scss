@@ -1,0 +1,109 @@
+// Quick add widget: one line of fields that wraps on narrow screens.
+.qa-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+
+  input,
+  select {
+    min-height: 2.5rem;
+    box-sizing: border-box;
+  }
+
+  > select {
+    flex: 1 1 9rem;
+    min-width: 0;
+  }
+
+  .description {
+    flex: 2 1 13rem;
+    min-width: 0;
+  }
+
+  input[type='date'] {
+    flex: 0 1 9.5rem;
+  }
+}
+
+.amount-group {
+  display: flex;
+  flex: 1 1 11rem;
+  min-width: 0;
+
+  .amount {
+    flex: 1;
+    min-width: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  select {
+    border-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid #c9d5d4;
+  border-radius: 0.5rem;
+  overflow: hidden;
+
+  button {
+    border: 0;
+    background: #fff;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0 0.75rem;
+    min-height: 2.4rem;
+    cursor: pointer;
+
+    & + button {
+      border-left: 1px solid #c9d5d4;
+    }
+
+    &.on {
+      background: var(--accent);
+      color: #fff;
+    }
+  }
+}
+
+.add-btn {
+  flex: 0 0 auto;
+  min-width: 5rem;
+}
+
+.link-btn {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.qa-error {
+  margin: 0;
+  color: #9b2c16;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .qa-line > *,
+  .qa-line .description,
+  .amount-group {
+    flex: 1 1 100%;
+  }
+
+  .seg button {
+    flex: 1;
+  }
+}

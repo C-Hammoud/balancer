@@ -38,6 +38,8 @@ import {
   ThresholdRow,
   Transaction,
   TransactionBulkCategorizeResult,
+  TransactionBulkCreateResult,
+  QuickTransactionInput,
   TransactionBulkChanges,
   TransactionBulkResult,
   TransactionImportOptions,
@@ -141,6 +143,13 @@ export class BudgetingService {
    */
   createTransaction(payload: Partial<Transaction> & { group_id?: string }): Observable<Transaction> {
     return this.http.post<Transaction>(`${this.api}/transactions/`, payload);
+  }
+
+  /** Quick add: several expenses / incomes in one call, all or nothing. */
+  createTransactions(rows: QuickTransactionInput[]): Observable<TransactionBulkCreateResult> {
+    return this.http.post<TransactionBulkCreateResult>(`${this.api}/transactions/bulk/create/`, {
+      transactions: rows,
+    });
   }
 
   updateTransaction(id: string, payload: Partial<Transaction>): Observable<Transaction> {

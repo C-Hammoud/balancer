@@ -342,6 +342,10 @@
 }
 
 // New widgets
+.quick-add-widget {
+  margin-bottom: 1rem;
+}
+
 .widget-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));

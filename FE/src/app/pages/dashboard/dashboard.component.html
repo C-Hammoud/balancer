@@ -64,6 +64,10 @@
 
 <app-month-questions />
 
+@if (shown('quickAdd')) {
+<app-quick-add-widget class="quick-add-widget" />
+}
+
 @if (shown('risk')) {
 <app-risk-summary />
 }

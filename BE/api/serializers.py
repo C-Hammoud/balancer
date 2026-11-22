@@ -1,3 +1,4 @@
+from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
@@ -281,6 +282,39 @@ class TransactionSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"description": ["Merchant or description is required for expenses."]}
             )
+        return attrs
+
+
+class QuickTransactionSerializer(serializers.Serializer):
+    """One row of the quick-add screen (POST .../transactions/bulk/create/): expense or income."""
+
+    date = serializers.DateField()
+    time = serializers.CharField(required=False, allow_blank=True, default="", max_length=8)
+    direction = serializers.ChoiceField(
+        choices=[("expense", "Expense"), ("income", "Income")], required=False, default="expense"
+    )
+    description = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    currency = serializers.ChoiceField(choices=CURRENCY_CHOICES, required=False, allow_blank=True, default="")
+    account_id = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
+    # Expense: parent category, and optionally one of its merchants (subcategories).
+    group_id = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
+    category_id = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
+    note = serializers.CharField(required=False, allow_blank=True, default="", max_length=1000)
+    status = serializers.ChoiceField(choices=TransactionStatus.choices, required=False, default=TransactionStatus.SETTLED)
+
+    def validate(self, attrs):
+        for key in ("description", "account_id", "group_id", "category_id", "note", "time"):
+            attrs[key] = (attrs.get(key) or "").strip()
+        if attrs["direction"] == "income" and not attrs["description"]:
+            raise serializers.ValidationError({"description": ["Enter what this income is (e.g. Salary)."]})
+        if attrs["direction"] == "expense":
+            if not attrs["group_id"]:
+                raise serializers.ValidationError({"group_id": ["Choose a category."]})
+            if not attrs["category_id"] and not attrs["description"]:
+                raise serializers.ValidationError(
+                    {"description": ["Enter a description (it becomes the merchant) or pick a merchant."]}
+                )
         return attrs
 
 

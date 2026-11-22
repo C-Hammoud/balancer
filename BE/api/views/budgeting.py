@@ -20,6 +20,7 @@ from api.serializers import (
     IncomeSourceSerializer,
     MarkPaymentSerializer,
     MerchantLinkSerializer,
+    QuickTransactionSerializer,
     SavingsSerializer,
     ScheduleLineUpdateSerializer,
     TransactionSerializer,
@@ -162,9 +163,12 @@ def _payment_account(uid: str, data):
 COMMITMENT_CATEGORY_REQUIRED = "Choose the category this commitment's payments count in."
 
 
-def _subcategory_named(user, group, name: str):
-    """The subcategory called `name` under `group` (the user's own first), created when missing."""
-    name = _merchant_name_from_description(name) or "Commitment"
+def _subcategory_named(user, group, name: str, fallback: str = "Commitment", created=None):
+    """
+    The subcategory called `name` under `group` (the user's own first), created when missing.
+    A newly created one is appended to `created` when a list is given.
+    """
+    name = _merchant_name_from_description(name) or fallback
     in_group = [c for c in visible_categories(user) if c.group_id == group.pk]
     matches = [c for c in in_group if (c.name or "").strip().lower() == name.lower()]
     if matches:
@@ -177,6 +181,8 @@ def _subcategory_named(user, group, name: str):
         user_id=user_id(user),
     )
     c.save()
+    if created is not None:
+        created.append(c)
     return c
 
 
@@ -1192,6 +1198,120 @@ class TransactionBulkCategorizeView(APIView):
             "no_description": no_description,
             "created_categories": [_category_dict(c, group.name, request.user) for c in created],
         })
+
+
+BULK_CREATE_MAX = 50
+
+
+class TransactionBulkCreateView(APIView):
+    """
+    Quick add: create several expenses / incomes in one call.
+      {"transactions": [{date, time?, direction?: "expense"|"income", description, amount,
+                         currency?, account_id?, group_id?, category_id?, note?, status?}, ...]}
+    - Account: the one given, else the default expense account.
+    - Currency: the one given, else the user's default currency.
+    - Expense: group_id (parent category) is required. category_id is one of its merchants; without
+      it the merchant is the one named after the description (created under the category if new).
+    All rows are checked first: any error returns 400 {"rows": {"<index>": {field: [msg]}}} and
+    nothing is saved. Returns 201 {"created", "transactions", "created_categories"}.
+    """
+
+    def post(self, request):
+        from api.user_preferences import get_user_preferences
+
+        data = request.data if isinstance(request.data, dict) else {}
+        items = data.get("transactions")
+        if not isinstance(items, list) or not items:
+            return Response({"transactions": ["Add at least one transaction."]}, status=status.HTTP_400_BAD_REQUEST)
+        if len(items) > BULK_CREATE_MAX:
+            return Response(
+                {"transactions": [f"Add at most {BULK_CREATE_MAX} transactions at a time."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        uid = user_id(request.user)
+        default_currency = get_user_preferences(request.user).get("default_currency") or "USD"
+        default_account = None
+        default_looked_up = False
+
+        planned, errors = [], {}
+        for index, item in enumerate(items):
+            serializer = QuickTransactionSerializer(data=item if isinstance(item, dict) else {})
+            if not serializer.is_valid():
+                errors[str(index)] = serializer.errors
+                continue
+            cd = serializer.validated_data
+            row_errors = {}
+            if cd["account_id"]:
+                acc, acc_err = _resolve_account(uid, cd["account_id"])
+                if acc_err:
+                    row_errors.update(acc_err)
+            else:
+                if not default_looked_up:
+                    default_account, default_looked_up = _default_expense_account(uid), True
+                acc = default_account
+                if not acc:
+                    row_errors["account_id"] = ["Add an account first (Setup → Accounts)."]
+            group = sub = None
+            if cd["direction"] == "expense":
+                group = get_visible_group(request.user, cd["group_id"])
+                if not group:
+                    row_errors["group_id"] = ["Category not found."]
+                elif cd["category_id"]:
+                    sub = _require_subcategory(request.user, cd["category_id"])
+                    if not sub:
+                        row_errors["category_id"] = [_category_id_field_error(request.user, cd["category_id"])]
+                    elif sub.group_id != group.pk:
+                        row_errors["category_id"] = ["This merchant belongs to another category."]
+                        sub = None
+            if row_errors:
+                errors[str(index)] = row_errors
+            else:
+                planned.append((cd, acc, group, sub))
+        if errors:
+            return Response({"rows": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        created_categories, by_name, rows = [], {}, []
+        for cd, acc, group, sub in planned:
+            description = cd["description"]
+            if cd["direction"] == "expense":
+                if not sub:
+                    key = (group.pk, _merchant_name_from_description(description).lower())
+                    if key not in by_name:
+                        by_name[key] = _subcategory_named(
+                            request.user, group, description, fallback="Merchant", created=created_categories
+                        )
+                    sub = by_name[key]
+                if not description:
+                    description = sub.name
+            txn_date = cd["date"]
+            rows.append(TransactionFS(
+                user_id=uid,
+                date=txn_date,
+                month=get_month_str(txn_date),
+                description=description[:500],
+                category_id=sub.pk if sub else None,
+                classification=None,
+                amount=cd["amount"],
+                currency=cd["currency"] or default_currency,
+                note=cd["note"],
+                time=(cd["time"] or datetime.now().strftime("%H:%M"))[:8],
+                direction=cd["direction"],
+                source_account=acc.name if acc else "",
+                income_source_id=acc.pk if acc else "",
+                status=cd.get("status") or "settled",
+            ))
+        _save_bulk_rows(request.user, rows)
+        group_names = {g.pk: g.name for g in visible_groups(request.user)}
+        return Response(
+            {
+                "created": len(rows),
+                "transactions": [transaction_to_dict(t) for t in rows],
+                "created_categories": [
+                    _category_dict(c, group_names.get(c.group_id, ""), request.user) for c in created_categories
+                ],
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class TransactionImportTemplateView(APIView):

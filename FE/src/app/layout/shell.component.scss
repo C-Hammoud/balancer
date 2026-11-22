@@ -190,7 +190,8 @@
 .page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.35rem 1rem max(3rem, env(safe-area-inset-bottom));
+  // Room at the bottom so the + button never covers the last row.
+  padding: 1.35rem 1rem max(5.5rem, calc(env(safe-area-inset-bottom) + 5rem));
 }
 
 .drawer-backdrop {
@@ -319,6 +320,42 @@
   display: none;
 }
 
+// Quick add: round + button on every page, bottom-right.
+.quick-add-fab {
+  position: fixed;
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem));
+  z-index: 45;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a5c5e, #0f3d3e);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(11, 46, 47, 0.35);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  span {
+    font-size: 2rem;
+    line-height: 1;
+    font-weight: 300;
+    margin-top: -0.1rem;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(11, 46, 47, 0.4);
+  }
+
+  &:focus-visible {
+    outline: 3px solid #c45c26;
+    outline-offset: 3px;
+  }
+}
+
 @media (max-width: 900px) {
   .mobile-bell {
     display: inline-flex;
@@ -336,6 +373,11 @@
 
   .menu-toggle {
     display: flex;
+  }
+
+  .quick-add-fab {
+    width: 3.25rem;
+    height: 3.25rem;
   }
 
   .page {

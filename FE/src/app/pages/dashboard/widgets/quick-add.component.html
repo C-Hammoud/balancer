@@ -1,0 +1,83 @@
+<section class="widget" aria-labelledby="quick-add-title">
+  <header class="widget-head">
+    <h2 id="quick-add-title">Quick add</h2>
+    <button type="button" class="link-btn" (click)="addSeveral()">Add several…</button>
+  </header>
+
+  <form class="qa-line" (ngSubmit)="add()">
+    <div class="seg" role="group" aria-label="Type">
+      <button
+        type="button"
+        [class.on]="row.direction === 'expense'"
+        [attr.aria-pressed]="row.direction === 'expense'"
+        (click)="setDirection('expense')"
+      >Expense</button>
+      <button
+        type="button"
+        [class.on]="row.direction === 'income'"
+        [attr.aria-pressed]="row.direction === 'income'"
+        (click)="setDirection('income')"
+      >Income</button>
+    </div>
+
+    <div class="amount-group">
+      <input
+        class="amount"
+        name="amount"
+        type="text"
+        inputmode="decimal"
+        autocomplete="off"
+        placeholder="Amount"
+        aria-label="Amount"
+        [(ngModel)]="row.amount"
+      />
+      <select name="currency" aria-label="Currency" [(ngModel)]="row.currency">
+        @for (cur of currencies(); track cur.code) {
+          <option [value]="cur.code">{{ cur.code }}</option>
+        }
+      </select>
+    </div>
+
+    @if (row.direction === 'expense') {
+      <select name="group" aria-label="Category" [(ngModel)]="row.groupId" (ngModelChange)="onGroupChange()">
+        <option value="">Category…</option>
+        @for (g of options().groups; track g.id) {
+          <option [value]="g.id">{{ g.name }}</option>
+        }
+      </select>
+      <select name="merchant" aria-label="Merchant" [(ngModel)]="row.merchantId" [disabled]="!row.groupId">
+        <option [value]="sameAsDescription">Merchant: same as description</option>
+        @for (m of merchantsFor(row.groupId); track m.id) {
+          <option [value]="m.id">{{ m.name }}</option>
+        }
+      </select>
+    }
+
+    <input
+      class="description"
+      name="description"
+      type="text"
+      maxlength="500"
+      autocomplete="off"
+      aria-label="Description"
+      [placeholder]="descriptionPlaceholder()"
+      [(ngModel)]="row.description"
+    />
+
+    <select name="account" aria-label="Account" [(ngModel)]="row.accountId">
+      <option value="">Default account</option>
+      @for (a of options().accounts; track a.id) {
+        <option [value]="a.id">{{ a.name }}</option>
+      }
+    </select>
+    <input name="date" type="date" aria-label="Date" [(ngModel)]="row.date" />
+
+    <button type="submit" class="btn primary add-btn" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Add' }}
+    </button>
+  </form>
+
+  @if (error()) {
+    <p class="qa-error" role="alert">{{ error() }}</p>
+  }
+</section>

@@ -1,0 +1,181 @@
+// Wider than the default modal: each row holds several fields side by side.
+.qa-modal {
+  width: min(960px, calc(100vw - 1.5rem));
+  max-height: min(90vh, 860px);
+  color: var(--ink);
+}
+
+.qa-rows {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.qa-row {
+  border: 1px solid #dfe8e7;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+  background: #fbfdfc;
+
+  &.has-error {
+    border-color: #e0a598;
+    background: #fff8f6;
+  }
+}
+
+.qa-row-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+
+  .spacer {
+    flex: 1;
+  }
+}
+
+.qa-num {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: #e8f1f0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+// Expense / Income toggle
+.seg {
+  display: inline-flex;
+  border: 1px solid #c9d5d4;
+  border-radius: 0.5rem;
+  overflow: hidden;
+
+  button {
+    border: 0;
+    background: #fff;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    min-height: 2.1rem;
+    cursor: pointer;
+
+    & + button {
+      border-left: 1px solid #c9d5d4;
+    }
+
+    &.on {
+      background: var(--accent);
+      color: #fff;
+    }
+  }
+}
+
+.link-btn {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+
+  &.danger {
+    color: #8a2f1d;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.qa-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.55rem 0.65rem;
+
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 0;
+  }
+
+  .wide {
+    grid-column: span 2;
+  }
+
+  input,
+  select {
+    width: 100%;
+    box-sizing: border-box;
+    color: var(--ink);
+    font-weight: 400;
+    font-size: 0.95rem;
+  }
+}
+
+.qa-error {
+  margin: 0.5rem 0 0;
+  color: #9b2c16;
+  font-size: 0.85rem;
+}
+
+.qa-warn {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.6rem;
+  background: #fff1db;
+  color: #7a4800;
+}
+
+.qa-add-row {
+  width: 100%;
+  border: 1px dashed #b7c9c7;
+  background: transparent;
+}
+
+.qa-cancel {
+  background: transparent;
+  border-color: #c9d5d4;
+}
+
+.qa-totals {
+  margin: 0 auto 0 0;
+  align-self: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  // Bottom sheet, like the other dialogs on phones.
+  .qa-modal {
+    width: 100%;
+    max-height: min(92vh, 100dvh);
+  }
+
+  .qa-fields {
+    grid-template-columns: 1fr 1fr;
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  // The footer stacks on phones (global modal style); keep the totals readable.
+  .qa-totals {
+    margin: 0;
+    text-align: center;
+  }
+}

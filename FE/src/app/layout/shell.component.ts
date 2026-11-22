@@ -8,6 +8,8 @@ import { FinanceDataRefreshService } from '../core/finance-data-refresh.service'
 import { PwaInstallService } from '../core/pwa-install.service';
 import { CommitmentDuePromptComponent } from '../shared/commitment-due-prompt/commitment-due-prompt.component';
 import { NotificationBellComponent } from '../shared/notification-bell/notification-bell.component';
+import { QuickAddDialogComponent } from '../shared/quick-add/quick-add-dialog.component';
+import { QuickAddService } from '../shared/quick-add/quick-add.service';
 
 interface NavItem {
   label: string;
@@ -31,6 +33,7 @@ interface NavGroup {
     RouterLinkActive,
     CommitmentDuePromptComponent,
     NotificationBellComponent,
+    QuickAddDialogComponent,
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
@@ -41,6 +44,8 @@ export class ShellComponent implements OnInit, OnDestroy {
   private refresh = inject(FinanceDataRefreshService);
   private router = inject(Router);
   private pwa = inject(PwaInstallService);
+  /** The + button opens the quick-add screen on every page. */
+  readonly quickAdd = inject(QuickAddService);
 
   user = this.auth.user;
   alertCount = signal(0);
