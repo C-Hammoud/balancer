@@ -943,6 +943,86 @@ export interface AdminOverview {
   emails_failed_7d: number;
 }
 
+// ---- Admin overview page (GET /admin/overview/?days=) ----
+
+export type OverviewDays = 7 | 30 | 90;
+
+export interface DailyCount {
+  /** YYYY-MM-DD (server's local day). */
+  date: string;
+  count: number;
+}
+
+/** A per-day series with its total and the total of the period before. */
+export interface PeriodSeries {
+  series: DailyCount[];
+  total: number;
+  previous: number;
+}
+
+export interface OverviewUsers {
+  signups: PeriodSeries;
+  funnel: {
+    signed_up: number;
+    verified: number;
+    setup_complete: number;
+    /** null: too many recent sign-ups to check, or the data could not be read. */
+    first_transaction: number | null;
+  };
+  active: { day: number; week: number; month: number; never: number; total: number };
+}
+
+export interface OverviewSupport {
+  opened: PeriodSeries;
+  closed: PeriodSeries;
+  first_reply_hours: number | null;
+  resolve_hours: number | null;
+  oldest_waiting: { id: number; subject: string; since: string; hours: number; assigned_to: UserRef | null } | null;
+  workload: { admin: UserRef; open: number; waiting: number }[];
+}
+
+export interface OverviewCampaign {
+  id: number;
+  name: string;
+  status: CampaignStatus;
+  category: string;
+  scheduled_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  stats: NonNullable<Campaign['stats']>;
+}
+
+export interface OverviewMessaging {
+  recent: OverviewCampaign[];
+  next_scheduled: OverviewCampaign | null;
+  /** Campaigns still sending 30 minutes after they started (scheduler not running?). */
+  stuck: number;
+  drafts: number;
+}
+
+export interface EmailCounts {
+  sent: number;
+  failed: number;
+  console: number;
+}
+
+export interface OverviewEmail {
+  current: EmailCounts;
+  previous: EmailCounts;
+  recent_failures: { id: number; to: string; subject: string; error: string; user: UserRef | null; created_at: string | null }[];
+}
+
+/** Each section is null when it could not be built (the others still load). */
+export interface AdminDashboard extends AdminOverview {
+  days: OverviewDays;
+  generated_at: string;
+  users: OverviewUsers | null;
+  support: OverviewSupport | null;
+  messaging: OverviewMessaging | null;
+  email: OverviewEmail | null;
+  activity: AuditLogRow[] | null;
+}
+
 export interface EmailLogRow {
   to: string;
   subject: string;

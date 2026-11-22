@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AdminService } from '../../core/admin.service';
 import { Campaign, CampaignStatus, Paged } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
@@ -77,6 +77,7 @@ import { audienceSummary } from './messaging.helpers';
 export class AdminNotificationsComponent implements OnInit {
   private admin = inject(AdminService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
 
   page = signal<Paged<Campaign> | null>(null);
@@ -89,6 +90,8 @@ export class AdminNotificationsComponent implements OnInit {
   readonly categoryLabel = CATEGORY_LABEL;
 
   ngOnInit(): void {
+    const status = this.route.snapshot.queryParamMap.get('status') as CampaignStatus | null;
+    if (status && this.statuses.includes(status)) this.status = status;
     this.load(1);
   }
 

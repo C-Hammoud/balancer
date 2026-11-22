@@ -25,6 +25,8 @@ import {
   SupportSettings,
   SupportTicket,
   UserRef,
+  AdminDashboard,
+  OverviewDays,
 } from './models';
 
 function params(values: Record<string, string | number | null | undefined>): HttpParams {
@@ -44,6 +46,11 @@ export class AdminService {
 
   overview(): Observable<AdminOverview> {
     return this.http.get<AdminOverview>(`${this.api}/overview/`);
+  }
+
+  /** The overview page: the counts plus the sections for the last `days` days. */
+  dashboard(days: OverviewDays): Observable<AdminDashboard> {
+    return this.http.get<AdminDashboard>(`${this.api}/overview/`, { params: { days } });
   }
 
   users(filters: AdminUserFilters): Observable<AdminUserPage> {

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from api import support
+from api import admin_overview, support
 from api.currency import resolve_report_currency
 from api.emails import send_email_changed_by_support_email, send_verification_email
 from api.models import AdminAuditLog, EmailLog, SupportTicket, UserProfile
@@ -55,8 +55,23 @@ class StaffView(APIView):
 
 
 class AdminOverviewView(StaffView):
+    """
+    GET: the counts (also used by the ticket queue). With ?days=7|30|90 the overview page's
+    sections are added: users, support, messaging, email and admin activity for that period.
+    """
+
     def get(self, request):
-        return Response(support.overview(for_user=request.user))
+        data = support.overview(for_user=request.user)
+        raw = request.query_params.get("days")
+        if raw is not None:
+            try:
+                days = int(raw)
+            except ValueError:
+                days = 0
+            if days not in admin_overview.PERIODS:
+                return Response({"days": ["Use 7, 30 or 90."]}, status=status.HTTP_400_BAD_REQUEST)
+            data.update(admin_overview.dashboard(days))
+        return Response(data)
 
 
 class AdminUserListView(StaffView):

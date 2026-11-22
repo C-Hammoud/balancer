@@ -1,0 +1,375 @@
+<section class="hero">
+  <div>
+    <h1>Admin</h1>
+    <p>Users, support tickets and messages at a glance. Every view and action is recorded in the audit log.</p>
+  </div>
+  <div class="head-actions">
+    <div class="period" role="group" aria-label="Period">
+      @for (p of periods; track p) {
+        <button type="button" [class.active]="days() === p" [attr.aria-pressed]="days() === p" (click)="setDays(p)">
+          {{ p }} days
+        </button>
+      }
+    </div>
+    <button type="button" class="btn ghost" [disabled]="loading()" (click)="load()">
+      {{ loading() ? 'Refreshing…' : 'Refresh' }}
+    </button>
+    <button
+      type="button"
+      class="btn ghost"
+      [attr.aria-expanded]="showCustomize()"
+      aria-controls="overview-customize"
+      (click)="showCustomize.set(!showCustomize())"
+    >
+      Customize{{ hiddenCount() ? ' (' + hiddenCount() + ' hidden)' : '' }}
+    </button>
+  </div>
+</section>
+@if (updated()) {
+  <p class="updated muted">Updated {{ updated() }} · refreshes every minute</p>
+}
+
+@if (showCustomize()) {
+  <section id="overview-customize" class="panel customize-panel" aria-label="Choose overview widgets">
+    <div class="panel-head">
+      <h2>Show on the overview</h2>
+      <div class="toolbar">
+        <button type="button" class="btn ghost small" (click)="showAll()" [disabled]="!hiddenCount()">Show all</button>
+        <button type="button" class="btn ghost small" (click)="showCustomize.set(false)">Done</button>
+      </div>
+    </div>
+    <div class="customize-grid">
+      @for (w of widgets; track w.id) {
+        <label class="check-line">
+          <input type="checkbox" [checked]="shown(w.id)" (change)="toggleWidget(w.id)" />
+          {{ w.label }}
+        </label>
+      }
+    </div>
+    <p class="muted hint">Saved in this browser.</p>
+  </section>
+}
+
+@if (data(); as d) {
+  <!-- Needs attention -->
+  <section class="attention" aria-label="Needs attention">
+    @for (a of attention(); track a.key) {
+      <a [class]="'attn ' + a.severity" [routerLink]="a.link" [queryParams]="a.query ?? {}">
+        <strong>{{ a.count }}</strong><span>{{ a.label }}</span>
+      </a>
+    } @empty {
+      <p class="attn-ok">✓ Nothing needs attention right now.</p>
+    }
+  </section>
+
+  <!-- Users -->
+  @if (sectionShown('users')) {
+    <h2 class="section-title">Users</h2>
+    @if (shown('numbers')) {
+      <div class="tiles">
+        <a class="tile" routerLink="/admin/users"><span>Users</span><strong>{{ d.users_total }}</strong></a>
+        <a class="tile" routerLink="/admin/users" [queryParams]="{ pool: 'deactivated' }">
+          <span>Deactivated</span><strong>{{ d.deactivated }}</strong>
+        </a>
+        <a class="tile" routerLink="/admin/tickets" [queryParams]="{ view: 'all', status: 'open' }">
+          <span>Open tickets (all admins)</span><strong>{{ d.tickets_open }}</strong>
+        </a>
+        <a class="tile" routerLink="/admin/tickets" [queryParams]="{ view: 'all', status: 'resolved' }">
+          <span>Resolved, awaiting user</span><strong>{{ d.tickets_resolved }}</strong>
+        </a>
+      </div>
+    }
+    <div class="grid2">
+      @if (shown('signups')) {
+        <section class="panel">
+          <div class="panel-head"><h2>Sign-ups</h2><span class="muted">last {{ d.days }} days</span></div>
+          @if (d.users; as u) {
+            <div class="big">
+              <strong>{{ u.signups.total }}</strong>
+              @let c = change(u.signups.total, u.signups.previous);
+              <span [class]="'delta ' + c.tone">{{ c.text }}</span>
+            </div>
+            <app-trend-chart [series]="signupSeries()" [label]="'Sign-ups per day, last ' + d.days + ' days'" />
+          } @else {
+            <p class="empty">Could not load this part.</p>
+          }
+        </section>
+      }
+      @if (shown('funnel')) {
+        <section class="panel">
+          <div class="panel-head"><h2>Activation funnel</h2><span class="muted">users who signed up in the last {{ d.days }} days</span></div>
+          @if (d.users; as u) {
+            @if (u.funnel.signed_up) {
+              <ol class="funnel">
+                <li>
+                  <a routerLink="/admin/users" [queryParams]="{ joined_from: periodStart() }">Signed up</a>
+                  <div class="bar"><i style="width: 100%"></i></div>
+                  <span class="num">{{ u.funnel.signed_up }}</span><span class="pct">100%</span>
+                </li>
+                <li>
+                  <a routerLink="/admin/users" [queryParams]="{ joined_from: periodStart(), verified: 'yes' }">Verified email</a>
+                  <div class="bar"><i [style.width]="percent(u.funnel.verified, u.funnel.signed_up)"></i></div>
+                  <span class="num">{{ u.funnel.verified }}</span>
+                  <span class="pct">{{ percent(u.funnel.verified, u.funnel.signed_up) }}</span>
+                </li>
+                <li>
+                  <span>Finished setup</span>
+                  <div class="bar"><i [style.width]="percent(u.funnel.setup_complete, u.funnel.signed_up)"></i></div>
+                  <span class="num">{{ u.funnel.setup_complete }}</span>
+                  <span class="pct">{{ percent(u.funnel.setup_complete, u.funnel.signed_up) }}</span>
+                </li>
+                <li>
+                  <span>Added a transaction</span>
+                  @if (u.funnel.first_transaction !== null) {
+                    <div class="bar"><i [style.width]="percent(u.funnel.first_transaction, u.funnel.signed_up)"></i></div>
+                    <span class="num">{{ u.funnel.first_transaction }}</span>
+                    <span class="pct">{{ percent(u.funnel.first_transaction, u.funnel.signed_up) }}</span>
+                  } @else {
+                    <span class="muted not-checked">Not checked (too many sign-ups in this period)</span>
+                  }
+                </li>
+              </ol>
+              @if (u.funnel.signed_up - u.funnel.verified > 0) {
+                <p class="foot">
+                  <a routerLink="/admin/users" [queryParams]="{ joined_from: periodStart(), verified: 'no' }">
+                    {{ u.funnel.signed_up - u.funnel.verified }} not verified yet →
+                  </a>
+                </p>
+              }
+            } @else {
+              <p class="empty">No sign-ups in this period.</p>
+            }
+          } @else {
+            <p class="empty">Could not load this part.</p>
+          }
+        </section>
+      }
+    </div>
+    @if (shown('active') && d.users; as u) {
+      <section class="panel">
+        <div class="panel-head"><h2>Active users</h2><span class="muted">signed in, out of {{ u.active.total }} active accounts</span></div>
+        <div class="stats4">
+          <div><span>Today</span><strong>{{ u.active.day }}</strong><small>{{ percent(u.active.day, u.active.total) }}</small></div>
+          <div><span>Last 7 days</span><strong>{{ u.active.week }}</strong><small>{{ percent(u.active.week, u.active.total) }}</small></div>
+          <div><span>Last 30 days</span><strong>{{ u.active.month }}</strong><small>{{ percent(u.active.month, u.active.total) }}</small></div>
+          <a routerLink="/admin/users" [queryParams]="{ last_login: 'never' }">
+            <span>Never signed in</span><strong>{{ u.active.never }}</strong><small>{{ percent(u.active.never, u.active.total) }}</small>
+          </a>
+        </div>
+      </section>
+    }
+  }
+
+  <!-- Support -->
+  @if (sectionShown('support')) {
+    <h2 class="section-title">Support</h2>
+    <div class="grid2">
+      @if (shown('tickets')) {
+        <section class="panel">
+          <div class="panel-head"><h2>Ticket flow</h2><span class="muted">last {{ d.days }} days</span></div>
+          @if (d.support; as s) {
+            <div class="pair">
+              <div class="big">
+                <strong>{{ s.opened.total }}</strong> <span class="muted">opened</span>
+                @let co = change(s.opened.total, s.opened.previous, false);
+                <span [class]="'delta ' + co.tone">{{ co.text }}</span>
+              </div>
+              <div class="big">
+                <strong>{{ s.closed.total }}</strong> <span class="muted">closed</span>
+                @let cc = change(s.closed.total, s.closed.previous);
+                <span [class]="'delta ' + cc.tone">{{ cc.text }}</span>
+              </div>
+            </div>
+            <app-trend-chart [series]="ticketSeries()" [label]="'Tickets opened and closed per day, last ' + d.days + ' days'" />
+          } @else {
+            <p class="empty">Could not load this part.</p>
+          }
+        </section>
+      }
+      @if (shown('response')) {
+        <section class="panel">
+          <div class="panel-head"><h2>Response times</h2><span class="muted">median, last {{ d.days }} days</span></div>
+          @if (d.support; as s) {
+            <div class="stats2">
+              <div><span>First admin reply</span><strong>{{ hoursText(s.first_reply_hours) }}</strong></div>
+              <div><span>Until resolved</span><strong>{{ hoursText(s.resolve_hours) }}</strong></div>
+            </div>
+            @if (s.oldest_waiting; as o) {
+              <a class="oldest" [class.late]="o.hours >= 24" [routerLink]="['/admin/tickets', o.id]">
+                <span>Waiting longest for support</span>
+                <strong>{{ o.subject }}</strong>
+                <small>{{ hoursText(o.hours) }} · {{ o.assigned_to ? o.assigned_to.username : 'in the pool' }}</small>
+              </a>
+            } @else {
+              <p class="muted">No ticket is waiting for support.</p>
+            }
+          } @else {
+            <p class="empty">Could not load this part.</p>
+          }
+        </section>
+      }
+    </div>
+    @if (shown('workload')) {
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Team workload</h2>
+          <span class="legend-inline"><i class="sw open"></i> waiting for the admin <i class="sw waiting"></i> waiting for the user</span>
+        </div>
+        @if (d.support; as s) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Admin</th><th class="num">Waiting for admin</th><th class="num">Waiting for user</th><th class="wide"></th></tr></thead>
+              <tbody>
+                @for (r of s.workload; track r.admin.id) {
+                  <tr>
+                    <td>{{ r.admin.username }}</td>
+                    <td class="num">{{ r.open }}</td>
+                    <td class="num">{{ r.waiting }}</td>
+                    <td class="wide">
+                      <div class="stack" [attr.aria-label]="r.open + ' waiting for admin, ' + r.waiting + ' waiting for user'">
+                        @if (r.open) { <i class="open" [style.width.%]="(r.open / maxWorkload()) * 100"></i> }
+                        @if (r.waiting) { <i class="waiting" [style.width.%]="(r.waiting / maxWorkload()) * 100"></i> }
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="empty">No active admins.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="empty">Could not load this part.</p>
+        }
+      </section>
+    }
+  }
+
+  <!-- Messaging -->
+  @if (sectionShown('messaging')) {
+    <h2 class="section-title">Messaging</h2>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Recent campaigns</h2>
+        <div class="toolbar">
+          <a class="btn ghost small" routerLink="/admin/notifications">All campaigns</a>
+          <a class="btn primary small" routerLink="/admin/notifications/new">New campaign</a>
+        </div>
+      </div>
+      @if (d.messaging; as m) {
+        @if (m.next_scheduled; as n) {
+          <p class="next">
+            Next: <a [routerLink]="['/admin/notifications', n.id]">{{ n.name }}</a> sends {{ shortDate(n.scheduled_at) }}
+          </p>
+        }
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Campaign</th><th>Status</th><th class="num">Recipients</th><th class="num">Read (in-app)</th><th class="num">Clicked (email)</th></tr></thead>
+            <tbody>
+              @for (c of m.recent; track c.id) {
+                <tr>
+                  <td>
+                    <a [routerLink]="['/admin/notifications', c.id]">{{ c.name }}</a>
+                    <small>{{ c.finished_at ? 'Sent ' + shortDate(c.finished_at) : c.started_at ? 'Started ' + shortDate(c.started_at) : c.scheduled_at ? 'For ' + shortDate(c.scheduled_at) : '' }}</small>
+                  </td>
+                  <td><span [class]="'pill ' + statusClass[c.status]">{{ statusLabel[c.status] }}</span></td>
+                  <td class="num">{{ c.stats.processed }} / {{ c.stats.recipients }}</td>
+                  <td class="num">{{ rates(c).read }}</td>
+                  <td class="num">{{ rates(c).clicked }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="empty">No campaigns sent yet.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (m.drafts) {
+          <p class="foot"><a routerLink="/admin/notifications" [queryParams]="{ status: 'draft' }">{{ m.drafts }} draft{{ m.drafts === 1 ? '' : 's' }} →</a></p>
+        }
+      } @else {
+        <p class="empty">Could not load this part.</p>
+      }
+    </section>
+  }
+
+  <!-- System -->
+  @if (sectionShown('system')) {
+    <h2 class="section-title">System</h2>
+    <div class="grid2">
+      @if (shown('email')) {
+        <section class="panel">
+          <div class="panel-head"><h2>Email health</h2><span class="muted">last {{ d.days }} days</span></div>
+          @if (d.email; as e) {
+            <div class="stats3">
+              <div><span>Sent</span><strong>{{ e.current.sent }}</strong></div>
+              <div [class.bad]="e.current.failed">
+                <span>Failed</span><strong>{{ e.current.failed }}</strong>
+                @let cf = change(e.current.failed, e.previous.failed, false);
+                <small [class]="'delta ' + cf.tone">{{ cf.text }}</small>
+              </div>
+              <div><span>Failure rate</span><strong>{{ emailFailRate() }}</strong></div>
+            </div>
+            @if (e.current.console) {
+              <p class="muted small-note">{{ e.current.console }} printed to the server console (email sending is off).</p>
+            }
+            @if (e.recent_failures.length) {
+              <h3>Latest failures</h3>
+              <ul class="list">
+                @for (f of e.recent_failures; track f.id) {
+                  <li>
+                    @if (f.user) {
+                      <a [routerLink]="['/admin/users', f.user.id]">{{ f.user.username }}</a>
+                    } @else {
+                      <span>{{ f.to }}</span>
+                    }
+                    — {{ f.subject }}
+                    <small [title]="f.error">{{ ago(f.created_at) }}{{ f.error ? ' · ' + f.error : '' }}</small>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+            <p class="empty">Could not load this part.</p>
+          }
+        </section>
+      }
+      @if (shown('activity')) {
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Recent admin activity</h2>
+            <a class="btn ghost small" routerLink="/admin/audit-log">Full audit log</a>
+          </div>
+          @if (d.activity; as rows) {
+            <ul class="list">
+              @for (r of rows; track r.id) {
+                <li>
+                  <strong>{{ r.actor?.username ?? 'System' }}</strong> {{ actionLabel(r) | lowercase }}
+                  @if (r.target_user) {
+                    · <a [routerLink]="['/admin/users', r.target_user.id]">{{ r.target_user.username }}</a>
+                  }
+                  @if (r.ticket_id) {
+                    · <a [routerLink]="['/admin/tickets', r.ticket_id]">ticket #{{ r.ticket_id }}</a>
+                  }
+                  <small>{{ ago(r.created_at) }}</small>
+                </li>
+              } @empty {
+                <li class="empty">No admin activity yet.</li>
+              }
+            </ul>
+          } @else {
+            <p class="empty">Could not load this part.</p>
+          }
+        </section>
+      }
+    </div>
+  }
+} @else if (failed()) {
+  <section class="panel">
+    <p class="empty">Could not load the admin overview.</p>
+    <button type="button" class="btn primary" (click)="load()">Try again</button>
+  </section>
+} @else {
+  <div class="skeleton" aria-busy="true" aria-label="Loading">
+    <div></div><div></div><div></div>
+  </div>
+}
