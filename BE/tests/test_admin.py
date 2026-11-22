@@ -102,6 +102,43 @@ def test_search_and_flags(staff_api, make_user):
     assert staff_api.get(A + "/users/", {"flag": "nope"}).status_code == 400
 
 
+def test_user_pools_and_filters(staff_api, staff, make_user):
+    def names(**params):
+        body = staff_api.get(A + "/users/", params).json()
+        return sorted(r["username"] for r in body["results"]), body
+
+    gone = make_user("gone")
+    stuck = make_user("stuck")
+    UserProfile.objects.filter(user=stuck).update(email_verified=False)
+    stuck.date_joined = timezone.now() - timedelta(days=10)
+    stuck.save()
+    make_user("zed")
+
+    # Deactivating moves the user out of Active into Deactivated, with who and when.
+    assert staff_api.post(f"{A}/users/{gone.pk}/deactivate/").status_code == 200
+    active, body = names(pool="active")
+    assert active == ["stuck", "zed"]
+    assert body["pools"] == {"active": 2, "deactivated": 1, "staff": 1, "attention": 1}
+    deactivated, body = names(pool="deactivated")
+    assert deactivated == ["gone"]
+    assert body["results"][0]["deactivated_by"] == "helper" and body["results"][0]["deactivated_at"]
+    assert names(pool="staff")[0] == ["helper"]
+    assert names(pool="attention")[0] == ["stuck"]
+    assert names(status="inactive")[0] == ["gone"]  # older links keep working
+
+    # Filters apply inside the pool; the counts follow the search and filters.
+    assert names(pool="active", verified="no")[0] == ["stuck"]
+    since = (timezone.now() - timedelta(days=1)).date().isoformat()
+    assert names(pool="active", joined_from=since)[0] == ["zed"]
+    assert names(pool="active", last_login="never")[0] == ["stuck", "zed"]
+    body = staff_api.get(A + "/users/", {"pool": "active", "sort": "username"}).json()
+    assert [r["username"] for r in body["results"]] == ["stuck", "zed"]
+    assert names(pool="active", q="ze")[1]["pools"]["active"] == 1
+
+    for bad in ({"pool": "vip"}, {"sort": "age"}, {"verified": "maybe"}, {"joined_from": "31/01/2026"}):
+        assert staff_api.get(A + "/users/", bad).status_code == 400
+
+
 def test_overview_counts(staff_api, make_user):
     u = make_user("x")
     u.is_active = False

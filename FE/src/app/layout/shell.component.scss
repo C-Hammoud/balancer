@@ -132,6 +132,12 @@
   gap: 0.35rem;
 }
 
+// Admin console entry (staff only): set apart from the finance menu.
+.admin-link {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0.5rem;
+}
+
 .badge {
   background: #c45c26;
   color: #fff;

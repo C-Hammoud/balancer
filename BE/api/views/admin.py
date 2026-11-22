@@ -60,13 +60,27 @@ class AdminOverviewView(StaffView):
 
 
 class AdminUserListView(StaffView):
-    """GET ?q=&status=active|inactive|staff&flag=<code>&page="""
+    """
+    GET ?pool=active|deactivated|staff|attention&q=&flag=<code>&verified=yes|no
+        &joined_from=&joined_to=&last_login=never|30|90|180&sort=newest|oldest|last_login|username&page=
+    Without pool (or the older ?status=active|inactive|staff) every user is listed.
+    The response includes the size of each pool for the current search and filters.
+    """
 
     def get(self, request):
-        qs = support.search_users(request.query_params.get("q", ""), request.query_params.get("status", ""))
-        flag = request.query_params.get("flag", "")
+        params = request.query_params
+        pool = params.get("pool", "") or support.STATUS_TO_POOL.get(params.get("status", ""), "")
+        if pool and pool not in support.POOLS:
+            return Response({"pool": ["Unknown pool."]}, status=status.HTTP_400_BAD_REQUEST)
+        flag = params.get("flag", "")
         if flag and flag not in support.FLAGS:
             return Response({"flag": ["Unknown flag."]}, status=status.HTTP_400_BAD_REQUEST)
+        qs, errors = support.apply_user_filters(support.search_users(params.get("q", "")), params)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        pools = support.pool_counts(qs)
+        if pool:
+            qs = support.filter_pool(qs, pool)
         if flag in support.DB_FLAGS:
             qs = support.filter_by_db_flag(qs, flag)
         elif flag:
@@ -74,8 +88,16 @@ class AdminUserListView(StaffView):
             qs = [u for u in qs[:2000] if any(f["code"] == flag for f in support.user_flags(u))]
         total = len(qs) if isinstance(qs, list) else qs.count()
         page, start, end = _page(request)
-        rows = [support.user_row(u) for u in qs[start:end]]
-        return Response({"count": total, "page": page, "page_size": PAGE_SIZE, "results": rows})
+        users = list(qs[start:end])
+        rows = [support.user_row(u) for u in users]
+        inactive = [u.pk for u in users if not u.is_active]
+        if inactive:
+            info = support.deactivation_info(inactive)
+            for row in rows:
+                if row["id"] in info:
+                    row["deactivated_at"] = info[row["id"]]["at"]
+                    row["deactivated_by"] = info[row["id"]]["by"]
+        return Response({"count": total, "page": page, "page_size": PAGE_SIZE, "results": rows, "pools": pools})
 
 
 class AdminUserDetailView(StaffView):

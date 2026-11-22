@@ -47,6 +47,10 @@
           <span class="badge">{{ alertCount() }}</span>
         }
       </a>
+
+      @if (isStaff()) {
+        <a routerLink="/admin" class="admin-link">Admin</a>
+      }
     </nav>
 
     <div class="user desktop-user">
@@ -99,6 +103,11 @@
             (click)="closeMenu()"
           >{{ item.label }}</a>
         }
+      }
+
+      @if (isStaff()) {
+        <p class="nav-section">Admin</p>
+        <a routerLink="/admin" (click)="closeMenu()">Admin console</a>
       }
     </nav>
     @if (showInstall()) {

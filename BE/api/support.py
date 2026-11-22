@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, F, OuterRef, Q
 from django.utils import timezone
 from rest_framework.permissions import BasePermission
 
@@ -98,20 +98,26 @@ def annotate_users(qs):
     )
 
 
-def filter_by_db_flag(qs, flag: str):
-    """qs must come from annotate_users()."""
+def _db_flag_q(flag: str) -> Optional[Q]:
+    """The condition behind a database flag (on an annotate_users() queryset), or None."""
     now = timezone.now()
     if flag == "deactivated":
-        return qs.filter(is_active=False)
+        return Q(is_active=False)
     if flag == "email_failed":
-        return qs.filter(_email_failed=True)
+        return Q(_email_failed=True)
     if flag == "open_ticket":
-        return qs.filter(_open_ticket=True)
+        return Q(_open_ticket=True)
     if flag == "email_unverified":
-        return qs.filter(_verified=False, date_joined__lte=now - UNVERIFIED_AFTER)
+        return Q(_verified=False, date_joined__lte=now - UNVERIFIED_AFTER)
     if flag == "setup_stuck":
-        return qs.filter(_setup_done=False, date_joined__lte=now - SETUP_STUCK_AFTER)
-    return qs
+        return Q(_setup_done=False, date_joined__lte=now - SETUP_STUCK_AFTER)
+    return None
+
+
+def filter_by_db_flag(qs, flag: str):
+    """qs must come from annotate_users()."""
+    cond = _db_flag_q(flag)
+    return qs.filter(cond) if cond is not None else qs
 
 
 def has_transactions(uid: str) -> bool:
@@ -210,6 +216,107 @@ def search_users(q: str = "", status: str = ""):
     elif status == "staff":
         qs = qs.filter(Q(is_staff=True) | Q(is_superuser=True))
     return qs
+
+
+# ---- User pools and filters (admin console) -------------------------------------
+
+# Every user is in exactly one of active / deactivated / staff; "attention" is the active
+# (non-deactivated) users with a problem support can act on.
+POOLS = ("active", "deactivated", "staff", "attention")
+ATTENTION_FLAGS = ("email_unverified", "setup_stuck", "email_failed", "open_ticket")
+# Old ?status= values of the user list.
+STATUS_TO_POOL = {"active": "active", "inactive": "deactivated", "staff": "staff"}
+SORTS = {
+    "newest": ("-date_joined", "-pk"),
+    "oldest": ("date_joined", "pk"),
+    "last_login": (F("last_login").desc(nulls_last=True), "-pk"),
+    "username": ("username", "pk"),
+}
+LAST_LOGIN_DAYS = ("30", "90", "180")
+_STAFF_Q = Q(is_staff=True) | Q(is_superuser=True)
+
+
+def _pool_q(pool: str) -> Q:
+    if pool == "active":
+        return Q(is_active=True) & ~_STAFF_Q
+    if pool == "deactivated":
+        return Q(is_active=False)
+    if pool == "staff":
+        return Q(is_active=True) & _STAFF_Q
+    attention = Q()
+    for flag in ATTENTION_FLAGS:
+        attention |= _db_flag_q(flag)
+    return Q(is_active=True) & attention
+
+
+def filter_pool(qs, pool: str):
+    """qs must come from annotate_users()."""
+    return qs.filter(_pool_q(pool))
+
+
+def pool_counts(qs) -> Dict[str, int]:
+    """Users in each pool, within qs (already searched and filtered)."""
+    return {pool: qs.filter(_pool_q(pool)).count() for pool in POOLS}
+
+
+def _parse_date(value: str) -> Optional[date]:
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def apply_user_filters(qs, params) -> tuple:
+    """
+    Filters of the admin user list: verified=yes|no, joined_from / joined_to (YYYY-MM-DD),
+    last_login=never|30|90|180 (no sign-in for that many days, or never), sort=newest|oldest|
+    last_login|username. Returns (queryset, errors).
+    """
+    errors: Dict[str, List[str]] = {}
+    verified = (params.get("verified") or "").strip()
+    if verified in ("yes", "no"):
+        qs = qs.filter(_verified=(verified == "yes"))
+    elif verified:
+        errors["verified"] = ["Use yes or no."]
+    for key, lookup in (("joined_from", "date_joined__date__gte"), ("joined_to", "date_joined__date__lte")):
+        raw = (params.get(key) or "").strip()
+        if raw:
+            day = _parse_date(raw)
+            if day:
+                qs = qs.filter(**{lookup: day})
+            else:
+                errors[key] = ["Use a date like 2026-01-31."]
+    last = (params.get("last_login") or "").strip()
+    if last == "never":
+        qs = qs.filter(last_login__isnull=True)
+    elif last in LAST_LOGIN_DAYS:
+        cutoff = timezone.now() - timedelta(days=int(last))
+        qs = qs.filter(Q(last_login__isnull=True) | Q(last_login__lt=cutoff))
+    elif last:
+        errors["last_login"] = ["Use never, 30, 90 or 180."]
+    sort = (params.get("sort") or "newest").strip()
+    if sort in SORTS:
+        qs = qs.order_by(*SORTS[sort])
+    else:
+        errors["sort"] = ["Use newest, oldest, last_login or username."]
+    return qs, errors
+
+
+def deactivation_info(user_ids) -> Dict[int, dict]:
+    """user id -> {"at", "by"} of the latest deactivation recorded in the audit log."""
+    out: Dict[int, dict] = {}
+    rows = (
+        AdminAuditLog.objects.filter(action="deactivate", target_user_id__in=list(user_ids))
+        .select_related("actor")
+        .order_by("-created_at")
+    )
+    for row in rows:
+        if row.target_user_id not in out:
+            out[row.target_user_id] = {
+                "at": row.created_at.isoformat() if row.created_at else None,
+                "by": row.actor.username if row.actor else None,
+            }
+    return out
 
 
 def overview(for_user=None) -> dict:

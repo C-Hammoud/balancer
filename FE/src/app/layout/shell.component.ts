@@ -78,20 +78,9 @@ export class ShellComponent implements OnInit, OnDestroy {
     },
   ];
 
-  /** Shown only to support staff (the admin API refuses everyone else anyway). */
-  private readonly adminGroup: NavGroup = {
-    label: 'Admin',
-    items: [
-      { label: 'Overview', path: '/admin', exact: true },
-      { label: 'Users', path: '/admin/users' },
-      { label: 'Support tickets', path: '/admin/tickets' },
-      { label: 'Support settings', path: '/admin/support-settings' },
-      { label: 'Audit log', path: '/admin/audit-log' },
-    ],
-  };
-
+  /** Support staff get an "Admin" link to the admin console (the admin API refuses everyone else anyway). */
   isStaff = computed(() => !!(this.user()?.is_staff || this.user()?.is_superuser));
-  navGroups = computed(() => (this.isStaff() ? [...this.groups, this.adminGroup] : this.groups));
+  navGroups = computed(() => this.groups);
 
   ngOnInit(): void {
     // Always refresh the profile: roles (admin) and settings may have changed since sign-in.

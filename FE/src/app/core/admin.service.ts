@@ -7,7 +7,8 @@ import {
   AdminUserAction,
   AdminUserDetail,
   AdminUserEditable,
-  AdminUserRow,
+  AdminUserFilters,
+  AdminUserPage,
   AuditLogRow,
   Paged,
   SupportSettings,
@@ -34,8 +35,8 @@ export class AdminService {
     return this.http.get<AdminOverview>(`${this.api}/overview/`);
   }
 
-  users(filters: { q?: string; status?: string; flag?: string; page?: number }): Observable<Paged<AdminUserRow>> {
-    return this.http.get<Paged<AdminUserRow>>(`${this.api}/users/`, { params: params(filters) });
+  users(filters: AdminUserFilters): Observable<AdminUserPage> {
+    return this.http.get<AdminUserPage>(`${this.api}/users/`, { params: params({ ...filters }) });
   }
 
   user(id: number | string): Observable<AdminUserDetail> {

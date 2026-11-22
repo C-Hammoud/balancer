@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, staffGuard } from './core/auth.guard';
+import { AdminShellComponent } from './layout/admin-shell.component';
 import { ShellComponent } from './layout/shell.component';
 import { BudgetingShellComponent } from './pages/budgeting/budgeting-shell.component';
 
@@ -202,46 +203,47 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/support/support-ticket.component').then((m) => m.SupportTicketComponent),
       },
+    ],
+  },
+  {
+    // Admin console: its own layout. Support staff only (the API checks the role too).
+    path: 'admin',
+    component: AdminShellComponent,
+    canActivate: [authGuard, staffGuard],
+    children: [
       {
-        // Support staff only (the API checks the role too).
-        path: 'admin',
-        canActivate: [staffGuard],
-        children: [
-          {
-            path: '',
-            pathMatch: 'full',
-            loadComponent: () =>
-              import('./pages/admin/admin-overview.component').then((m) => m.AdminOverviewComponent),
-          },
-          {
-            path: 'users',
-            loadComponent: () => import('./pages/admin/admin-users.component').then((m) => m.AdminUsersComponent),
-          },
-          {
-            path: 'users/:id',
-            loadComponent: () =>
-              import('./pages/admin/admin-user-detail.component').then((m) => m.AdminUserDetailComponent),
-          },
-          {
-            path: 'tickets',
-            loadComponent: () => import('./pages/admin/admin-tickets.component').then((m) => m.AdminTicketsComponent),
-          },
-          {
-            path: 'tickets/:id',
-            loadComponent: () =>
-              import('./pages/admin/admin-ticket-detail.component').then((m) => m.AdminTicketDetailComponent),
-          },
-          {
-            path: 'support-settings',
-            loadComponent: () =>
-              import('./pages/admin/admin-support-settings.component').then((m) => m.AdminSupportSettingsComponent),
-          },
-          {
-            path: 'audit-log',
-            loadComponent: () =>
-              import('./pages/admin/admin-audit-log.component').then((m) => m.AdminAuditLogComponent),
-          },
-        ],
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./pages/admin/admin-overview.component').then((m) => m.AdminOverviewComponent),
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./pages/admin/admin-users.component').then((m) => m.AdminUsersComponent),
+      },
+      {
+        path: 'users/:id',
+        loadComponent: () =>
+          import('./pages/admin/admin-user-detail.component').then((m) => m.AdminUserDetailComponent),
+      },
+      {
+        path: 'tickets',
+        loadComponent: () => import('./pages/admin/admin-tickets.component').then((m) => m.AdminTicketsComponent),
+      },
+      {
+        path: 'tickets/:id',
+        loadComponent: () =>
+          import('./pages/admin/admin-ticket-detail.component').then((m) => m.AdminTicketDetailComponent),
+      },
+      {
+        path: 'support-settings',
+        loadComponent: () =>
+          import('./pages/admin/admin-support-settings.component').then((m) => m.AdminSupportSettingsComponent),
+      },
+      {
+        path: 'audit-log',
+        loadComponent: () =>
+          import('./pages/admin/admin-audit-log.component').then((m) => m.AdminAuditLogComponent),
       },
     ],
   },

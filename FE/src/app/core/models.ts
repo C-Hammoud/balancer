@@ -864,6 +864,9 @@ export interface AdminUserRow {
   date_joined: string | null;
   last_login: string | null;
   flags: IssueFlag[];
+  /** Deactivated users: when and by which admin (from the audit log). */
+  deactivated_at?: string | null;
+  deactivated_by?: string | null;
 }
 
 export interface Paged<T> {
@@ -871,6 +874,26 @@ export interface Paged<T> {
   page: number;
   page_size: number;
   results: T[];
+}
+
+/** Admin user pools: every user is in one of active / deactivated / staff; attention = active users with a problem. */
+export type AdminUserPool = 'active' | 'deactivated' | 'staff' | 'attention';
+
+export interface AdminUserFilters {
+  pool?: AdminUserPool | '';
+  q?: string;
+  flag?: string;
+  verified?: '' | 'yes' | 'no';
+  joined_from?: string;
+  joined_to?: string;
+  last_login?: '' | 'never' | '30' | '90' | '180';
+  sort?: '' | 'newest' | 'oldest' | 'last_login' | 'username';
+  page?: number;
+}
+
+export interface AdminUserPage extends Paged<AdminUserRow> {
+  /** Users in each pool for the current search and filters. */
+  pools: Record<AdminUserPool, number>;
 }
 
 export interface AdminOverview {

@@ -18,8 +18,8 @@ import { ToastService } from '../../core/toast.service';
     </section>
     @if (data(); as d) {
       <div class="tiles">
-        <a class="tile" routerLink="/admin/users"><span>Users</span><strong>{{ d.users_total }}</strong></a>
-        <a class="tile" routerLink="/admin/users"><span>New in the last 7 days</span><strong>{{ d.users_new_7d }}</strong></a>
+        <a class="tile" routerLink="/admin/users" [queryParams]="{ pool: 'active' }"><span>Users</span><strong>{{ d.users_total }}</strong></a>
+        <a class="tile" routerLink="/admin/users" [queryParams]="{ pool: 'active' }"><span>New in the last 7 days</span><strong>{{ d.users_new_7d }}</strong></a>
         <a class="tile" [class.alert]="d.my_open_tickets" routerLink="/admin/tickets" [queryParams]="{ view: 'mine' }">
           <span>My open tickets</span><strong>{{ d.my_open_tickets }}</strong>
         </a>
@@ -32,16 +32,16 @@ import { ToastService } from '../../core/toast.service';
         <a class="tile" routerLink="/admin/tickets" [queryParams]="{ view: 'all', status: 'resolved' }">
           <span>Resolved, awaiting user</span><strong>{{ d.tickets_resolved }}</strong>
         </a>
-        <a class="tile" [class.alert]="d.email_unverified" routerLink="/admin/users" [queryParams]="{ flag: 'email_unverified' }">
+        <a class="tile" [class.alert]="d.email_unverified" routerLink="/admin/users" [queryParams]="{ pool: 'attention', flag: 'email_unverified' }">
           <span>Unverified after 24 h</span><strong>{{ d.email_unverified }}</strong>
         </a>
-        <a class="tile" routerLink="/admin/users" [queryParams]="{ flag: 'setup_stuck' }">
+        <a class="tile" routerLink="/admin/users" [queryParams]="{ pool: 'attention', flag: 'setup_stuck' }">
           <span>Setup not finished</span><strong>{{ d.setup_stuck }}</strong>
         </a>
-        <a class="tile" [class.alert]="d.emails_failed_7d" routerLink="/admin/users" [queryParams]="{ flag: 'email_failed' }">
+        <a class="tile" [class.alert]="d.emails_failed_7d" routerLink="/admin/users" [queryParams]="{ pool: 'attention', flag: 'email_failed' }">
           <span>Failed emails (7 days)</span><strong>{{ d.emails_failed_7d }}</strong>
         </a>
-        <a class="tile" routerLink="/admin/users" [queryParams]="{ status: 'inactive' }">
+        <a class="tile" routerLink="/admin/users" [queryParams]="{ pool: 'deactivated' }">
           <span>Deactivated</span><strong>{{ d.deactivated }}</strong>
         </a>
       </div>
