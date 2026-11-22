@@ -78,6 +78,7 @@ class AdminUserEditSerializer(serializers.Serializer):
         "notify_low_balance",
         "notify_setup_nudges",
         "notify_plan_updates",
+        "notify_marketing",
         "savings_target_pct",
     )
 
@@ -95,6 +96,7 @@ class AdminUserEditSerializer(serializers.Serializer):
     notify_low_balance = serializers.BooleanField()
     notify_setup_nudges = serializers.BooleanField()
     notify_plan_updates = serializers.BooleanField()
+    notify_marketing = serializers.BooleanField()
     savings_target_pct = serializers.IntegerField(min_value=0, max_value=90)
 
     def _others(self):

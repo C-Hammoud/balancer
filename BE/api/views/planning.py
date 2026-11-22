@@ -252,6 +252,15 @@ def _notification_dict(n) -> dict:
     }
 
 
+def _track_read(notifications) -> None:
+    """Messages from the admin notification center count as read once their notification is."""
+    ids = [n.pk for n in notifications if n.kind in ("admin_message", "campaign")]
+    if ids:
+        from api.messaging.sending import mark_read
+
+        mark_read(ids)
+
+
 class NotificationListView(APIView):
     def get(self, request):
         rows = NotificationFS.list_by_user(user_id(request.user), limit=100)
@@ -274,15 +283,17 @@ class NotificationReadView(APIView):
         if not n.is_read:
             n.is_read = True
             n.save()
+            _track_read([n])
         return Response(_notification_dict(n))
 
 
 class NotificationReadAllView(APIView):
     def post(self, request):
-        count = 0
+        read = []
         for n in NotificationFS.list_by_user(user_id(request.user), limit=500):
             if not n.is_read:
                 n.is_read = True
                 n.save()
-                count += 1
-        return Response({"marked": count})
+                read.append(n)
+        _track_read(read)
+        return Response({"marked": len(read)})

@@ -80,6 +80,15 @@
     </label>
   </div>
 
+  <h2>Messages from Finance Tracker</h2>
+  <div class="grid">
+    <label class="check">
+      <input type="checkbox" formControlName="notify_marketing" />
+      News, tips and offers (in the app and by email)
+    </label>
+  </div>
+  <p class="hint">Notices about your account are always sent.</p>
+
   <footer class="footer">
     <button type="submit" class="btn primary" [disabled]="saving()">
       {{ saving() ? 'Saving…' : 'Save profile' }}

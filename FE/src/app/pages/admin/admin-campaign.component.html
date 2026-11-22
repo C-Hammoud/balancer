@@ -1,0 +1,338 @@
+<p><a routerLink="/admin/notifications">← Notifications</a></p>
+
+<section class="hero">
+  <div>
+    <h1>{{ campaign()?.name || 'New campaign' }}</h1>
+    @if (campaign(); as c) {
+      <p>
+        <span [class]="'pill ' + statusClass[c.status]">{{ statusLabel[c.status] }}</span>
+        @if (c.status === 'scheduled') { Sends {{ date(c.scheduled_at) }} }
+        @if (c.started_at) { · started {{ date(c.started_at) }} }
+        @if (c.finished_at) { · finished {{ date(c.finished_at) }} }
+        @if (c.sent_by) { · by {{ c.sent_by.username }} }
+      </p>
+    } @else {
+      <p>Write the message, choose who gets it, send yourself a test, then send or schedule it.</p>
+    }
+  </div>
+  <div class="toolbar">
+    @if (campaign()?.status === 'scheduled' || campaign()?.status === 'sending') {
+      <button type="button" class="btn ghost" (click)="cancelSending()">Cancel campaign</button>
+    }
+    @if (campaign()?.status === 'draft' || campaign()?.status === 'cancelled') {
+      <button type="button" class="btn ghost" (click)="remove()">Delete</button>
+    }
+  </div>
+</section>
+
+@if (campaign(); as c) {
+  @if (c.stats && c.status !== 'draft') {
+    <section class="panel">
+      <h2>Results</h2>
+      <div class="stat-grid">
+        <div class="stat"><span>Recipients</span><strong>{{ c.stats.recipients }}</strong></div>
+        <div class="stat"><span>Processed</span><strong>{{ c.stats.processed }}</strong></div>
+        <div class="stat"><span>Opted out</span><strong>{{ c.stats.opted_out }}</strong></div>
+      </div>
+      @if (channelStats().length) {
+        <table>
+          <thead><tr><th>Channel</th><th>Sent</th><th>Failed</th><th>Skipped</th><th>Read</th><th>Clicked</th></tr></thead>
+          <tbody>
+            @for (row of channelStats(); track row.code) {
+              <tr>
+                <td>{{ channelLabel[row.code] }}</td>
+                <td>{{ row.stats.sent }}</td>
+                <td>{{ row.stats.failed }}</td>
+                <td>{{ row.stats.skipped }}</td>
+                <td>{{ row.code === 'in_app' ? row.stats.read : '—' }}</td>
+                <td>{{ row.code === 'email' ? row.stats.clicked : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      @if (c.status === 'sending') {
+        <p class="muted">Sending in batches; this page refreshes on its own.</p>
+      }
+    </section>
+  }
+}
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Message</h2>
+    @if (editable()) {
+      <label class="inline">
+        Start from
+        <select (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
+          <option value="">— a template —</option>
+          @for (t of marketingTemplates(); track t.key) {
+            <option [value]="t.key">{{ t.name }} · {{ categoryLabel[t.category] }}</option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+
+  <fieldset class="compose-form form-grid plain" [disabled]="!editable()">
+    <div class="two">
+      <label>
+        Campaign name (only admins see it)
+        <input [(ngModel)]="name" maxlength="120" placeholder="e.g. November product news" />
+      </label>
+      <label>
+        Type
+        <select [(ngModel)]="category">
+          <option value="marketing">Marketing (users can unsubscribe)</option>
+          <option value="reminder">Reminder (about their account)</option>
+        </select>
+      </label>
+    </div>
+
+    <fieldset class="channels">
+      <legend>Send by</legend>
+      @for (ch of meta()?.channels ?? []; track ch.code) {
+        <label class="check" [class.disabled]="!ch.enabled">
+          <input
+            type="checkbox"
+            [disabled]="!ch.enabled"
+            [checked]="channels.has(ch.code)"
+            (change)="toggleChannel(ch.code, $any($event.target).checked)"
+          />
+          {{ ch.label }}
+          @if (!ch.enabled) { <span class="pill muted">coming soon</span> }
+        </label>
+      }
+    </fieldset>
+
+    <label>
+      Subject (notification title and email subject)
+      <input [(ngModel)]="subject" maxlength="200" />
+    </label>
+    <label>
+      Message
+      <textarea [(ngModel)]="body" rows="8" maxlength="5000"></textarea>
+    </label>
+    <div class="placeholders">
+      <span class="muted">Insert:</span>
+      @for (p of meta()?.placeholders ?? []; track p.key) {
+        @if (p.key !== 'reason') {
+          <button type="button" class="chip" [title]="p.description" (click)="insertPlaceholder(p.key)">
+            {{ '{' + p.key + '}' }}
+          </button>
+        }
+      }
+    </div>
+    <div class="two">
+      <label>
+        Button opens (app page)
+        <input [(ngModel)]="link" placeholder="/dashboard" maxlength="300" />
+      </label>
+      <label>
+        Button text
+        <input [(ngModel)]="linkLabel" placeholder="Take a look" maxlength="60" />
+      </label>
+    </div>
+    @if (category === 'marketing') {
+      <p class="muted">Marketing emails get an unsubscribe link; users who turned marketing off are skipped.</p>
+    }
+  </fieldset>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Audience</h2>
+    <span class="audience-count" aria-live="polite">
+      @if (counting()) {
+        Counting…
+      } @else if (count()) {
+        Reaches <strong>{{ count()!.count }}</strong> active user{{ count()!.count === 1 ? '' : 's' }}
+      }
+    </span>
+  </div>
+
+  <fieldset class="compose-form form-grid plain" [disabled]="!editable()">
+    <div class="toolbar audience-types" role="radiogroup" aria-label="Audience type">
+      <label class="check">
+        <input type="radio" name="atype" value="filter" [(ngModel)]="audienceType" (ngModelChange)="audienceChanged()" />
+        Users matching filters
+      </label>
+      <label class="check">
+        <input type="radio" name="atype" value="users" [(ngModel)]="audienceType" (ngModelChange)="audienceChanged()" />
+        Chosen users
+      </label>
+      <label class="check" [class.disabled]="!isSuperuser()" [title]="isSuperuser() ? '' : 'Superusers only'">
+        <input
+          type="radio"
+          name="atype"
+          value="all"
+          [disabled]="!isSuperuser()"
+          [(ngModel)]="audienceType"
+          (ngModelChange)="audienceChanged()"
+        />
+        All active users @if (!isSuperuser()) { <span class="pill muted">superuser</span> }
+      </label>
+    </div>
+
+    @if (audienceType === 'filter') {
+      <fieldset class="box">
+        <legend>Has any of these problems (leave empty for everyone)</legend>
+        @for (f of meta()?.audience_flags ?? []; track f.code) {
+          <label class="check">
+            <input type="checkbox" [checked]="flags.has(f.code)" (change)="setFlag(f.code, $any($event.target).checked)" />
+            {{ f.label }}
+          </label>
+        }
+      </fieldset>
+      <div class="two">
+        <label>
+          Countries (codes, comma separated)
+          <input [(ngModel)]="countriesText" placeholder="SA, LB" (ngModelChange)="audienceChanged()" />
+        </label>
+        <label>
+          Email
+          <select [(ngModel)]="verified" (ngModelChange)="audienceChanged()">
+            <option value="">Verified or not</option>
+            <option value="yes">Verified</option>
+            <option value="no">Not verified</option>
+          </select>
+        </label>
+      </div>
+      <fieldset class="box">
+        <legend>Main currency (leave empty for any)</legend>
+        @for (cur of currencies(); track cur.code) {
+          <label class="check">
+            <input type="checkbox" [checked]="currencyCodes.has(cur.code)" (change)="setCurrency(cur.code, $any($event.target).checked)" />
+            {{ cur.code }}
+          </label>
+        }
+      </fieldset>
+      <div class="two">
+        <label>
+          Joined from
+          <input type="date" [(ngModel)]="joinedFrom" (ngModelChange)="audienceChanged()" />
+        </label>
+        <label>
+          Joined until
+          <input type="date" [(ngModel)]="joinedTo" (ngModelChange)="audienceChanged()" />
+        </label>
+      </div>
+      <label>
+        Last sign-in
+        <select [(ngModel)]="lastLogin" (ngModelChange)="audienceChanged()">
+          <option value="">Any time</option>
+          <option value="never">Never signed in</option>
+          <option value="30">Not in the last 30 days</option>
+          <option value="90">Not in the last 90 days</option>
+          <option value="180">Not in the last 180 days</option>
+        </select>
+      </label>
+    }
+
+    @if (audienceType === 'users') {
+      <form class="user-search" (ngSubmit)="searchUsers()">
+        <input name="uq" [(ngModel)]="userQuery" placeholder="Search username, name or email" />
+        <button type="submit" class="btn ghost small">Search</button>
+      </form>
+      @if (userResults().length) {
+        <ul class="user-results">
+          @for (u of userResults(); track u.id) {
+            <li>
+              <span>{{ u.username }} <small class="muted">{{ u.email }}</small></span>
+              <button type="button" class="btn ghost small" (click)="pickUser(u)">Add</button>
+            </li>
+          }
+        </ul>
+      }
+      <div class="picked">
+        @for (u of pickedUsers; track u.id) {
+          <span class="chip picked-chip">
+            {{ u.username }}
+            <button type="button" aria-label="Remove" (click)="unpickUser(u)">×</button>
+          </span>
+        } @empty {
+          <span class="muted">No users chosen yet.</span>
+        }
+      </div>
+    }
+  </fieldset>
+
+  <p class="muted">{{ audienceText() }}. Deactivated users are never included.</p>
+  @if (sampleText()) {
+    <p class="muted sample">For example: {{ sampleText() }}</p>
+  }
+</section>
+
+@if (editable()) {
+  <section class="panel">
+    <h2>Send</h2>
+    <div class="toolbar audience-types">
+      <label class="check"><input type="radio" name="when" value="now" [(ngModel)]="when" /> Send now</label>
+      <label class="check"><input type="radio" name="when" value="later" [(ngModel)]="when" /> Schedule</label>
+      @if (when === 'later') {
+        <input type="datetime-local" [(ngModel)]="scheduleAt" aria-label="Send at" />
+      }
+    </div>
+    <div class="toolbar send-actions">
+      <button type="button" class="btn ghost" [disabled]="busy()" (click)="save()">Save draft</button>
+      <button type="button" class="btn ghost" [disabled]="busy()" (click)="sendTest()">Send a test to me</button>
+      <button type="button" class="btn primary" [disabled]="busy() || !count()?.count" (click)="send()">
+        {{ when === 'later' ? 'Schedule' : 'Send now' }}
+        @if (count()?.count) { to {{ count()!.count }} user{{ count()!.count === 1 ? '' : 's' }} }
+      </button>
+    </div>
+  </section>
+}
+
+@if (deliveries(); as p) {
+  <section class="panel table-wrap">
+    <div class="panel-head">
+      <h2>Recipients</h2>
+      <form class="filters inline-filters">
+        <select name="ds" [(ngModel)]="deliveryStatus" (ngModelChange)="loadDeliveries(1)" aria-label="Status">
+          <option value="">Any result</option>
+          <option value="sent">Sent</option>
+          <option value="skipped">Skipped</option>
+          <option value="failed">Failed</option>
+        </select>
+        <select name="dc" [(ngModel)]="deliveryChannel" (ngModelChange)="loadDeliveries(1)" aria-label="Channel">
+          <option value="">Any channel</option>
+          <option value="in_app">In-app</option>
+          <option value="email">Email</option>
+        </select>
+      </form>
+    </div>
+    <table>
+      <thead><tr><th>User</th><th>Channel</th><th>Result</th><th>When</th></tr></thead>
+      <tbody>
+        @for (d of p.results; track d.id) {
+          <tr>
+            <td>
+              @if (d.user) {
+                <a [routerLink]="['/admin/users', d.user.id]">{{ d.user.username }}</a><small>{{ d.user.email }}</small>
+              }
+            </td>
+            <td>{{ channelLabel[d.channel] }}</td>
+            <td>
+              <span [class]="'pill ' + deliveryClass[d.status]">{{ d.status }}</span>
+              @if (d.read_at) { <span class="pill ok">read</span> }
+              @if (d.clicked_at) { <span class="pill ok">clicked</span> }
+              @if (d.detail) { <small>{{ d.detail }}</small> }
+            </td>
+            <td>{{ date(d.created_at) }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="4" class="empty">Nobody yet.</td></tr>
+        }
+      </tbody>
+    </table>
+    <div class="pager">
+      <span>{{ p.count }} message(s)</span>
+      <button class="btn ghost" type="button" [disabled]="p.page <= 1" (click)="loadDeliveries(p.page - 1)">Previous</button>
+      <span>Page {{ p.page }}</span>
+      <button class="btn ghost" type="button" [disabled]="p.page * p.page_size >= p.count" (click)="loadDeliveries(p.page + 1)">
+        Next
+      </button>
+    </div>
+  </section>
+}

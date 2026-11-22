@@ -24,6 +24,7 @@ def setup_payload(user) -> dict:
         "notify_low_balance": bool(profile.notify_low_balance),
         "notify_setup_nudges": bool(profile.notify_setup_nudges),
         "notify_plan_updates": bool(profile.notify_plan_updates),
+        "notify_marketing": bool(profile.notify_marketing),
         "savings_target_pct": int(profile.savings_target_pct),
     }
 
@@ -65,7 +66,10 @@ def apply_profile_setup_patch(user, data: dict) -> UserProfile:
     if "phone" in data:
         profile.phone = str(data.get("phone") or "").strip()[:32]
         fields.append("phone")
-    for field in ("notify_weekly_summaries", "notify_low_balance", "notify_setup_nudges", "notify_plan_updates"):
+    for field in (
+        "notify_weekly_summaries", "notify_low_balance", "notify_setup_nudges", "notify_plan_updates",
+        "notify_marketing",
+    ):
         if field in data:
             setattr(profile, field, bool(data.get(field)))
             fields.append(field)

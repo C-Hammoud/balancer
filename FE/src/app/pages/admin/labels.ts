@@ -45,6 +45,51 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   ticket_reopened: 'User said not fixed',
   ticket_closed: 'Closed ticket',
   support_settings: 'Changed support settings',
+  send_message: 'Sent message',
+  template_create: 'Added message template',
+  template_edit: 'Edited message template',
+  template_delete: 'Deleted message template',
+  campaign_create: 'Created campaign',
+  campaign_send: 'Sent campaign',
+  campaign_schedule: 'Scheduled campaign',
+  campaign_cancel: 'Cancelled campaign',
+  campaign_delete: 'Deleted campaign',
+};
+
+export const CATEGORY_LABEL: Record<string, string> = {
+  account: 'Account notice',
+  reminder: 'Reminder',
+  marketing: 'Marketing',
+};
+
+export const CHANNEL_LABEL: Record<string, string> = {
+  in_app: 'In-app',
+  email: 'Email',
+  sms: 'SMS',
+};
+
+/** Pill class for a message delivery status. */
+export const DELIVERY_STATUS_CLASS: Record<string, string> = {
+  sent: 'ok',
+  queued: 'muted',
+  skipped: 'warn',
+  failed: 'high',
+};
+
+export const CAMPAIGN_STATUS_LABEL: Record<string, string> = {
+  draft: 'Draft',
+  scheduled: 'Scheduled',
+  sending: 'Sending',
+  sent: 'Sent',
+  cancelled: 'Cancelled',
+};
+
+export const CAMPAIGN_STATUS_CLASS: Record<string, string> = {
+  draft: 'muted',
+  scheduled: 'warn',
+  sending: 'warn',
+  sent: 'ok',
+  cancelled: 'high',
 };
 
 /** Pill class for a ticket status. */

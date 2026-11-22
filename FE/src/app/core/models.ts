@@ -10,6 +10,8 @@ export interface User {
   email_verified?: boolean;
   /** Email + in-app suggestions when income, commitments or spending change */
   notify_plan_updates?: boolean;
+  /** Marketing messages from the admin notification center (in-app and email) */
+  notify_marketing?: boolean;
   /** Share of income the planner aims to save */
   savings_target_pct?: number;
   /** Support admin: can open the Admin area */
@@ -996,6 +998,7 @@ export interface AdminUserEditable {
   notify_low_balance: boolean;
   notify_setup_nudges: boolean;
   notify_plan_updates: boolean;
+  notify_marketing: boolean;
   savings_target_pct: number;
 }
 
@@ -1015,3 +1018,137 @@ export type AdminUserAction =
   | 'send-password-reset'
   | 'deactivate'
   | 'reactivate';
+
+// ---- Admin notification center ----
+
+export type MessageCategory = 'account' | 'reminder' | 'marketing';
+export type MessageChannel = 'in_app' | 'email' | 'sms';
+
+export interface MessageTemplate {
+  key: string;
+  name: string;
+  category: MessageCategory;
+  subject: string;
+  body: string;
+  /** App page opened by the notification / email button, e.g. /budgeting/transactions. */
+  link: string;
+  link_label: string;
+  channels: MessageChannel[];
+  is_builtin: boolean;
+  updated_at: string | null;
+}
+
+export interface ChannelInfo {
+  code: MessageChannel;
+  label: string;
+  /** False until set up (SMS). */
+  enabled: boolean;
+}
+
+export interface MessagingMeta {
+  templates: MessageTemplate[];
+  channels: ChannelInfo[];
+  placeholders: { key: string; description: string }[];
+  categories: { code: MessageCategory; label: string }[];
+  audience_flags: { code: string; label: string }[];
+}
+
+/** Fields of a message (to one user or a campaign). */
+export interface MessageContent {
+  subject: string;
+  body: string;
+  link: string;
+  link_label: string;
+  channels: MessageChannel[];
+}
+
+export interface MissingItem {
+  code: string;
+  text: string;
+  link: string;
+}
+
+export interface MessageDelivery {
+  id: number;
+  user: UserRef | null;
+  channel: MessageChannel;
+  status: 'queued' | 'sent' | 'failed' | 'skipped';
+  /** Why it failed or was skipped. */
+  detail: string;
+  subject: string;
+  category: MessageCategory;
+  template_key: string;
+  campaign_id: number | null;
+  campaign_name: string;
+  sent_by: UserRef | null;
+  created_at: string | null;
+  read_at: string | null;
+  clicked_at: string | null;
+}
+
+export interface UserMessages {
+  missing: MissingItem[];
+  deliveries: MessageDelivery[];
+}
+
+export interface MessagePreview {
+  subject: string;
+  body: string;
+  link: string;
+  link_label: string;
+  category: MessageCategory;
+  channels: (ChannelInfo & { chosen: boolean; reason: string })[];
+}
+
+export interface SendMessageResult {
+  deliveries: MessageDelivery[];
+  summary: string | null;
+}
+
+export interface CampaignAudience {
+  type: 'all' | 'filter' | 'users';
+  flags?: string[];
+  countries?: string[];
+  currencies?: string[];
+  verified?: '' | 'yes' | 'no';
+  joined_from?: string;
+  joined_to?: string;
+  last_login?: '' | 'never' | '30' | '90' | '180';
+  user_ids?: number[];
+}
+
+export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'cancelled';
+
+export interface ChannelStats {
+  total: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  read: number;
+  clicked: number;
+}
+
+export interface Campaign extends MessageContent {
+  id: number;
+  name: string;
+  category: 'marketing' | 'reminder';
+  audience: CampaignAudience;
+  /** Picked users (audience type "users"). */
+  audience_users?: UserRef[];
+  status: CampaignStatus;
+  scheduled_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_by: UserRef | null;
+  sent_by: UserRef | null;
+  created_at: string | null;
+  updated_at: string | null;
+  stats?: {
+    recipients: number;
+    processed: number;
+    opted_out: number;
+    by_channel: Partial<Record<MessageChannel, ChannelStats>>;
+  };
+}
+
+export type CampaignInput = Pick<Campaign, 'name' | 'category' | 'audience'> & MessageContent;

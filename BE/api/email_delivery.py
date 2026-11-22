@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from typing import Optional, Sequence
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
@@ -16,11 +16,14 @@ def from_email() -> str:
     return getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@financetracker.local")
 
 
-def send_branded_email(content: BrandedEmail, to: Sequence[str], *, notification: bool = False) -> bool:
+def send_branded_email(
+    content: BrandedEmail, to: Sequence[str], *, notification: bool = False, headers: Optional[dict] = None
+) -> bool:
     """
     notification=True marks automatic notices (budget/risk alerts, payment reminders, plan
     suggestions, setup nudges). With NOTIFICATION_EMAILS_ENABLED=0 they are printed to the
     console instead of sent, while account emails (verification, password reset, invites) still go out.
+    headers: extra email headers (e.g. List-Unsubscribe).
     """
     recipients = [e.strip() for e in to if (e or "").strip()]
     if not recipients:
@@ -37,6 +40,7 @@ def send_branded_email(content: BrandedEmail, to: Sequence[str], *, notification
         from_email=from_email(),
         to=recipients,
         connection=connection,
+        headers=headers or None,
     )
     msg.attach_alternative(html, "text/html")
     kind = "notification" if notification else "account"

@@ -14,6 +14,20 @@ from api.views.auth import (
     RefreshTokenView,
 )
 from api.views.meta import HealthView, MetaView
+from api.views.admin_messaging import (
+    AdminCampaignAudienceView,
+    AdminCampaignCancelView,
+    AdminCampaignDeliveriesView,
+    AdminCampaignDetailView,
+    AdminCampaignListView,
+    AdminCampaignSendView,
+    AdminCampaignTestView,
+    AdminMessageTemplateDetailView,
+    AdminMessageTemplateListView,
+    AdminMessagingMetaView,
+    AdminUserMessagesView,
+)
+from api.views.messages import MessageOpenView, UnsubscribeView
 from api.views.planning import (
     IncomeStreamDetailView,
     IncomeStreamListCreateView,
@@ -253,6 +267,27 @@ urlpatterns = [
     path("admin/tickets/<int:pk>/claim/", AdminTicketClaimView.as_view(), name="admin-ticket-claim"),
     path("admin/support-settings/", AdminSupportSettingsView.as_view(), name="admin-support-settings"),
     path("admin/audit-log/", AdminAuditLogView.as_view(), name="admin-audit-log"),
+    path("admin/users/<int:pk>/messages/", AdminUserMessagesView.as_view(), name="admin-user-messages"),
+    path("admin/messaging/", AdminMessagingMetaView.as_view(), name="admin-messaging"),
+    path("admin/message-templates/", AdminMessageTemplateListView.as_view(), name="admin-message-templates"),
+    path(
+        "admin/message-templates/<slug:key>/",
+        AdminMessageTemplateDetailView.as_view(),
+        name="admin-message-template-detail",
+    ),
+    path("admin/campaigns/", AdminCampaignListView.as_view(), name="admin-campaigns"),
+    path("admin/campaigns/audience/", AdminCampaignAudienceView.as_view(), name="admin-campaign-audience"),
+    path("admin/campaigns/<int:pk>/", AdminCampaignDetailView.as_view(), name="admin-campaign-detail"),
+    path("admin/campaigns/<int:pk>/test/", AdminCampaignTestView.as_view(), name="admin-campaign-test"),
+    path("admin/campaigns/<int:pk>/send/", AdminCampaignSendView.as_view(), name="admin-campaign-send"),
+    path("admin/campaigns/<int:pk>/cancel/", AdminCampaignCancelView.as_view(), name="admin-campaign-cancel"),
+    path(
+        "admin/campaigns/<int:pk>/deliveries/",
+        AdminCampaignDeliveriesView.as_view(),
+        name="admin-campaign-deliveries",
+    ),
+    path("messages/open/<str:token>/", MessageOpenView.as_view(), name="message-open"),
+    path("messages/unsubscribe/", UnsubscribeView.as_view(), name="message-unsubscribe"),
     # Risk management
     path("risk/", RiskReportView.as_view(), name="risk-report"),
     path("risk/history/", RiskHistoryView.as_view(), name="risk-history"),

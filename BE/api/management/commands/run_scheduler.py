@@ -30,6 +30,7 @@ logger = logging.getLogger("scheduler")
 JOBS = {
     "budget_alerts": (30, lambda: call_command("process_budget_alerts")),
     "setup_nudges": (30, lambda: call_command("send_setup_nudges")),
+    "campaigns": (2, lambda: call_command("send_campaigns")),
     "support_tickets": (60, lambda: call_command("process_support_tickets")),
     "risk": (24 * 60, lambda: call_command("evaluate_risk")),
     "commitment_reminders": (24 * 60, lambda: call_command("send_commitment_reminders")),

@@ -32,6 +32,15 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
   },
+  // Links in emails from the notification center (no sign-in needed).
+  {
+    path: 'm/:token',
+    loadComponent: () => import('./pages/messages/message-open.component').then((m) => m.MessageOpenComponent),
+  },
+  {
+    path: 'unsubscribe/:token',
+    loadComponent: () => import('./pages/messages/unsubscribe.component').then((m) => m.UnsubscribeComponent),
+  },
   {
     path: 'check-email',
     loadComponent: () =>
@@ -239,6 +248,20 @@ export const routes: Routes = [
         path: 'support-settings',
         loadComponent: () =>
           import('./pages/admin/admin-support-settings.component').then((m) => m.AdminSupportSettingsComponent),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./pages/admin/admin-notifications.component').then((m) => m.AdminNotificationsComponent),
+      },
+      {
+        path: 'notifications/templates',
+        loadComponent: () =>
+          import('./pages/admin/admin-message-templates.component').then((m) => m.AdminMessageTemplatesComponent),
+      },
+      {
+        path: 'notifications/:id',
+        loadComponent: () => import('./pages/admin/admin-campaign.component').then((m) => m.AdminCampaignComponent),
       },
       {
         path: 'audit-log',

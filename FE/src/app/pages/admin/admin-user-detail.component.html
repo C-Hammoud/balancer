@@ -134,6 +134,8 @@
     </section>
   }
 
+  <app-admin-user-notify [userId]="d.user.id" />
+
   <div class="grid2">
     <section class="panel">
       <h2>Account</h2>
@@ -245,6 +247,44 @@
       <p class="empty">No tickets.</p>
     }
   </section>
+  @if (accountDialog(); as a) {
+    <div class="modal-backdrop" (click)="accountDialog.set(null)"></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+      <div class="modal-head">
+        <div>
+          <h2 id="account-dialog-title">{{ a.label }}</h2>
+          <p class="muted">
+            @if (a.action === 'deactivate') {
+              {{ d.user.username }} is signed out everywhere and cannot sign in until reactivated.
+            } @else {
+              {{ d.user.username }} can sign in again.
+            }
+          </p>
+        </div>
+        <button type="button" class="icon-close" aria-label="Close" (click)="accountDialog.set(null)">×</button>
+      </div>
+      <div class="modal-body form-grid">
+        <label class="check-line">
+          <input type="checkbox" [(ngModel)]="notifyUser" />
+          Notify the user
+          {{ a.action === 'deactivate' ? '(by email — they can no longer open the app)' : '(email and in-app)' }}
+        </label>
+        <label>
+          Reason (optional, included in the message)
+          <textarea [(ngModel)]="accountReason" rows="3" maxlength="500" [disabled]="!notifyUser"></textarea>
+        </label>
+        @if (notifyUser && !d.user.email) {
+          <p class="muted">This user has no email address, so the email cannot be sent.</p>
+        }
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn ghost" (click)="accountDialog.set(null)">Cancel</button>
+        <button type="button" class="btn primary" [class.danger]="a.action === 'deactivate'" (click)="confirmAccountAction()">
+          {{ a.label }}
+        </button>
+      </div>
+    </div>
+  }
 } @else {
   <p class="muted">Loading…</p>
 }

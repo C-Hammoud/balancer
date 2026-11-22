@@ -106,3 +106,8 @@ td.row-action { text-align: right; white-space: nowrap; }
   .tiles { grid-template-columns: 1fr 1fr; }
   .grid2 { grid-template-columns: 1fr; }
 }
+
+// Checkbox with its text on one line (dialogs).
+.check-line { display: flex !important; align-items: center; gap: 0.5rem; }
+.form-grid textarea { width: 100%; box-sizing: border-box; font: inherit; }
+.btn.primary.danger { background: #b33a1a; color: #fff; }

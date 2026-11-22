@@ -33,6 +33,7 @@ export class ProfileComponent implements OnInit {
     timezone: [''],
     country: [''],
     notify_plan_updates: [true],
+    notify_marketing: [true],
     savings_target_pct: [20, [Validators.min(0), Validators.max(90)]],
   });
 
@@ -54,6 +55,7 @@ export class ProfileComponent implements OnInit {
           timezone: u.timezone || prefs.timezone || this.locale.detectTimezone(),
           country: u.country || prefs.country || '',
           notify_plan_updates: u.notify_plan_updates ?? true,
+          notify_marketing: u.notify_marketing ?? true,
           savings_target_pct: u.savings_target_pct ?? 20,
         });
       },
@@ -101,6 +103,7 @@ export class ProfileComponent implements OnInit {
         timezone: raw.timezone,
         country: raw.country,
         notify_plan_updates: raw.notify_plan_updates,
+        notify_marketing: raw.notify_marketing,
         savings_target_pct: Number(raw.savings_target_pct),
       })
       .subscribe({

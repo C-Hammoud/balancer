@@ -324,6 +324,19 @@ class AdminSendPasswordResetView(_UserAction):
         return {"email_sent": bool(_send_password_reset_email(user))}
 
 
+def _account_notice(request, user, template_key: str, channels=None) -> dict:
+    """With {"notify": true, "reason": "..."} in the request, tell the user (account template)."""
+    data = request.data if isinstance(request.data, dict) else {}
+    if not data.get("notify"):
+        return {}
+    from api.views.admin_messaging import notify_user
+
+    reason = str(data.get("reason") or "").strip()[:500]
+    deliveries = notify_user(user, template_key, sent_by=request.user, reason=reason, channels=channels)
+    return {"notified": any(d.status == "sent" for d in deliveries), "reason": reason,
+            "notice": {d.channel: d.status for d in deliveries}}
+
+
 def _last_active_superuser(user) -> bool:
     return user.is_superuser and not User.objects.filter(is_superuser=True, is_active=True).exclude(pk=user.pk).exists()
 
@@ -353,7 +366,9 @@ class AdminDeactivateView(_UserAction):
             revoked += int(created)
         # A deactivated admin's unfinished tickets go to the other admins.
         moved = support.reassign_open_tickets_of(user, by=request.user)
-        return {"sessions_revoked": revoked, "tickets_reassigned": moved}
+        # They can no longer sign in, so the notice goes by email only.
+        return {"sessions_revoked": revoked, "tickets_reassigned": moved,
+                **_account_notice(request, user, "account_deactivated", ["email"])}
 
 
 class AdminReactivateView(_UserAction):
@@ -365,6 +380,7 @@ class AdminReactivateView(_UserAction):
     def run(self, request, user):
         user.is_active = True
         user.save(update_fields=["is_active"])
+        return _account_notice(request, user, "account_reactivated")
 
 
 class AdminUserRoleView(APIView):

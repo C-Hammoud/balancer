@@ -1,0 +1,144 @@
+<section class="panel">
+  <div class="panel-head">
+    <h2>Notify user</h2>
+    @if (!composing()) {
+      <div class="toolbar">
+        @if (missing().length) {
+          <button type="button" class="btn ghost" (click)="compose('missing_data')">Send missing-data reminder</button>
+        }
+        <button type="button" class="btn primary" (click)="compose('custom')">Write a message</button>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else {
+    <div class="missing">
+      <h3>Missing data</h3>
+      @if (missing().length) {
+        <ul>
+          @for (m of missing(); track m.code) {
+            <li>{{ m.text }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">Nothing missing — this user has filled everything in.</p>
+      }
+    </div>
+  }
+
+  @if (composing()) {
+    <div class="composer">
+      <div class="compose-form form-grid">
+        <label>
+          Template
+          <select [ngModel]="templateKey" (ngModelChange)="onTemplateChange($event)">
+            @for (t of templates(); track t.key) {
+              <option [value]="t.key">{{ t.name }} · {{ categoryLabel[t.category] }}</option>
+            }
+          </select>
+        </label>
+
+        <fieldset class="channels">
+          <legend>Send by</legend>
+          @for (c of meta()?.channels ?? []; track c.code) {
+            <label class="check" [class.disabled]="!c.enabled">
+              <input
+                type="checkbox"
+                [disabled]="!c.enabled"
+                [checked]="channels.has(c.code)"
+                (change)="toggleChannel(c.code, $any($event.target).checked)"
+              />
+              {{ c.label }}
+              @if (!c.enabled) { <span class="pill muted">coming soon</span> }
+            </label>
+          }
+        </fieldset>
+
+        <label>
+          Subject (notification title)
+          <input [(ngModel)]="subject" maxlength="200" />
+        </label>
+        <label>
+          Message
+          <textarea [(ngModel)]="body" rows="7" maxlength="5000"></textarea>
+        </label>
+        <div class="placeholders">
+          <span class="muted">Insert:</span>
+          @for (p of meta()?.placeholders ?? []; track p.key) {
+            <button type="button" class="chip" [title]="p.description" (click)="insertPlaceholder(p.key)">
+              {{ '{' + p.key + '}' }}
+            </button>
+          }
+        </div>
+        <div class="two">
+          <label>
+            Button opens (app page)
+            <input [(ngModel)]="link" placeholder="/budgeting/transactions" maxlength="300" />
+          </label>
+          <label>
+            Button text
+            <input [(ngModel)]="linkLabel" placeholder="Open Finance Tracker" maxlength="60" />
+          </label>
+        </div>
+      </div>
+
+      <aside class="preview" aria-live="polite">
+        <div class="panel-head">
+          <h3>Preview for this user</h3>
+          <button type="button" class="btn ghost small" (click)="refreshPreview()">Refresh</button>
+        </div>
+        @if (preview(); as p) {
+          <div class="preview-card">
+            <strong>{{ p.subject || '(no subject)' }}</strong>
+            <p>{{ p.body }}</p>
+            @if (p.link) {
+              <span class="preview-btn">{{ p.link_label || 'Open Finance Tracker' }} → {{ p.link }}</span>
+            }
+          </div>
+          @for (b of blockedChannels(); track b) {
+            <p class="warn-text">Will be skipped — {{ b }}</p>
+          }
+        } @else {
+          <p class="muted">Press Refresh to see the message with this user's details filled in.</p>
+        }
+      </aside>
+    </div>
+
+    <div class="toolbar compose-actions">
+      <button type="button" class="btn primary" [disabled]="busy()" (click)="send()">
+        {{ busy() ? 'Sending…' : 'Send' }}
+      </button>
+      <button type="button" class="btn ghost" [disabled]="busy()" (click)="cancel()">Cancel</button>
+    </div>
+  }
+
+  <h3 class="history-title">Messages sent</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>Message</th><th>Channel</th><th>Result</th><th>By</th></tr></thead>
+      <tbody>
+        @for (d of deliveries(); track d.id) {
+          <tr>
+            <td>{{ date(d.created_at) }}</td>
+            <td>
+              {{ d.subject }}
+              <small>{{ d.campaign_name ? 'Campaign: ' + d.campaign_name : categoryLabel[d.category] }}</small>
+            </td>
+            <td>{{ channelLabel[d.channel] }}</td>
+            <td>
+              <span [class]="'pill ' + statusClass[d.status]">{{ d.status }}</span>
+              @if (d.read_at) { <span class="pill ok">read</span> }
+              @if (d.clicked_at) { <span class="pill ok">clicked</span> }
+              @if (d.detail) { <small>{{ d.detail }}</small> }
+            </td>
+            <td>{{ d.sent_by?.username || 'system' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="empty">No messages sent to this user yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

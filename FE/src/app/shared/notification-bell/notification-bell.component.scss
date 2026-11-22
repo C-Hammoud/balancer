@@ -92,6 +92,13 @@
     span {
       font-size: 0.85rem;
       color: #5b6b6b;
+      // Messages from support keep their line breaks; long ones are cut after 4 lines.
+      white-space: pre-line;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     small {

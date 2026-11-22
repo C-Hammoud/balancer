@@ -35,6 +35,7 @@ export class AdminShellComponent implements OnInit {
     { label: 'Overview', path: '/admin', exact: true },
     { label: 'Users', path: '/admin/users' },
     { label: 'Support tickets', path: '/admin/tickets', badge: 'tickets' },
+    { label: 'Notifications', path: '/admin/notifications' },
     { label: 'Support settings', path: '/admin/support-settings' },
     { label: 'Audit log', path: '/admin/audit-log' },
   ];

@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AmountPipe } from '../../shared/amount.pipe';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AdminService } from '../../core/admin.service';
 import { AuthService } from '../../core/auth.service';
@@ -9,6 +9,7 @@ import { LocaleService } from '../../core/locale.service';
 import { AdminUserAction, AdminUserDetail, AdminUserEditable } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { FLAG_LABEL, TICKET_STATUS_LABEL, shortDate, statusClass } from './labels';
+import { AdminUserNotifyComponent } from './admin-user-notify.component';
 
 /** Fields any admin may edit; the rest are superuser-only (the API enforces the same rule). */
 const BASIC_FIELDS: (keyof AdminUserEditable)[] = [
@@ -21,7 +22,12 @@ const BASIC_FIELDS: (keyof AdminUserEditable)[] = [
   'default_currency',
 ];
 
-type NotifyKey = 'notify_weekly_summaries' | 'notify_low_balance' | 'notify_setup_nudges' | 'notify_plan_updates';
+type NotifyKey =
+  | 'notify_weekly_summaries'
+  | 'notify_low_balance'
+  | 'notify_setup_nudges'
+  | 'notify_plan_updates'
+  | 'notify_marketing';
 
 interface ActionDef {
   action: AdminUserAction;
@@ -33,7 +39,7 @@ interface ActionDef {
 @Component({
   selector: 'app-admin-user-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, AmountPipe],
+  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule, AmountPipe, AdminUserNotifyComponent],
   templateUrl: './admin-user-detail.component.html',
   styleUrl: './admin-shared.scss',
 })
@@ -63,6 +69,7 @@ export class AdminUserDetailComponent implements OnInit {
     { key: 'notify_low_balance', label: 'Low-balance alerts' },
     { key: 'notify_setup_nudges', label: 'Setup reminders' },
     { key: 'notify_plan_updates', label: 'Plan updates' },
+    { key: 'notify_marketing', label: 'Marketing messages' },
   ];
 
   form = this.fb.nonNullable.group({
@@ -80,6 +87,7 @@ export class AdminUserDetailComponent implements OnInit {
     notify_low_balance: [true],
     notify_setup_nudges: [true],
     notify_plan_updates: [true],
+    notify_marketing: [true],
     savings_target_pct: [20, [Validators.min(0), Validators.max(90)]],
   });
 
@@ -124,6 +132,7 @@ export class AdminUserDetailComponent implements OnInit {
       notify_low_balance: u.notify_low_balance,
       notify_setup_nudges: u.notify_setup_nudges,
       notify_plan_updates: u.notify_plan_updates,
+      notify_marketing: u.notify_marketing ?? true,
       savings_target_pct: u.savings_target_pct ?? 20,
     });
     if (!this.countries().length) {
@@ -219,14 +228,37 @@ export class AdminUserDetailComponent implements OnInit {
     return list;
   }
 
+  /** Deactivate / reactivate: a dialog that can also tell the user (and why). */
+  accountDialog = signal<ActionDef | null>(null);
+  notifyUser = true;
+  accountReason = '';
+
   run(a: ActionDef): void {
+    if (a.action === 'deactivate' || a.action === 'reactivate') {
+      this.notifyUser = true;
+      this.accountReason = '';
+      this.accountDialog.set(a);
+      return;
+    }
     if (a.confirm && !confirm(a.confirm)) return;
+    this.runAction(a);
+  }
+
+  confirmAccountAction(): void {
+    const a = this.accountDialog();
+    if (!a) return;
+    this.accountDialog.set(null);
+    this.runAction(a, { notify: this.notifyUser, reason: this.accountReason.trim() });
+  }
+
+  private runAction(a: ActionDef, body: { notify?: boolean; reason?: string } = {}): void {
     this.busy.set(true);
-    this.admin.userAction(this.id, a.action).subscribe({
+    this.admin.userAction(this.id, a.action, body).subscribe({
       next: (r) => {
         this.busy.set(false);
         if (r.email_sent === false) this.toast.error('Done, but the email could not be sent. Check the email log below.');
-        else this.toast.success(a.done);
+        else if (body.notify && r.notified === false) this.toast.error(`${a.done} The user could not be notified; see Notify user below.`);
+        else this.toast.success(body.notify ? `${a.done} The user was notified.` : a.done);
         this.load();
       },
       error: (err) => {

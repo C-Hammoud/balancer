@@ -134,7 +134,7 @@ export class LocaleService {
   savePreferences(
     patch: Partial<
       UserPreferences &
-        Pick<User, 'first_name' | 'last_name' | 'email' | 'notify_plan_updates' | 'savings_target_pct'>
+        Pick<User, 'first_name' | 'last_name' | 'email' | 'notify_plan_updates' | 'notify_marketing' | 'savings_target_pct'>
     >,
   ): Observable<UserPreferences & { id?: number }> {
     return this.http.patch<UserPreferences & { id?: number }>(`${this.api}/auth/me/`, patch).pipe(

@@ -10,6 +10,17 @@ import {
   AdminUserFilters,
   AdminUserPage,
   AuditLogRow,
+  Campaign,
+  CampaignAudience,
+  CampaignInput,
+  CampaignStatus,
+  MessageContent,
+  MessageDelivery,
+  MessagePreview,
+  MessageTemplate,
+  MessagingMeta,
+  SendMessageResult,
+  UserMessages,
   Paged,
   SupportSettings,
   SupportTicket,
@@ -47,8 +58,16 @@ export class AdminService {
     return this.http.patch<AdminUserDetail>(`${this.api}/users/${id}/`, patch);
   }
 
-  userAction(id: number | string, action: AdminUserAction): Observable<{ ok: boolean; email_sent?: boolean }> {
-    return this.http.post<{ ok: boolean; email_sent?: boolean }>(`${this.api}/users/${id}/${action}/`, {});
+  /** notify / reason: deactivate and reactivate can tell the user (account notice template). */
+  userAction(
+    id: number | string,
+    action: AdminUserAction,
+    body: { notify?: boolean; reason?: string } = {}
+  ): Observable<{ ok: boolean; email_sent?: boolean; notified?: boolean }> {
+    return this.http.post<{ ok: boolean; email_sent?: boolean; notified?: boolean }>(
+      `${this.api}/users/${id}/${action}/`,
+      body
+    );
   }
 
   setRole(id: number | string, isStaff: boolean): Observable<{ ok: boolean }> {
@@ -96,6 +115,91 @@ export class AdminService {
 
   replyTicket(id: number | string, body: string): Observable<SupportTicket> {
     return this.http.post<SupportTicket>(`${this.api}/tickets/${id}/reply/`, { body });
+  }
+
+  // ---- Notification center ----
+
+  messagingMeta(): Observable<MessagingMeta> {
+    return this.http.get<MessagingMeta>(`${this.api}/messaging/`);
+  }
+
+  createTemplate(payload: Partial<MessageTemplate>): Observable<MessageTemplate> {
+    return this.http.post<MessageTemplate>(`${this.api}/message-templates/`, payload);
+  }
+
+  updateTemplate(key: string, payload: Partial<MessageTemplate>): Observable<MessageTemplate> {
+    return this.http.patch<MessageTemplate>(`${this.api}/message-templates/${key}/`, payload);
+  }
+
+  deleteTemplate(key: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/message-templates/${key}/`);
+  }
+
+  userMessages(id: number | string): Observable<UserMessages> {
+    return this.http.get<UserMessages>(`${this.api}/users/${id}/messages/`);
+  }
+
+  previewUserMessage(
+    id: number | string,
+    payload: Partial<MessageContent> & { template_key: string; reason?: string }
+  ): Observable<MessagePreview> {
+    return this.http.post<MessagePreview>(`${this.api}/users/${id}/messages/`, { ...payload, preview: true });
+  }
+
+  sendUserMessage(
+    id: number | string,
+    payload: Partial<MessageContent> & { template_key: string; reason?: string }
+  ): Observable<SendMessageResult> {
+    return this.http.post<SendMessageResult>(`${this.api}/users/${id}/messages/`, payload);
+  }
+
+  campaigns(filters: { status?: CampaignStatus | ''; page?: number } = {}): Observable<Paged<Campaign>> {
+    return this.http.get<Paged<Campaign>>(`${this.api}/campaigns/`, { params: params(filters) });
+  }
+
+  campaign(id: number | string): Observable<Campaign> {
+    return this.http.get<Campaign>(`${this.api}/campaigns/${id}/`);
+  }
+
+  createCampaign(payload: CampaignInput): Observable<Campaign> {
+    return this.http.post<Campaign>(`${this.api}/campaigns/`, payload);
+  }
+
+  updateCampaign(id: number | string, payload: Partial<CampaignInput>): Observable<Campaign> {
+    return this.http.patch<Campaign>(`${this.api}/campaigns/${id}/`, payload);
+  }
+
+  deleteCampaign(id: number | string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/campaigns/${id}/`);
+  }
+
+  /** How many active users the audience reaches, plus a few of them. */
+  audienceCount(audience: CampaignAudience): Observable<{ count: number; sample: UserRef[] }> {
+    return this.http.post<{ count: number; sample: UserRef[] }>(`${this.api}/campaigns/audience/`, { audience });
+  }
+
+  /** Send the campaign to yourself only. */
+  testCampaign(id: number | string): Observable<SendMessageResult> {
+    return this.http.post<SendMessageResult>(`${this.api}/campaigns/${id}/test/`, {});
+  }
+
+  /** confirmCount: the audience size the admin confirmed (409 when it changed). */
+  sendCampaign(id: number | string, confirmCount: number, scheduledAt?: string | null): Observable<Campaign> {
+    return this.http.post<Campaign>(`${this.api}/campaigns/${id}/send/`, {
+      confirm_count: confirmCount,
+      scheduled_at: scheduledAt || null,
+    });
+  }
+
+  cancelCampaign(id: number | string): Observable<Campaign> {
+    return this.http.post<Campaign>(`${this.api}/campaigns/${id}/cancel/`, {});
+  }
+
+  campaignDeliveries(
+    id: number | string,
+    filters: { status?: string; channel?: string; page?: number } = {}
+  ): Observable<Paged<MessageDelivery>> {
+    return this.http.get<Paged<MessageDelivery>>(`${this.api}/campaigns/${id}/deliveries/`, { params: params(filters) });
   }
 
   auditLog(filters: { user?: number | string; actor?: number | string; page?: number }): Observable<Paged<AuditLogRow>> {
