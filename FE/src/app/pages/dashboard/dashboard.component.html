@@ -72,8 +72,11 @@
 <app-risk-summary />
 }
 
-@if (shown('balances') || shown('upcoming')) {
+@if (shown('netTotals') || shown('balances') || shown('upcoming')) {
 <div class="widget-grid">
+  @if (shown('netTotals')) {
+  <app-income-expense-widget [reportCurrency]="reportCurrency" />
+  }
   @if (shown('balances')) {
   <app-account-balances-widget [reportCurrency]="reportCurrency" />
   }

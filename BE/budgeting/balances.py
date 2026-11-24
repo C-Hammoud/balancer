@@ -9,12 +9,13 @@ Rule, per account and per currency:
 """
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional
 
 from api.currency import convert_amount
 
-from .services import _user_id, counts_as_income
+from .services import _txn_amount, _user_id, counts_as_expense, counts_as_income
 from .store import IncomeSourceFS, TransactionFS
 
 ZERO = Decimal("0")
@@ -136,3 +137,51 @@ def liquid_and_card_totals(user, report_currency: str, included_ids: Optional[Li
         "has_inflows": has_inflows,
         "unassigned": unassigned,
     }
+
+
+def _txn_month(t) -> str:
+    """YYYY-MM of a transaction (its month field, else its date)."""
+    month = (getattr(t, "month", "") or "").strip()
+    if len(month) >= 7:
+        return month[:7]
+    d = getattr(t, "date", None)
+    return d.strftime("%Y-%m") if d else ""
+
+
+def income_expense_totals(user, report_currency: str, today: Optional[date] = None) -> dict:
+    """
+    Income, expenses and the difference over every account (or none) for this month, this year
+    and all time, in report_currency. Transfers between the user's own accounts (card payments
+    included) are neither income nor expense, so they are left out.
+    """
+    today = today or date.today()
+    this_month = today.strftime("%Y-%m")
+    this_year = str(today.year)
+    periods = {name: {"income": ZERO, "expense": ZERO} for name in ("month", "year", "all_time")}
+    first: Optional[date] = None
+    for t in TransactionFS.list_all_for_user(_user_id(user)):
+        if counts_as_income(t):
+            kind = "income"
+        elif counts_as_expense(t):
+            kind = "expense"
+        else:
+            continue
+        amount = _txn_amount(t, report_currency)
+        month = _txn_month(t)
+        targets = ["all_time"]
+        if month[:4] == this_year:
+            targets.append("year")
+            if month == this_month:
+                targets.append("month")
+        for name in targets:
+            periods[name][kind] += amount
+        d = getattr(t, "date", None)
+        if d and (first is None or d < first):
+            first = d
+    out: dict = {"currency": report_currency}
+    for name, p in periods.items():
+        income = p["income"].quantize(Decimal("0.01"))
+        expense = p["expense"].quantize(Decimal("0.01"))
+        out[name] = {"income": income, "expense": expense, "net": income - expense}
+    out["all_time"]["since"] = first.isoformat() if first else None
+    return out

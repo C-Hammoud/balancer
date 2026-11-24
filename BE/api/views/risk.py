@@ -11,7 +11,7 @@ from api.locale_defaults import VALID_CURRENCIES
 from api.utils import decimal_to_json, user_id
 from budgeting import planned, risk
 from budgeting.alerts import evaluate_risk_alerts
-from budgeting.balances import liquid_and_card_totals
+from budgeting.balances import income_expense_totals, liquid_and_card_totals
 from budgeting.store import IncomeSourceFS, PlannedItemFS, RiskSettingsFS
 from budgeting.store.planning_sqlite import RISK_SETTING_FIELDS
 
@@ -34,6 +34,14 @@ class AccountBalancesView(APIView):
             # Money recorded without an account (or on a deleted one).
             "unassigned": totals["unassigned"],
         }))
+
+
+class IncomeExpenseTotalsView(APIView):
+    """Income, expenses and the difference over all accounts: this month, this year and all time."""
+
+    def get(self, request):
+        currency = resolve_report_currency(request.user, request.query_params.get("report_currency"))
+        return Response(decimal_to_json(income_expense_totals(request.user, currency)))
 
 
 # ---- Planned items ----------------------------------------------------------

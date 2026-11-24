@@ -312,6 +312,22 @@ export interface AccountBalancesResponse {
   unassigned?: string;
 }
 
+/** Income, expenses and the difference (decimal strings) for one period. */
+export interface PeriodTotals {
+  income: string;
+  expense: string;
+  net: string;
+}
+
+/** Over all accounts; transfers between the user's own accounts are left out. */
+export interface IncomeExpenseTotals {
+  currency: string;
+  month: PeriodTotals;
+  year: PeriodTotals;
+  /** `since`: date of the first transaction (null without any). */
+  all_time: PeriodTotals & { since: string | null };
+}
+
 export type PlannedItemKind = 'income' | 'expense';
 export type PlannedItemFrequency = 'once' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 

@@ -1,0 +1,86 @@
+// Income vs expenses widget (rows / total / colours come from widget.scss).
+.periods {
+  display: inline-flex;
+  justify-self: start;
+  border: 1px solid #c9d5d4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.periods button {
+  border: 0;
+  background: transparent;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f3d3e;
+  cursor: pointer;
+
+  & + button {
+    border-left: 1px solid #c9d5d4;
+  }
+
+  &.active {
+    background: #0f3d3e;
+    color: #fff;
+  }
+}
+
+// Two thin bars, same colours as the dashboard's income / expense chart (--series-income / --series-expense).
+.bars {
+  display: grid;
+  gap: 4px;
+}
+
+.bar {
+  height: 0.45rem;
+  border-radius: 4px;
+  background: #eef2f1;
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .in {
+    background: #2a78d6;
+  }
+
+  .out {
+    background: #eb6834;
+  }
+}
+
+.note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #0f3d3e;
+
+  .sub {
+    display: block;
+  }
+}
+
+.hint {
+  margin: 0;
+}
+
+// Colour key next to the Income / Expenses labels (the bars are not colour-only).
+.sw {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.4rem;
+  border-radius: 2px;
+
+  &.in {
+    background: #2a78d6;
+  }
+
+  &.out {
+    background: #eb6834;
+  }
+}

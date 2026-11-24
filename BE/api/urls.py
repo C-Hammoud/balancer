@@ -69,6 +69,7 @@ from api.views.support import (
 )
 from api.views.risk import (
     AccountBalancesView,
+    IncomeExpenseTotalsView,
     PlannedItemDetailView,
     PlannedItemListCreateView,
     RiskHistoryView,
@@ -341,6 +342,7 @@ urlpatterns = [
     # Budgeting — config
     path("budgeting/config/accounts/", AccountListCreateView.as_view(), name="accounts"),
     path("budgeting/config/accounts/balances/", AccountBalancesView.as_view(), name="account-balances"),
+    path("budgeting/totals/", IncomeExpenseTotalsView.as_view(), name="income-expense-totals"),
     path("budgeting/config/accounts/<str:pk>/", AccountDetailView.as_view(), name="account-detail"),
     path("budgeting/config/income-sources/", IncomeSourceListCreateView.as_view(), name="income-sources"),
     path("budgeting/config/income-sources/<str:pk>/", IncomeSourceDetailView.as_view(), name="income-source-detail"),

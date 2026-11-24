@@ -17,6 +17,7 @@ import { FinanceDataRefreshService } from '../../core/finance-data-refresh.servi
 import { RiskSummaryComponent } from '../../shared/risk-summary/risk-summary.component';
 import { AuthService } from '../../core/auth.service';
 import { AccountBalancesWidgetComponent } from './widgets/account-balances.component';
+import { IncomeExpenseWidgetComponent } from './widgets/income-expense.component';
 import { UpcomingPaymentsWidgetComponent } from './widgets/upcoming-payments.component';
 import { RecentTransactionsWidgetComponent } from './widgets/recent-transactions.component';
 import { QuickAddWidgetComponent } from './widgets/quick-add.component';
@@ -45,6 +46,7 @@ export const DASHBOARD_WIDGETS = [
   { id: 'spend', label: 'Spend by category' },
   { id: 'alerts', label: 'Alerts' },
   { id: 'budgetTable', label: 'Budget table' },
+  { id: 'netTotals', label: 'Income vs expenses' },
   { id: 'balances', label: 'Account balances' },
   { id: 'upcoming', label: 'Upcoming payments' },
   { id: 'recent', label: 'Recent transactions' },
@@ -69,6 +71,7 @@ export interface TileDelta {
     MonthQuestionsComponent,
     RiskSummaryComponent,
     AccountBalancesWidgetComponent,
+    IncomeExpenseWidgetComponent,
     UpcomingPaymentsWidgetComponent,
     RecentTransactionsWidgetComponent,
     QuickAddWidgetComponent,

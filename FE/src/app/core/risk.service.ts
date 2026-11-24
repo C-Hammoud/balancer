@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   AccountBalancesResponse,
+  IncomeExpenseTotals,
   PlannedItem,
   PlannedItemList,
   PlannedItemPayload,
@@ -40,6 +41,12 @@ export class RiskService {
   accountBalances(reportCurrency?: string): Observable<AccountBalancesResponse> {
     const params = reportCurrency ? new HttpParams().set('report_currency', reportCurrency) : undefined;
     return this.http.get<AccountBalancesResponse>(`${this.api}/budgeting/config/accounts/balances/`, { params });
+  }
+
+  /** Income vs expenses over all accounts: this month, this year and all time. */
+  incomeExpenseTotals(reportCurrency?: string): Observable<IncomeExpenseTotals> {
+    const params = reportCurrency ? new HttpParams().set('report_currency', reportCurrency) : undefined;
+    return this.http.get<IncomeExpenseTotals>(`${this.api}/budgeting/totals/`, { params });
   }
 
   plannedItems(): Observable<PlannedItemList> {
