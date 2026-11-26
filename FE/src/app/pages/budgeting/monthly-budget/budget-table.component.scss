@@ -159,7 +159,7 @@ tfoot th {
 // Sticky save bar
 .save-bar {
   position: sticky;
-  bottom: 0.75rem;
+  bottom: calc(0.75rem + var(--bottom-nav-space, 0px));
   z-index: 5;
   display: flex;
   justify-content: space-between;

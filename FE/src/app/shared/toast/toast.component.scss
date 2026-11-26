@@ -75,7 +75,7 @@
 @media (max-width: 560px) {
   .toast-host {
     top: auto;
-    bottom: 1rem;
+    bottom: calc(1rem + var(--bottom-nav-space, 0px));
     right: 0.75rem;
     left: 0.75rem;
     width: auto;

@@ -10,6 +10,7 @@ import { CommitmentDuePromptComponent } from '../shared/commitment-due-prompt/co
 import { NotificationBellComponent } from '../shared/notification-bell/notification-bell.component';
 import { QuickAddDialogComponent } from '../shared/quick-add/quick-add-dialog.component';
 import { QuickAddService } from '../shared/quick-add/quick-add.service';
+import { BottomTab, bottomTab } from './bottom-nav';
 
 interface NavItem {
   label: string;
@@ -51,6 +52,8 @@ export class ShellComponent implements OnInit, OnDestroy {
   alertCount = signal(0);
   menuOpen = signal(false);
   openGroup = signal<string | null>(null);
+  /** The phone bottom bar's highlighted tab. */
+  currentTab = signal<BottomTab>(bottomTab(this.router.url));
 
   primary: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', exact: true },
@@ -95,7 +98,10 @@ export class ShellComponent implements OnInit, OnDestroy {
       error: () => this.alertCount.set(0),
     });
     this.refresh.changed$.subscribe(() => this.reloadAlertCount());
-    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
+    // Global styles (sticky save bars, page padding) leave room for the phone bottom bar.
+    document.body.classList.add('has-bottom-nav');
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
+      this.currentTab.set(bottomTab((e as NavigationEnd).urlAfterRedirects));
       this.menuOpen.set(false);
       this.openGroup.set(null);
       this.syncBodyScrollLock();
@@ -103,7 +109,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    document.body.classList.remove('drawer-open');
+    document.body.classList.remove('drawer-open', 'has-bottom-nav');
   }
 
   @HostListener('document:keydown.escape')

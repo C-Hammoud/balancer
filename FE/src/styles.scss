@@ -618,3 +618,16 @@ textarea {
     line-height: 1;
   }
 }
+
+// ---- Phone bottom tab bar (layout/shell) ----
+// The shell adds body.has-bottom-nav; sticky bottom bars sit above the tab bar via this space.
+@media (max-width: 900px) {
+  body.has-bottom-nav {
+    --bottom-nav-space: calc(3.75rem + env(safe-area-inset-bottom));
+  }
+
+  // Hide the bar while typing so it doesn't ride on top of the phone keyboard.
+  body:has(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus, textarea:focus) .bottom-nav {
+    display: none;
+  }
+}
