@@ -490,6 +490,7 @@ class BudgetFS(SqliteAdapterMixin):
     year: int = 0
     month: int = 0
     forecast: Decimal = Decimal("0")
+    currency: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -499,6 +500,7 @@ class BudgetFS(SqliteAdapterMixin):
             "year": self.year,
             "month": self.month,
             "forecast": str(self.forecast),
+            "currency": (self.currency or "").upper(),
         }
 
     @classmethod
@@ -511,6 +513,7 @@ class BudgetFS(SqliteAdapterMixin):
             year=int(obj.year),
             month=int(obj.month),
             forecast=obj.forecast,
+            currency=(obj.currency or "").upper(),
         )
 
     @classmethod
@@ -522,6 +525,7 @@ class BudgetFS(SqliteAdapterMixin):
         o.year = int(data.get("year", 0) or 0)
         o.month = int(data.get("month", 0) or 0)
         o.forecast = _as_decimal(data.get("forecast", "0"))
+        o.currency = (data.get("currency", "") or "").upper()
         return o
 
     def save(self):
@@ -539,6 +543,7 @@ class BudgetFS(SqliteAdapterMixin):
         obj.year = int(self.year)
         obj.month = int(self.month)
         obj.forecast = self.forecast
+        obj.currency = (self.currency or "").upper()[:3]
         obj.save()
         self.pk = _str_pk(obj.pk)
         return self
@@ -908,6 +913,7 @@ class FinancialStandingFS(SqliteAdapterMixin):
     total_liabilities: Decimal = Decimal("0")
     short_term_liabilities: Decimal = Decimal("0")
     long_term_liabilities: Decimal = Decimal("0")
+    currency: str = ""
     notes: str = ""
     created_at: Optional[datetime] = None
 
@@ -921,6 +927,7 @@ class FinancialStandingFS(SqliteAdapterMixin):
             "total_liabilities": str(self.total_liabilities),
             "short_term_liabilities": str(self.short_term_liabilities),
             "long_term_liabilities": str(self.long_term_liabilities),
+            "currency": (self.currency or "").upper(),
             "notes": self.notes or "",
             "created_at": self.created_at,
         }
@@ -937,6 +944,7 @@ class FinancialStandingFS(SqliteAdapterMixin):
             total_liabilities=obj.total_liabilities,
             short_term_liabilities=obj.short_term_liabilities,
             long_term_liabilities=obj.long_term_liabilities,
+            currency=(obj.currency or "").upper(),
             notes=obj.notes or "",
             created_at=obj.created_at,
         )
@@ -952,6 +960,7 @@ class FinancialStandingFS(SqliteAdapterMixin):
         o.total_liabilities = _as_decimal(data.get("total_liabilities", "0"))
         o.short_term_liabilities = _as_decimal(data.get("short_term_liabilities", "0"))
         o.long_term_liabilities = _as_decimal(data.get("long_term_liabilities", "0"))
+        o.currency = (data.get("currency", "") or "").upper()
         o.notes = data.get("notes", "") or ""
         o.created_at = _as_datetime(data.get("created_at"))
         return o
@@ -969,6 +978,7 @@ class FinancialStandingFS(SqliteAdapterMixin):
         obj.total_liabilities = self.total_liabilities
         obj.short_term_liabilities = self.short_term_liabilities
         obj.long_term_liabilities = self.long_term_liabilities
+        obj.currency = (self.currency or "").upper()[:3]
         obj.notes = self.notes or ""
         obj.save()
         self.pk = _str_pk(obj.pk)

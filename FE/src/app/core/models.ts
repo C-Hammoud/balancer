@@ -668,6 +668,8 @@ export interface CommitmentScheduleLine {
 
 export interface FinancialStanding {
   id: string;
+  /** Currency the amounts are shown in (converted to the main currency). */
+  currency?: string;
   snapshot_date: string | null;
   total_assets: string;
   current_assets: string;

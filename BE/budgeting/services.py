@@ -123,11 +123,78 @@ def savings_actual(user, year, month, *, report_currency=None):
     return inc - exp - comm
 
 
-def savings_currency(user, savings) -> str:
-    """Currency of a savings month: its own, else the user's main currency (older rows have none)."""
+def stored_currency(user, row, main_currency=None) -> str:
+    """
+    Currency a saved amount was entered in (budget line, savings month, net-worth snapshot).
+    Older rows have none: they count as the user's main currency.
+    """
+    own = (getattr(row, "currency", "") or "").strip().upper()
+    if own:
+        return own
+    if main_currency:
+        return main_currency
     from api.currency import resolve_report_currency
 
-    return (getattr(savings, "currency", "") or "").strip().upper() or resolve_report_currency(user)
+    return resolve_report_currency(user)
+
+
+def savings_currency(user, savings) -> str:
+    """Currency of a savings month: its own, else the user's main currency (older rows have none)."""
+    return stored_currency(user, savings)
+
+
+def budgets_in(user, budgets, report_currency=None):
+    """
+    Copies of monthly budget lines with `forecast` converted to report_currency (default: the
+    user's main currency). For reading only: never save the copies back.
+    """
+    import copy
+
+    from api.currency import convert_amount, resolve_report_currency
+
+    target = report_currency or resolve_report_currency(user)
+    main = resolve_report_currency(user)
+    out = []
+    for b in budgets:
+        src = stored_currency(user, b, main)
+        if src == target:
+            out.append(b)
+            continue
+        c = copy.copy(b)
+        c.forecast = convert_amount(b.forecast or Decimal("0"), src, target)
+        out.append(c)
+    return out
+
+
+STANDING_AMOUNTS = (
+    "total_assets",
+    "current_assets",
+    "fixed_assets",
+    "total_liabilities",
+    "short_term_liabilities",
+    "long_term_liabilities",
+)
+
+
+def standings_in(user, standings, report_currency=None):
+    """Copies of net-worth snapshots with every amount converted (reading only, like budgets_in)."""
+    import copy
+
+    from api.currency import convert_amount, resolve_report_currency
+
+    target = report_currency or resolve_report_currency(user)
+    main = resolve_report_currency(user)
+    out = []
+    for s in standings:
+        src = stored_currency(user, s, main)
+        if src == target:
+            out.append(s)
+            continue
+        c = copy.copy(s)
+        for name in STANDING_AMOUNTS:
+            setattr(c, name, convert_amount(getattr(s, name) or Decimal("0"), src, target))
+        out.append(c)
+    return out
 
 
 def savings_figures(user, savings) -> tuple:
@@ -303,7 +370,10 @@ def yearly_overview_report(user, year: int, *, report_currency=None):
     Year-level dashboard series with one transaction load, one budget load,
     and one categories/thresholds load (instead of 36+ repeated Firestore queries).
     """
+    from api.currency import resolve_report_currency
+
     uid = _user_id(user)
+    report_currency = report_currency or resolve_report_currency(user)
     txns = TransactionFS.list_by_user(uid, limit=2000)
 
     income_by_month = {m: Decimal("0") for m in range(1, 13)}
@@ -326,7 +396,7 @@ def yearly_overview_report(user, year: int, *, report_currency=None):
 
     groups_list, categories_by_id = categories_and_groups_for_user(user)
     threshold_get = _build_threshold_getter(uid)
-    all_budgets = BudgetFS.list_by_user(uid, year=year)
+    all_budgets = budgets_in(user, BudgetFS.list_by_user(uid, year=year), report_currency)
     budgets_by_month = {m: [] for m in range(1, 13)}
     for b in all_budgets:
         if 1 <= b.month <= 12:
@@ -384,10 +454,14 @@ def budget_utilization_report(user, year, month, *, report_currency=None):
     Parent category rows use an explicit cap when set, otherwise the sum of subcategory forecasts.
     Subcategory rows are included for detail and do not double-count in totals.
     """
+    from api.currency import resolve_report_currency
+
     uid = _user_id(user)
+    # Spending and budgets are both shown in one currency (the main one unless asked otherwise).
+    report_currency = report_currency or resolve_report_currency(user)
     groups_list, categories_by_id = categories_and_groups_for_user(user)
     groups_map = {g.pk: g for g in groups_list}
-    budgets = BudgetFS.list_by_user(uid, year=year, month=month)
+    budgets = budgets_in(user, BudgetFS.list_by_user(uid, year=year, month=month), report_currency)
     group_budgets, cat_budgets = _budget_maps(budgets)
     actuals = actual_expense_by_category(
         user, year, month, exclude_commitments=True, report_currency=report_currency

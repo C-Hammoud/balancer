@@ -121,10 +121,12 @@ def evaluate_budget_alerts(user, year=None, month=None):
     uid = _user_id(user)
 
     try:
+        # In the main currency: spending and budgets converted alike.
         report = budget_utilization_report(user, year, month)
     except Exception as e:
         logger.warning("budget_utilization_report failed: %s", e)
         return []
+    cur = report.get("report_currency") or ""
 
     desired = {}  # fingerprint -> row meta for WARN/CRITICAL
     for row in report["rows"]:
@@ -167,7 +169,7 @@ def evaluate_budget_alerts(user, year=None, month=None):
         if meta["category_id"] == UNMAPPED_CATEGORY_ID:
             title = f"{meta['severity']}: Unmapped expenses"
             description = (
-                f"You have {meta['actual']} in expenses without a category mapping "
+                f"You have {meta['actual']} {cur} in expenses without a category mapping "
                 f"for {year}-{month:02d}. Open type maps to assign expense types to budget categories."
             )
         else:
@@ -175,7 +177,7 @@ def evaluate_budget_alerts(user, year=None, month=None):
             util_str = f"{meta['utilization_pct']}%" if meta["utilization_pct"] is not None else "n/a"
             description = (
                 f"{meta['category_name']} utilization is {util_str} "
-                f"(actual {meta['actual']}, forecast {meta['forecast']}) for {year}-{month:02d}."
+                f"(actual {meta['actual']} {cur}, forecast {meta['forecast']} {cur}) for {year}-{month:02d}."
             )
         alert = by_fp.get(fp)
         if alert:

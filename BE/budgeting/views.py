@@ -53,8 +53,11 @@ from .services import (
     remaining_principal,
     categories_and_groups_for_user,
     budget_utilization_report,
+    budgets_in,
+    standings_in,
     CONSUMPTION_EXTERNAL_ID_PREFIX,
 )
+from api.currency import resolve_report_currency
 from .alerts import evaluate_budget_alerts, resolve_alert
 
 
@@ -672,8 +675,9 @@ def budget_list(request):
 
     groups_list, categories_by_id = categories_and_groups_for_user()
     groups_map = {g.pk: g for g in groups_list}
-    budgets = BudgetFS.list_by_user(uid, year=year, month=month)
-    actuals = actual_expense_by_category(request.user, year, month)
+    currency = resolve_report_currency(request.user)
+    budgets = budgets_in(request.user, BudgetFS.list_by_user(uid, year=year, month=month), currency)
+    actuals = actual_expense_by_category(request.user, year, month, report_currency=currency)
 
     rows = []
     for b in budgets:
@@ -730,7 +734,8 @@ def budget_edit(request, year, month, category_id):
     cid = str(category_id)
     budget = BudgetFS.get_by_user_category_month(uid, cid, year, month)
     if not budget:
-        budget = BudgetFS(user_id=uid, category_id=cid, year=year, month=month, forecast=Decimal("0"))
+        budget = BudgetFS(user_id=uid, category_id=cid, year=year, month=month, forecast=Decimal("0"),
+                          currency=resolve_report_currency(request.user))
         budget.save()
     groups_map = {g.pk: g for g in GroupFS.list_all()}
     group_name = groups_map.get(cat.group_id).name if cat.group_id in groups_map else ""
@@ -739,12 +744,13 @@ def budget_edit(request, year, month, category_id):
         form = BudgetEditFormFS(request.POST)
         if form.is_valid():
             budget.forecast = form.cleaned_data["forecast"]
+            budget.currency = resolve_report_currency(request.user)
             budget.save()
             messages.success(request, "Budget updated.")
             _trigger_alert_eval(request.user, year=year, month=month)
             return redirect(reverse("budgeting:budget_list") + "?year=%d&month=%d" % (year, month))
     else:
-        form = BudgetEditFormFS(initial={"forecast": budget.forecast})
+        form = BudgetEditFormFS(initial={"forecast": budgets_in(request.user, [budget])[0].forecast})
     return render(request, "budgeting/budget_form.html", {"form": form, "budget": budget, "category": cat, "group_name": group_name, "year": year, "month": month})
 
 
@@ -854,8 +860,13 @@ def commitment_edit(request, pk):
 def financial_standing_list(request):
     """List financial standing snapshots from Firestore."""
     uid = str(request.user.pk)
-    standings = FinancialStandingFS.list_by_user(uid)
-    return render(request, "budgeting/financial_standing_list.html", {"standings": standings})
+    currency = resolve_report_currency(request.user)
+    standings = standings_in(request.user, FinancialStandingFS.list_by_user(uid), currency)
+    return render(
+        request,
+        "budgeting/financial_standing_list.html",
+        {"standings": standings, "currency": currency},
+    )
 
 
 @login_required
@@ -873,6 +884,7 @@ def financial_standing_add(request):
                 total_liabilities=cd["total_liabilities"],
                 short_term_liabilities=cd["short_term_liabilities"],
                 long_term_liabilities=cd["long_term_liabilities"],
+                currency=resolve_report_currency(request.user),
                 notes=cd.get("notes") or "",
             )
             s.save()

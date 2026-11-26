@@ -1,7 +1,7 @@
 <section class="hero">
   <div>
     <h1>Financial standing</h1>
-    <p>Assets / liabilities snapshots (net worth).</p>
+    <p>Assets / liabilities snapshots (net worth). Amounts in <strong>{{ currency() }}</strong>.</p>
   </div>
   <button type="button" class="btn primary" (click)="showForm.set(!showForm())">
     {{ showForm() ? 'Close' : 'Add snapshot' }}

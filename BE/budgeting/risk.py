@@ -426,7 +426,10 @@ def gather_inputs(user, currency: str, thresholds: dict, settings_obj=None, toda
     standing = None
     standings = FinancialStandingFS.list_by_user(uid)
     if standings:
-        s = standings[0]
+        from .services import standings_in
+
+        # The snapshot may have been entered in another currency than this report.
+        s = standings_in(user, standings[:1], currency)[0]
         standing = {
             "as_of": s.snapshot_date.isoformat() if s.snapshot_date else None,
             "assets": Decimal(s.total_assets or 0),

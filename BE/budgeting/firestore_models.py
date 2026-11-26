@@ -321,6 +321,7 @@ class BudgetFS(BudgetingFirestoreModel):
     year: int = 0
     month: int = 0
     forecast: Decimal = Decimal("0")
+    currency: str = ""
 
     def to_dict(self):
         return {
@@ -330,6 +331,7 @@ class BudgetFS(BudgetingFirestoreModel):
             "year": self.year,
             "month": self.month,
             "forecast": str(self.forecast),
+            "currency": (self.currency or "").upper(),
         }
 
     @classmethod
@@ -341,6 +343,7 @@ class BudgetFS(BudgetingFirestoreModel):
         o.year = int(data.get("year", 0) or 0)
         o.month = int(data.get("month", 0) or 0)
         o.forecast = _as_decimal(data.get("forecast", "0"))
+        o.currency = (data.get("currency", "") or "").upper()
         return o
 
     @classmethod
@@ -661,6 +664,7 @@ class FinancialStandingFS(BudgetingFirestoreModel):
     total_liabilities: Decimal = Decimal("0")
     short_term_liabilities: Decimal = Decimal("0")
     long_term_liabilities: Decimal = Decimal("0")
+    currency: str = ""
     notes: str = ""
     created_at: Optional[datetime] = None
 
@@ -674,6 +678,7 @@ class FinancialStandingFS(BudgetingFirestoreModel):
             "total_liabilities": str(self.total_liabilities),
             "short_term_liabilities": str(self.short_term_liabilities),
             "long_term_liabilities": str(self.long_term_liabilities),
+            "currency": (self.currency or "").upper(),
             "notes": self.notes or "",
             "created_at": self.created_at,
         }
@@ -689,6 +694,7 @@ class FinancialStandingFS(BudgetingFirestoreModel):
         o.total_liabilities = _as_decimal(data.get("total_liabilities", "0"))
         o.short_term_liabilities = _as_decimal(data.get("short_term_liabilities", "0"))
         o.long_term_liabilities = _as_decimal(data.get("long_term_liabilities", "0"))
+        o.currency = (data.get("currency", "") or "").upper()
         o.notes = data.get("notes", "") or ""
         o.created_at = _as_datetime(data.get("created_at"))
         return o

@@ -1510,13 +1510,19 @@ class BudgetListView(APIView):
         today = date.today()
         year = _query_int(request, "year", today.year)
         month = _query_int(request, "month", today.month)
-        from budgeting.services import actual_expense_by_category
+        from budgeting.services import actual_expense_by_category, budgets_in
 
         uid = user_id(request.user)
+        # Budgets and spending in one currency: the main one unless ?report_currency= asks otherwise.
+        report_currency = resolve_report_currency(
+            request.user, request.query_params.get("report_currency")
+        )
         groups_list, categories_by_id = categories_and_groups_for_user(request.user)
         groups_map = {g.pk: g for g in groups_list}
-        budgets = BudgetFS.list_by_user(uid, year=year, month=month)
-        actuals = actual_expense_by_category(request.user, year, month)
+        budgets = budgets_in(
+            request.user, BudgetFS.list_by_user(uid, year=year, month=month), report_currency
+        )
+        actuals = actual_expense_by_category(request.user, year, month, report_currency=report_currency)
 
         group_budgets = {
             b.group_id: b for b in budgets if (b.group_id or "").strip() and not (b.category_id or "").strip()
@@ -1563,7 +1569,9 @@ class BudgetListView(APIView):
                     "actual": group_actual,
                     "sub_budgets": sub_budgets,
                 })
-        return Response(decimal_to_json({"year": year, "month": month, "rows": rows}))
+        return Response(decimal_to_json({
+            "year": year, "month": month, "report_currency": report_currency, "rows": rows,
+        }))
 
 
 class BudgetGroupDetailView(APIView):
@@ -1587,6 +1595,7 @@ class BudgetGroupDetailView(APIView):
         serializer = BudgetForecastSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         b.forecast = serializer.validated_data["forecast"]
+        b.currency = resolve_report_currency(request.user)
         b.save()
         trigger_budget_alerts(request.user, int(year), int(month))
         return Response(
@@ -1611,11 +1620,16 @@ class BudgetDetailView(APIView):
                 year=int(year),
                 month=int(month),
                 forecast=Decimal("0"),
+                currency=resolve_report_currency(request.user),
             )
             b.save()
+        from budgeting.services import budgets_in
+
+        shown = budgets_in(request.user, [b])[0]
         return Response(
             decimal_to_json({
-                "forecast": b.forecast,
+                "forecast": shown.forecast,
+                "currency": resolve_report_currency(request.user),
                 "category_id": category_id,
                 "year": year,
                 "month": month,
@@ -1639,6 +1653,7 @@ class BudgetDetailView(APIView):
         serializer = BudgetForecastSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         b.forecast = serializer.validated_data["forecast"]
+        b.currency = resolve_report_currency(request.user)
         b.save()
         trigger_budget_alerts(request.user, int(year), int(month))
         return Response(decimal_to_json({"forecast": b.forecast}))
@@ -1991,11 +2006,16 @@ class CommitmentRegenerateScheduleView(APIView):
 
 class FinancialStandingListCreateView(APIView):
     def get(self, request):
+        from budgeting.services import standings_in
+
         uid = user_id(request.user)
-        items = FinancialStandingFS.list_by_user(uid)
+        # Each snapshot is converted from the currency it was entered in to the main currency.
+        currency = resolve_report_currency(request.user, request.query_params.get("report_currency"))
+        items = standings_in(request.user, FinancialStandingFS.list_by_user(uid), currency)
         return Response([
             decimal_to_json({
                 "id": s.pk,
+                "currency": currency,
                 "snapshot_date": s.snapshot_date.isoformat() if s.snapshot_date else None,
                 "total_assets": s.total_assets,
                 "current_assets": s.current_assets,
@@ -2021,6 +2041,7 @@ class FinancialStandingListCreateView(APIView):
             total_liabilities=cd.get("total_liabilities") or Decimal("0"),
             short_term_liabilities=cd.get("short_term_liabilities") or Decimal("0"),
             long_term_liabilities=cd.get("long_term_liabilities") or Decimal("0"),
+            currency=resolve_report_currency(request.user),
             notes=cd.get("notes") or "",
         )
         s.save()

@@ -183,6 +183,9 @@ class Budget(models.Model):
     year = models.PositiveIntegerField()
     month = models.PositiveSmallIntegerField()  # 1–12
     forecast = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # Currency the forecast was entered in; reports convert it to the main currency.
+    # Empty (older rows) = the user's main currency.
+    currency = models.CharField(max_length=3, blank=True, default="")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -309,6 +312,8 @@ class FinancialStanding(models.Model):
     total_liabilities = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     short_term_liabilities = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     long_term_liabilities = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # Currency of the amounts above; empty (older rows) = the user's main currency.
+    currency = models.CharField(max_length=3, blank=True, default="")
     notes = models.TextField(blank=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

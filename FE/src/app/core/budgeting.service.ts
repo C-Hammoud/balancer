@@ -215,9 +215,15 @@ export class BudgetingService {
     return this.http.post<TransactionUploadResult>(`${this.api}/transactions/upload/`, form);
   }
 
-  budgets(year: number, month: number): Observable<{ year: number; month: number; rows: BudgetRow[] }> {
+  budgets(
+    year: number,
+    month: number,
+  ): Observable<{ year: number; month: number; report_currency?: string; rows: BudgetRow[] }> {
     const params = new HttpParams().set('year', year).set('month', month);
-    return this.http.get<{ year: number; month: number; rows: BudgetRow[] }>(`${this.api}/budgets/`, { params });
+    return this.http.get<{ year: number; month: number; report_currency?: string; rows: BudgetRow[] }>(
+      `${this.api}/budgets/`,
+      { params },
+    );
   }
 
   updateBudget(year: number, month: number, categoryId: string, forecast: string | number) {

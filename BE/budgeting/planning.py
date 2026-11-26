@@ -150,11 +150,16 @@ def spending_by_group(user, year: int, month: int, currency: str, months: int = 
     return {gid: v / months_with_data for gid, v in totals.items()}, months_with_data
 
 
-def current_forecasts(user, year: int, month: int) -> dict:
-    """Effective forecast per group: explicit group budget, else the sum of subcategory budgets."""
+def current_forecasts(user, year: int, month: int, currency: str | None = None) -> dict:
+    """
+    Effective forecast per group: explicit group budget, else the sum of subcategory budgets.
+    Converted to `currency` (default: the main currency).
+    """
+    from .services import budgets_in
+
     cat_group = {c.pk: c.group_id for c in visible_categories(user)}
     explicit, from_subs = {}, {}
-    for b in BudgetFS.list_by_user(_user_id(user), year=year, month=month):
+    for b in budgets_in(user, BudgetFS.list_by_user(_user_id(user), year=year, month=month), currency):
         if (b.category_id or "").strip():
             gid = cat_group.get(b.category_id)
             if gid:
@@ -243,7 +248,7 @@ def build_plan(user, year: int, month: int, plan_type: str, currency: str, savin
     groups = plannable_groups(user)
     buckets = group_buckets(user, groups)
     history, months_used = spending_by_group(user, year, month, currency)
-    current = current_forecasts(user, year, month)
+    current = current_forecasts(user, year, month, currency)
 
     effective_type = plan_type
     if income <= 0:
@@ -436,6 +441,7 @@ def accept_plan(user, obj):
             b = BudgetFS(user_id=uid, group_id=str(line["group_id"]), category_id="",
                          year=obj.year, month=obj.month, forecast=ZERO)
         b.forecast = Decimal(str(line["amount"]))
+        b.currency = obj.currency  # plan amounts are in the plan's currency
         b.save()
     plan = plan_to_dict(obj)
     s = SavingsFS.get_by_user_month(uid, obj.year, obj.month) or SavingsFS(

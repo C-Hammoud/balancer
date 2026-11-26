@@ -77,7 +77,7 @@
             <th class="num">{{ totalBudget() | amount: 0 }}</th>
             <th class="num">{{ totalSpent() | amount: 0 }}</th>
             <th class="num" [class.neg]="totalBudget() - totalSpent() < 0">{{ (totalBudget() - totalSpent()) | amount: 0 }}</th>
-            <th class="progress-col">{{ currency }}</th>
+            <th class="progress-col">{{ shownCurrency() || currency }}</th>
           </tr>
         </tfoot>
       }

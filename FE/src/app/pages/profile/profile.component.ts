@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
 import { LocaleService } from '../../core/locale.service';
 import { ToastService } from '../../core/toast.service';
 
@@ -18,6 +19,7 @@ export class ProfileComponent implements OnInit {
   private locale = inject(LocaleService);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private refresh = inject(FinanceDataRefreshService);
 
   readonly user = this.auth.user;
   readonly currencyOptions = this.locale.currencies;
@@ -93,6 +95,7 @@ export class ProfileComponent implements OnInit {
       return;
     }
     const raw = this.form.getRawValue();
+    const currencyChanged = raw.default_currency !== this.locale.defaultCurrency();
     this.saving.set(true);
     this.locale
       .savePreferences({
@@ -112,6 +115,8 @@ export class ProfileComponent implements OnInit {
           this.toast.success(
             `Profile saved. Reports and new entries default to ${raw.default_currency}.`
           );
+          // Open widgets and the alert count reload in the new currency.
+          if (currencyChanged) this.refresh.notify();
           this.auth.loadMe().subscribe({
             next: (u) => this.emailVerified.set(!!u.email_verified),
           });

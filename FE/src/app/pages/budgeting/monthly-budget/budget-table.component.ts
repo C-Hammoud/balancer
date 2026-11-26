@@ -34,6 +34,8 @@ export class BudgetTableComponent implements OnChanges {
   @Output() saved = new EventEmitter<void>();
 
   rows = signal<BudgetRow[]>([]);
+  /** Currency the server converted the amounts to (falls back to the page's currency). */
+  shownCurrency = signal('');
   loading = signal(true);
   saving = signal(false);
   expanded = signal<Set<string>>(new Set());
@@ -53,6 +55,7 @@ export class BudgetTableComponent implements OnChanges {
     this.api.budgets(this.year, this.month).subscribe({
       next: (res) => {
         const rows = res.rows.filter((r) => r.group_id);
+        this.shownCurrency.set(res.report_currency || '');
         this.groupSaved = {};
         this.subSaved = {};
         for (const r of rows) {

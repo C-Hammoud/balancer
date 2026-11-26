@@ -4,6 +4,7 @@ import { AmountPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BudgetingService } from '../../../core/budgeting.service';
 import { FinancialStanding } from '../../../core/models';
+import { LocaleService } from '../../../core/locale.service';
 import { ToastService } from '../../../core/toast.service';
 
 @Component({
@@ -17,6 +18,7 @@ export class FinancialStandingComponent implements OnInit {
   private api = inject(BudgetingService);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private locale = inject(LocaleService);
 
   items = signal<FinancialStanding[]>([]);
   loading = signal(true);
@@ -49,6 +51,11 @@ export class FinancialStandingComponent implements OnInit {
         this.toast.fromHttpError(err, 'Could not load financial standing.');
       },
     });
+  }
+
+  /** Snapshots are converted to the main currency; new ones are saved in it. */
+  currency(): string {
+    return this.items()[0]?.currency || this.locale.defaultCurrency();
   }
 
   netWorth(s: FinancialStanding): number {
