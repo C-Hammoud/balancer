@@ -7,6 +7,7 @@ import { FinanceDataRefreshService } from '../../../core/finance-data-refresh.se
 import { BudgetRow } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 import { AmountPipe } from '../../../shared/amount.pipe';
+import { StackCollapseDirective } from '../../../shared/stack-collapse.directive';
 
 /**
  * The month's budgets: one editable amount per category group (optionally split into
@@ -15,7 +16,7 @@ import { AmountPipe } from '../../../shared/amount.pipe';
 @Component({
   selector: 'app-budget-table',
   standalone: true,
-  imports: [CommonModule, FormsModule, AmountPipe],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, AmountPipe],
   templateUrl: './budget-table.component.html',
   styleUrl: './budget-table.component.scss',
 })

@@ -469,3 +469,152 @@ textarea {
     padding-right: max(0.85rem, env(safe-area-inset-right));
   }
 }
+
+// ---- Collapsible cards (shared/collapsible-card.directive.ts) ----
+.cc-card { position: relative; }
+.cc-card > .cc-head { padding-right: 2.6rem; }
+.cc-toggle {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #c9d5d4;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+}
+.cc-toggle:hover { border-color: var(--accent); }
+.cc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-chev { display: inline-block; transition: transform 0.15s ease; }
+.cc-collapsed .cc-toggle .cc-chev { transform: rotate(-90deg); }
+.cc-host-collapsed { align-self: start; }
+@media screen {
+  .cc-collapsed { height: auto !important; }
+  .cc-collapsed > :not(.cc-head):not(.cc-toggle) { display: none !important; }
+  .cc-collapsed > .cc-head { margin-bottom: 0; }
+}
+@media print {
+  .cc-toggle { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-chev { transition: none; }
+}
+
+// ---- Phone table cards: collapsed to one line, tap to open (shared/stack-collapse.directive.ts) ----
+@media (max-width: 640px) {
+  .stack-table tbody tr.sc-more {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stack-table tbody tr.sc-more:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  // Collapsed: one line (checkbox · title · amount · ▾), then a small second line.
+  .stack-table tbody tr.sc-row:not(.sc-open) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.6rem;
+    row-gap: 0.15rem;
+    padding: 0.6rem 0.85rem;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td:not([data-summary]) { display: none; }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary] {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary]::before { display: none; }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='select'] {
+    order: 0;
+    flex: 0 0 auto;
+    width: auto;
+    // A wider tap area around a normal-size box (tapping the cell ticks it).
+    padding: 0.3rem 0.45rem 0.3rem 0;
+    margin: -0.3rem 0;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='select'] input {
+    min-height: 0;
+    width: 1.2rem;
+    height: 1.2rem;
+    margin: 0;
+    vertical-align: middle;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='title'] {
+    order: 1;
+    flex: 1 1 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='title'] small { display: none; }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='end'] {
+    order: 2;
+    flex: 0 0 auto;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: right;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='end'] + td[data-summary~='end'] { margin-left: -0.3rem; }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='end'] input { width: 6.5rem; }
+  .stack-table tbody tr.sc-more:not(.sc-open)::before {
+    content: '▾';
+    order: 3;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1;
+  }
+  // Line break before the meta cells.
+  .stack-table tbody tr.sc-row:not(.sc-open):has(> td[data-summary~='meta'])::after {
+    content: '';
+    order: 4;
+    flex-basis: 100%;
+    height: 0;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='meta'] {
+    order: 5;
+    flex: 0 1 auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='meta'] small { display: none; }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='meta'] .pill { margin: 0; }
+  .stack-table tbody tr.sc-row:not(.sc-open) > td[data-summary~='labeled']::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  // Open: the usual full card, with ▴ centred at the bottom (tap anywhere to close).
+  .stack-table tbody tr.sc-more.sc-open {
+    position: relative;
+    padding-bottom: 1.5rem;
+  }
+  .stack-table tbody tr.sc-more.sc-open::before {
+    content: '▴';
+    position: absolute;
+    bottom: 0.3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1;
+  }
+}

@@ -2,7 +2,7 @@
   <p class="muted">Loading budgets…</p>
 } @else {
   <div class="table-wrap">
-    <table class="stack-table budget-table">
+    <table class="stack-table budget-table" appStackCollapse>
       <thead>
         <tr>
           <th>Category</th>
@@ -15,7 +15,7 @@
       <tbody>
         @for (r of rows(); track r.group_id) {
           <tr class="group-row" [ngClass]="tone(r)">
-            <td data-label="Category">
+            <td data-label="Category" data-summary="title">
               <div class="category-cell">
                 @if (hasSubs(r)) {
                   <button type="button" class="expand-btn" (click)="toggle(r.group_id!)"
@@ -27,7 +27,7 @@
                 <strong>{{ r.category_name }}</strong>
               </div>
             </td>
-            <td data-label="Budget" class="num">
+            <td data-label="Budget" class="num" data-summary="end">
               <input type="number" min="0" step="any" class="amount"
                      [(ngModel)]="groupDraft[r.group_id!]" [name]="'g-' + r.group_id"
                      [placeholder]="subTotal(r) > 0 ? (subTotal(r) | amount: 0) : '0'"
@@ -36,8 +36,8 @@
                 <small class="derived">sum of subcategories</small>
               }
             </td>
-            <td data-label="Spent" class="num">{{ spentOf(r) | amount: 0 }}</td>
-            <td data-label="Left" class="num left" [class.neg]="leftOf(r) < 0">
+            <td data-label="Spent" class="num" data-summary="meta labeled">{{ spentOf(r) | amount: 0 }}</td>
+            <td data-label="Left" class="num left" data-summary="meta labeled" [class.neg]="leftOf(r) < 0">
               {{ budgetOf(r) > 0 ? (leftOf(r) | amount: 0) : '—' }}
             </td>
             <td data-label="Used" class="progress-col">
@@ -54,13 +54,13 @@
           @if (isExpanded(r.group_id!)) {
             @for (s of r.sub_budgets || []; track s.category_id) {
               <tr class="sub-row">
-                <td data-label="Subcategory"><span class="sub-indent">{{ s.category_name }}</span></td>
-                <td data-label="Budget" class="num">
+                <td data-label="Subcategory" data-summary="title"><span class="sub-indent">{{ s.category_name }}</span></td>
+                <td data-label="Budget" class="num" data-summary="end">
                   <input type="number" min="0" step="any" class="amount"
                          [(ngModel)]="subDraft[s.category_id]" [name]="'s-' + s.category_id" placeholder="0"
                          [attr.aria-label]="'Budget for ' + s.category_name" />
                 </td>
-                <td data-label="Spent" class="num">{{ s.actual | amount: 0 }}</td>
+                <td data-label="Spent" class="num" data-summary="meta labeled">{{ s.actual | amount: 0 }}</td>
                 <td class="num"></td>
                 <td class="progress-col"></td>
               </tr>

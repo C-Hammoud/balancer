@@ -120,7 +120,7 @@
         </button>
       }
     </div>
-    <table class="stack-table">
+    <table class="stack-table" appStackCollapse>
       <thead>
         <tr>
           <th class="select-col">
@@ -144,7 +144,7 @@
       <tbody>
         @for (a of visible(); track a.id) {
           <tr [class.unmapped-row]="isUnmapped(a)" [class.selected]="isSelected(a.id)">
-            <td class="select-col" data-label="Select">
+            <td class="select-col" data-label="Select" data-summary="select">
               <input
                 type="checkbox"
                 [checked]="isSelected(a.id)"
@@ -152,15 +152,15 @@
                 [attr.aria-label]="'Select ' + a.title"
               />
             </td>
-            <td data-label="Type">
+            <td data-label="Type" data-summary="meta">
               <span class="pill">{{ typeLabel(a) }}</span>
             </td>
-            <td data-label="Severity">
+            <td data-label="Severity" data-summary="end">
               <span class="pill" [class.danger]="a.severity === 'CRITICAL'" [class.warn]="a.severity === 'WARN'">
                 {{ a.severity === 'CRITICAL' ? 'Critical' : a.severity === 'WARN' ? 'Warning' : a.severity }}
               </span>
             </td>
-            <td data-label="Title">
+            <td data-label="Title" data-summary="title">
               <strong>{{ a.title }}</strong>
               <small>{{ a.description }}</small>
               @switch (stateOf(a)) {
@@ -177,7 +177,7 @@
                 }
               }
             </td>
-            <td data-label="Period">{{ a.year }}-{{ a.month | number: '2.0-0' }}</td>
+            <td data-label="Period" data-summary="meta">{{ a.year }}-{{ a.month | number: '2.0-0' }}</td>
             <td data-label="Util">
               @if (isCommitmentDue(a) || isRisk(a)) {
                 —

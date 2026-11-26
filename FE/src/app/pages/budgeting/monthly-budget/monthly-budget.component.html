@@ -102,17 +102,17 @@
         }
 
         <div class="table-wrap">
-          <table class="stack-table lines">
+          <table class="stack-table lines" appStackCollapse>
             <thead>
               <tr><th>Category</th><th>Type</th><th class="num">Usually spent</th><th class="num">Budget</th></tr>
             </thead>
             <tbody>
               @for (l of p.lines; track l.group_id) {
                 <tr>
-                  <td data-label="Category"><strong>{{ l.group_name }}</strong></td>
-                  <td data-label="Type"><span class="pill" [ngClass]="l.bucket">{{ l.bucket }}</span></td>
-                  <td data-label="Usually spent" class="num">{{ l.average_spend | amount: 0 }}</td>
-                  <td data-label="Budget" class="num">
+                  <td data-label="Category" data-summary="title"><strong>{{ l.group_name }}</strong></td>
+                  <td data-label="Type" data-summary="meta"><span class="pill" [ngClass]="l.bucket">{{ l.bucket }}</span></td>
+                  <td data-label="Usually spent" class="num" data-summary="meta labeled">{{ l.average_spend | amount: 0 }}</td>
+                  <td data-label="Budget" class="num" data-summary="end">
                     <input type="number" min="0" step="any" class="amount" [(ngModel)]="amounts[l.group_id]"
                            [name]="'amount-' + l.group_id" [attr.aria-label]="'Budget for ' + l.group_name" />
                   </td>

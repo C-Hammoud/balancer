@@ -54,7 +54,7 @@
     </div>
 
     <section class="panel table-wrap">
-      <table class="stack-table">
+      <table class="stack-table" appStackCollapse>
         <thead>
           <tr>
             <th>Category</th>
@@ -70,7 +70,7 @@
         <tbody>
           @for (row of rows(); track row.category_id) {
             <tr [class.unmapped-row]="row.category_id === unmappedId">
-              <td data-label="Category">
+              <td data-label="Category" data-summary="title">
                 @if (row.category_id === unmappedId) {
                   <a routerLink="/budgeting/config/merchant-links">
                     {{ row.category_name }}
@@ -81,8 +81,8 @@
                 }
               </td>
               <td data-label="Forecast">{{ fmt(row.forecast) }}</td>
-              <td data-label="Actual">{{ fmt(row.actual) }}</td>
-              <td data-label="Remaining" [class.neg]="+(row.remaining || 0) < 0">{{ fmt(row.remaining) }}</td>
+              <td data-label="Actual" data-summary="meta labeled">{{ fmt(row.actual) }}</td>
+              <td data-label="Remaining" data-summary="end" [class.neg]="+(row.remaining || 0) < 0">{{ fmt(row.remaining) }}</td>
               <td data-label="Variance" [class.neg]="+(row.variance || 0) > 0">{{ fmt(row.variance) }}</td>
               <td data-label="Thresholds" class="muted">{{ row.warn_pct }}% / {{ row.critical_pct }}%</td>
               <td data-label="Utilization">
@@ -95,7 +95,7 @@
                   </div>
                 } @else { — }
               </td>
-              <td data-label="Status">
+              <td data-label="Status" data-summary="meta">
                 @if (row.category_id === unmappedId) {
                   <a class="btn ghost" routerLink="/budgeting/config/merchant-links">
                     Merchant links

@@ -17,6 +17,7 @@ import {
 } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 import { LocaleService } from '../../../core/locale.service';
+import { StackCollapseDirective } from '../../../shared/stack-collapse.directive';
 
 interface SubDraft {
   category_id: string;
@@ -27,7 +28,7 @@ interface SubDraft {
 @Component({
   selector: 'app-budget-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, AmountPipe],
+  imports: [StackCollapseDirective, CommonModule, ReactiveFormsModule, FormsModule, RouterLink, AmountPipe],
   templateUrl: './budget-detail.component.html',
   styleUrl: './budget-detail.component.scss',
 })

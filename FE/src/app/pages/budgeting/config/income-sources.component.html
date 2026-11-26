@@ -12,7 +12,7 @@
   <p class="muted">Loading…</p>
 } @else {
   <div class="panel table-wrap">
-    <table class="stack-table">
+    <table class="stack-table" appStackCollapse>
       <thead>
         <tr>
           <th>Name</th>
@@ -27,9 +27,9 @@
       <tbody>
         @for (s of items(); track s.id) {
           <tr>
-            <td data-label="Name">{{ s.name }}</td>
-            <td data-label="Type">{{ accountTypeLabel(s.account_type) }}</td>
-            <td data-label="Balance" [class.neg]="isNegative(balances()[s.id])">
+            <td data-label="Name" data-summary="title">{{ s.name }}</td>
+            <td data-label="Type" data-summary="meta">{{ accountTypeLabel(s.account_type) }}</td>
+            <td data-label="Balance" data-summary="end" [class.neg]="isNegative(balances()[s.id])">
               @if (balances()[s.id]; as b) {
                 {{ +b.total | number: '1.2-2' }}
                 @if (currencyBreakdown(b)) {
@@ -40,7 +40,7 @@
               }
             </td>
             <td data-label="Order">{{ s.order }}</td>
-            <td data-label="Status">
+            <td data-label="Status" data-summary="meta">
               <span class="pill" [class.ok]="s.is_active" [class.warn]="!s.is_active">
                 {{ s.is_active ? 'active' : 'inactive' }}
               </span>

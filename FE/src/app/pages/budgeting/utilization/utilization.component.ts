@@ -7,11 +7,12 @@ import { UtilizationReport, UtilizationRow, UNMAPPED_CATEGORY_ID } from '../../.
 import { ToastService } from '../../../core/toast.service';
 import { LocaleService } from '../../../core/locale.service';
 import { formatAmount } from '../../../shared/amount.pipe';
+import { StackCollapseDirective } from '../../../shared/stack-collapse.directive';
 
 @Component({
   selector: 'app-utilization',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, RouterLink],
   templateUrl: './utilization.component.html',
   styleUrl: './utilization.component.scss',
 })

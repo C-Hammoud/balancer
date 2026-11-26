@@ -20,6 +20,7 @@ import { ToastService } from '../../../core/toast.service';
 import { AmountPipe } from '../../../shared/amount.pipe';
 import { BudgetTableComponent } from './budget-table.component';
 import { PlanSubBudgetsComponent } from './plan-sub-budgets.component';
+import { StackCollapseDirective } from '../../../shared/stack-collapse.directive';
 
 interface Segment {
   key: string;
@@ -48,7 +49,7 @@ const MONTH_NAMES = [
 @Component({
   selector: 'app-monthly-budget',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AmountPipe, BudgetTableComponent, PlanSubBudgetsComponent],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, RouterLink, AmountPipe, BudgetTableComponent, PlanSubBudgetsComponent],
   templateUrl: './monthly-budget.component.html',
   styleUrl: './monthly-budget.component.scss',
 })

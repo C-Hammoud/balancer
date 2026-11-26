@@ -328,7 +328,7 @@
   }
 
   <div class="panel table-wrap">
-    <table class="stack-table">
+    <table class="stack-table" appStackCollapse>
       <thead>
         <tr>
           <th class="select-col">
@@ -356,7 +356,7 @@
       <tbody>
         @for (t of items(); track t.id) {
           <tr [class.unassigned-row]="isUnassigned(t)" [class.selected-row]="isSelected(t.id)">
-            <td class="select-col" data-label="Select">
+            <td class="select-col" data-label="Select" data-summary="select">
               <input
                 type="checkbox"
                 [attr.aria-label]="'Select ' + merchantLabel(t) + ' on ' + t.date"
@@ -365,10 +365,10 @@
                 (change)="toggleSelected(t.id)"
               />
             </td>
-            <td data-label="Date">{{ t.date }}</td>
+            <td data-label="Date" data-summary="meta">{{ t.date }}</td>
             <td data-label="Time">{{ t.time || '—' }}</td>
-            <td data-label="Category">{{ sourceLabel(t) }}</td>
-            <td data-label="Merchant">
+            <td data-label="Category" data-summary="meta">{{ sourceLabel(t) }}</td>
+            <td data-label="Merchant" data-summary="title">
               {{ merchantLabel(t) }}
               @if (isUnassigned(t)) {
                 <span class="pill warn">unassigned</span>
@@ -382,8 +382,8 @@
               <span class="pill">{{ t.direction }}</span>
               @if (t.status === 'pending') { <span class="pill warn">pending</span> }
             </td>
-            <td data-label="Amount">{{ t.amount | amount }}</td>
-            <td data-label="Currency">{{ t.currency || 'USD' }}</td>
+            <td data-label="Amount" data-summary="end">{{ t.amount | amount }}</td>
+            <td data-label="Currency" data-summary="end">{{ t.currency || 'USD' }}</td>
             <td data-label="Note">{{ t.note || '—' }}</td>
             <td class="row-actions" data-label="">
               <button type="button" class="btn ghost" (click)="openEdit(t)">Edit</button>

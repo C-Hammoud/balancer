@@ -37,6 +37,7 @@ import {
 } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
 import { LocaleService } from '../../../core/locale.service';
+import { StackCollapseDirective } from '../../../shared/stack-collapse.directive';
 
 interface PendingLink extends UnmatchedMerchant {
   keyword: string;
@@ -92,7 +93,7 @@ const TRANSFER_CATEGORY = '__transfer__';
 @Component({
   selector: 'app-budget-transactions',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, AmountPipe],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, ReactiveFormsModule, RouterLink, AmountPipe],
   templateUrl: './transactions.component.html',
   styleUrl: './transactions.component.scss',
 })

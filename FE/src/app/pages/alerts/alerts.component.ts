@@ -18,6 +18,7 @@ import {
 } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { ThresholdsComponent } from '../budgeting/config/thresholds.component';
+import { StackCollapseDirective } from '../../shared/stack-collapse.directive';
 
 type TypeFilter = 'all' | 'utilization' | 'due' | 'risk';
 type SeverityFilter = 'all' | 'CRITICAL' | 'WARN';
@@ -34,7 +35,7 @@ export const SNOOZE_OPTIONS = [
 @Component({
   selector: 'app-alerts',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ThresholdsComponent, AmountPipe],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, RouterLink, ThresholdsComponent, AmountPipe],
   templateUrl: './alerts.component.html',
   styleUrl: './alerts.component.scss',
 })

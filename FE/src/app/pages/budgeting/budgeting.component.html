@@ -59,7 +59,7 @@
         <span class="muted">Income {{ d.income_total | amount }} · Expense {{ d.expense_total | amount }}</span>
       </header>
       <div class="table-wrap">
-        <table class="stack-table">
+        <table class="stack-table" appStackCollapse>
           <thead>
             <tr>
               <th>Category</th>
@@ -72,7 +72,7 @@
           <tbody>
             @for (r of d.report.rows; track r.category_id) {
               <tr [class.unmapped-row]="r.category_id === unmappedId">
-                <td data-label="Category">
+                <td data-label="Category" data-summary="title">
                   @if (r.category_id === unmappedId) {
                     <a routerLink="/budgeting/config/merchant-links">
                       {{ r.category_name }}
@@ -83,9 +83,9 @@
                   }
                 </td>
                 <td data-label="Forecast">{{ r.forecast | amount }}</td>
-                <td data-label="Actual">{{ r.actual | amount }}</td>
-                <td data-label="Util">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
-                <td data-label="Status">
+                <td data-label="Actual" data-summary="meta labeled">{{ r.actual | amount }}</td>
+                <td data-label="Util" data-summary="end">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
+                <td data-label="Status" data-summary="meta">
                   @if (r.category_id === unmappedId) {
                     <a class="btn ghost" routerLink="/budgeting/config/merchant-links">
                       Merchant links

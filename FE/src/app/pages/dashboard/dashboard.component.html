@@ -65,29 +65,29 @@
 <app-month-questions />
 
 @if (shown('quickAdd')) {
-<app-quick-add-widget class="quick-add-widget" />
+<app-quick-add-widget class="quick-add-widget" appCollapsibleCard="quickAdd" />
 }
 
 @if (shown('risk')) {
-<app-risk-summary />
+<app-risk-summary appCollapsibleCard="risk" />
 }
 
 @if (shown('netTotals') || shown('balances') || shown('upcoming')) {
 <div class="widget-grid">
   @if (shown('netTotals')) {
-  <app-income-expense-widget [reportCurrency]="reportCurrency" />
+  <app-income-expense-widget [reportCurrency]="reportCurrency" appCollapsibleCard="netTotals" />
   }
   @if (shown('balances')) {
-  <app-account-balances-widget [reportCurrency]="reportCurrency" />
+  <app-account-balances-widget [reportCurrency]="reportCurrency" appCollapsibleCard="balances" />
   }
   @if (shown('upcoming')) {
-  <app-upcoming-payments-widget />
+  <app-upcoming-payments-widget appCollapsibleCard="upcoming" />
   }
 </div>
 }
 
 @if (shown('year')) {
-<section class="panel year-panel">
+<section class="panel year-panel" appCollapsibleCard="year">
   <header>
     <h2>{{ year }} overview</h2>
     @if (yearly(); as y) {
@@ -145,7 +145,7 @@
 }
 
 @if (shown('month') || shown('spend') || shown('alerts') || shown('budgetTable')) {
-<section class="panel month-panel">
+<section class="panel month-panel" appCollapsibleCard="month">
   <header class="month-head">
     <div>
       <h2>Monthly statistics</h2>
@@ -287,7 +287,7 @@
 
   @if (shown('budgetTable')) {
   <div class="table-wrap">
-    <table class="stack-table">
+    <table class="stack-table" appStackCollapse>
       <thead>
         <tr>
           <th>Category</th>
@@ -300,7 +300,7 @@
       <tbody>
         @for (r of categoryRows(); track r.category_id) {
         <tr [class.unmapped-row]="r.category_id === unmappedId">
-          <td data-label="Category">
+          <td data-label="Category" data-summary="title">
             @if (r.category_id === unmappedId) {
             <a routerLink="/budgeting/config/merchant-links">
               {{ r.category_name }}
@@ -310,9 +310,9 @@
             }
           </td>
           <td data-label="Forecast">{{ fmt(r.forecast) }}</td>
-          <td data-label="Actual">{{ fmt(r.actual) }}</td>
-          <td data-label="Util">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
-          <td data-label="Status"><span class="pill" [class]="r.status">{{ r.status }}</span></td>
+          <td data-label="Actual" data-summary="meta labeled">{{ fmt(r.actual) }}</td>
+          <td data-label="Util" data-summary="end">{{ r.utilization_pct ? r.utilization_pct + '%' : '—' }}</td>
+          <td data-label="Status" data-summary="meta"><span class="pill" [class]="r.status">{{ r.status }}</span></td>
         </tr>
         } @empty {
         <tr>
@@ -328,11 +328,11 @@
 }
 
 @if (shown('recent')) {
-<app-recent-transactions-widget class="recent-widget" />
+<app-recent-transactions-widget class="recent-widget" appCollapsibleCard="recent" />
 }
 
 @if (shown('reports')) {
-<section class="panel report-panel no-print-hide">
+<section class="panel report-panel no-print-hide" appCollapsibleCard="reports">
   <header>
     <h2>Reports</h2>
   </header>

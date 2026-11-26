@@ -33,6 +33,8 @@ import {
 } from './dashboard.helpers';
 import { MonthQuestionsComponent } from '../../shared/month-questions/month-questions.component';
 import { formatAmount } from '../../shared/amount.pipe';
+import { StackCollapseDirective } from '../../shared/stack-collapse.directive';
+import { CollapsibleCardDirective } from '../../shared/collapsible-card.directive';
 
 const DISMISS_KEY = 'ft_dismiss_accounts_prompt';
 const HIDDEN_WIDGETS_KEY = 'ft_dashboard_hidden';
@@ -65,6 +67,8 @@ export interface TileDelta {
   selector: 'app-dashboard',
   standalone: true,
   imports: [
+    StackCollapseDirective,
+    CollapsibleCardDirective,
     CommonModule,
     FormsModule,
     RouterLink,

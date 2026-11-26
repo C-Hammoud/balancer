@@ -275,7 +275,7 @@
         </div>
       }
 
-      <div class="table-wrap stack-table">
+      <div class="table-wrap stack-table" appStackCollapse>
         <table>
           <thead>
             <tr>
@@ -289,7 +289,7 @@
           <tbody>
             @for (cat of b.categories || []; track cat.id) {
               <tr class="group-row" [class.is-collapsed]="hasSubs(cat) && !isExpanded(cat.id)">
-                <td data-label="Category">
+                <td data-label="Category" data-summary="title">
                   <div class="category-cell">
                     @if (hasSubs(cat)) {
                       <button
@@ -310,8 +310,8 @@
                   </div>
                 </td>
                 <td data-label="Allocated">{{ cat.allocated_amount | amount }} {{ b.currency }}</td>
-                <td data-label="Spent">{{ cat.spent | amount }} {{ b.currency }}</td>
-                <td data-label="Remaining" [class.neg]="+cat.remaining < 0">{{ cat.remaining | amount }} {{ b.currency }}</td>
+                <td data-label="Spent" data-summary="meta labeled">{{ cat.spent | amount }} {{ b.currency }}</td>
+                <td data-label="Remaining" data-summary="end" [class.neg]="+cat.remaining < 0">{{ cat.remaining | amount }} {{ b.currency }}</td>
                 <td data-label="">
                   @if (cat.id !== '_uncategorized_' && canEdit()) {
                     <button type="button" class="btn ghost" (click)="deleteCategory(cat)">Remove</button>
@@ -321,10 +321,10 @@
               @if (hasSubs(cat) && isExpanded(cat.id)) {
                 @for (sub of cat.sub_categories || []; track sub.id) {
                   <tr class="sub-row">
-                    <td data-label="Category"><span class="sub-indent">{{ sub.name }}</span></td>
+                    <td data-label="Category" data-summary="title"><span class="sub-indent">{{ sub.name }}</span></td>
                     <td data-label="Allocated">{{ sub.allocated_amount | amount }} {{ b.currency }}</td>
-                    <td data-label="Spent">{{ sub.spent | amount }} {{ b.currency }}</td>
-                    <td data-label="Remaining" [class.neg]="+sub.remaining < 0">{{ sub.remaining | amount }} {{ b.currency }}</td>
+                    <td data-label="Spent" data-summary="meta labeled">{{ sub.spent | amount }} {{ b.currency }}</td>
+                    <td data-label="Remaining" data-summary="end" [class.neg]="+sub.remaining < 0">{{ sub.remaining | amount }} {{ b.currency }}</td>
                     <td data-label=""></td>
                   </tr>
                 }
@@ -345,7 +345,7 @@
         </div>
         <a class="btn ghost" routerLink="/budgeting/transactions">Manage transactions</a>
       </header>
-      <div class="table-wrap stack-table">
+      <div class="table-wrap stack-table" appStackCollapse>
         <table>
           <thead>
             <tr>
@@ -358,10 +358,10 @@
           <tbody>
             @for (t of transactions(); track t.id) {
               <tr>
-                <td data-label="Date">{{ t.date }}</td>
-                <td data-label="Description">{{ t.description || t.note || '—' }}</td>
-                <td data-label="Category">{{ categoryName(t.budget_category_id) }}</td>
-                <td data-label="Amount">{{ t.amount | amount }} {{ t.currency }}</td>
+                <td data-label="Date" data-summary="meta">{{ t.date }}</td>
+                <td data-label="Description" data-summary="title">{{ t.description || t.note || '—' }}</td>
+                <td data-label="Category" data-summary="meta">{{ categoryName(t.budget_category_id) }}</td>
+                <td data-label="Amount" data-summary="end">{{ t.amount | amount }} {{ t.currency }}</td>
               </tr>
             } @empty {
               <tr><td colspan="4" class="muted">No transactions linked to this budget yet.</td></tr>

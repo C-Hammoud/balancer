@@ -6,6 +6,7 @@ import { Account, AccountBalance, AccountType } from '../../../core/models';
 import { RiskService } from '../../../core/risk.service';
 import { ToastService } from '../../../core/toast.service';
 import { formatAmount } from '../../../shared/amount.pipe';
+import { StackCollapseDirective } from '../../../shared/stack-collapse.directive';
 
 const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
   { value: 'bank', label: 'Bank' },
@@ -17,7 +18,7 @@ const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
 @Component({
   selector: 'app-income-sources',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [StackCollapseDirective, CommonModule, ReactiveFormsModule],
   templateUrl: './income-sources.component.html',
   styleUrl: './income-sources.component.scss',
 })

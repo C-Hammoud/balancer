@@ -6,11 +6,12 @@ import { RouterLink } from '@angular/router';
 import { BudgetingService } from '../../core/budgeting.service';
 import { BudgetDashboard, UNMAPPED_CATEGORY_ID } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
+import { StackCollapseDirective } from '../../shared/stack-collapse.directive';
 
 @Component({
   selector: 'app-budgeting-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AmountPipe],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, RouterLink, AmountPipe],
   templateUrl: './budgeting.component.html',
   styleUrl: './budgeting.component.scss',
 })
