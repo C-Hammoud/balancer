@@ -31,7 +31,7 @@
             <td data-label="Type" data-summary="meta">{{ accountTypeLabel(s.account_type) }}</td>
             <td data-label="Balance" data-summary="end" [class.neg]="isNegative(balances()[s.id])">
               @if (balances()[s.id]; as b) {
-                {{ +b.total | number: '1.2-2' }}
+                {{ b.total | amount }}
                 @if (currencyBreakdown(b)) {
                   <small class="muted breakdown">{{ currencyBreakdown(b) }}</small>
                 }

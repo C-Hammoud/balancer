@@ -162,7 +162,7 @@
             </td>
             <td data-label="Title" data-summary="title">
               <strong>{{ a.title }}</strong>
-              <small>{{ a.description }}</small>
+              <small>{{ a.description | privateText }}</small>
               @switch (stateOf(a)) {
                 @case ('snoozed') {
                   <small class="state">Snoozed until {{ a.snoozed_until | date: 'MMM d, h:mm a' }}</small>

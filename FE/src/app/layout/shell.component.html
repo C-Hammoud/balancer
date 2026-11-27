@@ -2,6 +2,7 @@
   <div class="topbar-main">
     <a routerLink="/dashboard" class="brand">Finance Tracker</a>
 
+    <app-privacy-toggle class="mobile-eye" />
     <app-notification-bell class="mobile-bell" />
 
     <button
@@ -54,6 +55,7 @@
     </nav>
 
     <div class="user desktop-user">
+      <app-privacy-toggle />
       <app-notification-bell />
       <a routerLink="/support" class="help-link" title="Help & support">Help</a>
       <a routerLink="/profile" class="username profile-link">{{ user()?.username || 'User' }}</a>

@@ -1,4 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
+import { HIDDEN_AMOUNT, amountsHidden, hideAmountsInText } from './privacy';
 
 const formatters = new Map<number, Intl.NumberFormat>();
 
@@ -15,20 +16,33 @@ function formatter(digits: number): Intl.NumberFormat {
 /**
  * Money amount with thousands separators: 1234567.5 → "1,234,567.50".
  * Accepts the API's decimal strings; empty values give `fallback`, and text that is not a
- * number is shown unchanged.
+ * number is shown unchanged. In privacy mode (the eye in the top bar) numbers show as ••••.
  */
 export function formatAmount(value: unknown, digits = 2, fallback = '—'): string {
   if (value === null || value === undefined || value === '') return fallback;
   if (typeof value !== 'number' && typeof value !== 'string') return String(value);
   const n = typeof value === 'number' ? value : Number(value.replace(/,/g, '').trim());
   if (!Number.isFinite(n)) return String(value);
+  if (amountsHidden()) return HIDDEN_AMOUNT;
   return formatter(digits).format(n);
 }
 
-/** `{{ t.amount | amount }}` → "1,568.00"; `{{ x | amount: 0 }}` → "1,568". */
-@Pipe({ name: 'amount', standalone: true })
+/**
+ * `{{ t.amount | amount }}` → "1,568.00"; `{{ x | amount: 0 }}` → "1,568".
+ * Impure so it updates when the privacy eye is toggled.
+ */
+@Pipe({ name: 'amount', standalone: true, pure: false })
 export class AmountPipe implements PipeTransform {
   transform(value: unknown, digits = 2, fallback = '—'): string {
     return formatAmount(value, digits, fallback);
+  }
+}
+
+/** Server-written sentences (alert descriptions): `{{ a.description | privateText }}`. */
+@Pipe({ name: 'privateText', standalone: true, pure: false })
+export class PrivateTextPipe implements PipeTransform {
+  transform(value: string | null | undefined): string {
+    const text = value ?? '';
+    return amountsHidden() ? hideAmountsInText(text) : text;
   }
 }

@@ -1,6 +1,6 @@
 import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AmountPipe } from '../../shared/amount.pipe';
+import { AmountPipe, PrivateTextPipe } from '../../shared/amount.pipe';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -35,7 +35,7 @@ export const SNOOZE_OPTIONS = [
 @Component({
   selector: 'app-alerts',
   standalone: true,
-  imports: [StackCollapseDirective, CommonModule, FormsModule, RouterLink, ThresholdsComponent, AmountPipe],
+  imports: [StackCollapseDirective, CommonModule, FormsModule, RouterLink, ThresholdsComponent, AmountPipe, PrivateTextPipe],
   templateUrl: './alerts.component.html',
   styleUrl: './alerts.component.scss',
 })

@@ -31,7 +31,7 @@
           <li>
             <button type="button" role="menuitem" [class.unread]="!n.is_read" (click)="openItem(n)">
               <strong>{{ n.title }}</strong>
-              <span>{{ n.body }}</span>
+              <span>{{ n.body | privateText }}</span>
               <small>{{ n.created_at | date: 'MMM d, h:mm a' }}</small>
             </button>
           </li>

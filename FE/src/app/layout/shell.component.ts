@@ -8,6 +8,7 @@ import { FinanceDataRefreshService } from '../core/finance-data-refresh.service'
 import { PwaInstallService } from '../core/pwa-install.service';
 import { CommitmentDuePromptComponent } from '../shared/commitment-due-prompt/commitment-due-prompt.component';
 import { NotificationBellComponent } from '../shared/notification-bell/notification-bell.component';
+import { PrivacyToggleComponent } from '../shared/privacy-toggle/privacy-toggle.component';
 import { QuickAddDialogComponent } from '../shared/quick-add/quick-add-dialog.component';
 import { QuickAddService } from '../shared/quick-add/quick-add.service';
 import { BottomTab, bottomTab } from './bottom-nav';
@@ -34,6 +35,7 @@ interface NavGroup {
     RouterLinkActive,
     CommitmentDuePromptComponent,
     NotificationBellComponent,
+    PrivacyToggleComponent,
     QuickAddDialogComponent,
   ],
   templateUrl: './shell.component.html',

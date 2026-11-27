@@ -59,8 +59,8 @@
   <p class="muted">Loading…</p>
 } @else {
   <p class="muted totals">
-    Recurring per month: <strong>{{ +totals().income | number: '1.2-2' }}</strong> in ·
-    <strong>{{ +totals().expense | number: '1.2-2' }}</strong> out ({{ totals().currency }})
+    Recurring per month: <strong>{{ totals().income | amount }}</strong> in ·
+    <strong>{{ totals().expense | amount }}</strong> out ({{ totals().currency }})
   </p>
   <div class="panel table-wrap">
     <table>
@@ -84,7 +84,7 @@
               @if (!i.is_active) { <span class="pill warn">paused</span> }
             </td>
             <td>{{ i.kind === 'income' ? 'In' : 'Out' }}</td>
-            <td>{{ +i.amount | number: '1.2-2' }} {{ i.currency }}</td>
+            <td>{{ i.amount | amount }} {{ i.currency }}</td>
             <td>{{ frequencyLabel(i.frequency) }}</td>
             <td>{{ i.start_date }}{{ i.end_date ? ' → ' + i.end_date : '' }}</td>
             <td>{{ accountName(i.account_id) || '—' }}</td>

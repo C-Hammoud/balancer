@@ -42,7 +42,7 @@
             <td>{{ s.snapshot_date }}</td>
             <td>{{ s.total_assets | amount }}</td>
             <td>{{ s.total_liabilities | amount }}</td>
-            <td [class.neg]="netWorth(s) < 0">{{ netWorth(s) | number: '1.2-2' }}</td>
+            <td [class.neg]="netWorth(s) < 0">{{ netWorth(s) | amount }}</td>
             <td>{{ s.notes || '—' }}</td>
           </tr>
         } @empty {

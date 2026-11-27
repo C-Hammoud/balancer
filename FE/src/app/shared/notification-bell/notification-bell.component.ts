@@ -5,13 +5,14 @@ import { Subscription, interval } from 'rxjs';
 import { BudgetingService } from '../../core/budgeting.service';
 import { FinanceDataRefreshService } from '../../core/finance-data-refresh.service';
 import { AppNotification } from '../../core/models';
+import { PrivateTextPipe } from '../amount.pipe';
 
 const POLL_MS = 120_000;
 
 @Component({
   selector: 'app-notification-bell',
   standalone: true,
-  imports: [CommonModule],
+  imports: [PrivateTextPipe, CommonModule],
   templateUrl: './notification-bell.component.html',
   styleUrl: './notification-bell.component.scss',
 })

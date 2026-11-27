@@ -5,6 +5,7 @@ import { BudgetingService } from '../../../core/budgeting.service';
 import { RiskService } from '../../../core/risk.service';
 import { ToastService } from '../../../core/toast.service';
 import { Account, PlannedItem, PlannedItemFrequency, PlannedItemKind } from '../../../core/models';
+import { AmountPipe } from '../../../shared/amount.pipe';
 
 const FREQUENCIES: { value: PlannedItemFrequency; label: string }[] = [
   { value: 'once', label: 'Once' },
@@ -18,7 +19,7 @@ const FREQUENCIES: { value: PlannedItemFrequency; label: string }[] = [
 @Component({
   selector: 'app-planned-items',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [AmountPipe, CommonModule, ReactiveFormsModule],
   templateUrl: './planned-items.component.html',
   styleUrl: './planned-items.component.scss',
 })

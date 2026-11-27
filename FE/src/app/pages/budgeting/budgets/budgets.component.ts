@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AmountPipe } from '../../../shared/amount.pipe';
+import { AmountPipe, PrivateTextPipe } from '../../../shared/amount.pipe';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BudgetingService } from '../../../core/budgeting.service';
@@ -11,7 +11,7 @@ import { LocaleService } from '../../../core/locale.service';
 @Component({
   selector: 'app-budgets',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, AmountPipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, AmountPipe, PrivateTextPipe],
   templateUrl: './budgets.component.html',
   styleUrl: './budgets.component.scss',
 })

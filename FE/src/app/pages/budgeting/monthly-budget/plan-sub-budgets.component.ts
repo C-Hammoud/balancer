@@ -6,6 +6,7 @@ import { BudgetingService } from '../../../core/budgeting.service';
 import { LocaleService } from '../../../core/locale.service';
 import { PersonalBudget } from '../../../core/models';
 import { ToastService } from '../../../core/toast.service';
+import { AmountPipe } from '../../../shared/amount.pipe';
 
 interface SubBudgetDraft {
   name: string;
@@ -23,7 +24,7 @@ interface SubBudgetDraft {
 @Component({
   selector: 'app-plan-sub-budgets',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [AmountPipe, CommonModule, FormsModule, RouterLink],
   templateUrl: './plan-sub-budgets.component.html',
   styleUrl: './plan-sub-budgets.component.scss',
 })

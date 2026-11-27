@@ -316,7 +316,8 @@
   }
 }
 
-.mobile-bell {
+.mobile-bell,
+.mobile-eye {
   display: none;
 }
 
@@ -463,9 +464,15 @@
     display: none;
   }
 
-  .mobile-bell {
+  // Phone top bar: eye, bell, menu on the right.
+  .mobile-eye {
     display: inline-flex;
     margin-left: auto;
+  }
+
+  .mobile-bell {
+    display: inline-flex;
+    margin-left: 0.5rem;
   }
 
   .mobile-bell + .menu-toggle {

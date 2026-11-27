@@ -79,9 +79,9 @@
               <span class="pill" [class]="'pill ' + f.status">{{ statusLabel(f.status) }}</span>
             </header>
             <p class="value">{{ formatValue(f) }}</p>
-            <p class="explanation">{{ f.explanation }}</p>
+            <p class="explanation">{{ f.explanation | privateText }}</p>
             @if (f.recommendation) {
-              <p class="recommendation">{{ f.recommendation }}</p>
+              <p class="recommendation">{{ f.recommendation | privateText }}</p>
             }
             @if (f.items.length) {
               <ul class="items">

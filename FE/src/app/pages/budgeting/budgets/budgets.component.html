@@ -38,7 +38,7 @@
       <article class="notice">
         <div>
           <strong>{{ n.title }}</strong>
-          <p class="muted">{{ n.message }}</p>
+          <p class="muted">{{ n.message | privateText }}</p>
         </div>
         <button type="button" class="btn primary" (click)="dismissNotification(n)">View project</button>
       </article>
