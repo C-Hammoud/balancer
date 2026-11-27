@@ -1,0 +1,43 @@
+<section class="hero">
+  <div>
+    <h1>Reports</h1>
+    <p>
+      Download your figures as Excel, PDF, CSV or JSON. Amounts are in your main currency,
+      <strong>{{ currency }}</strong> (<a routerLink="/profile">change</a>).
+    </p>
+  </div>
+</section>
+
+<div class="reports-layout">
+  <section class="panel builder-panel" aria-labelledby="builder-title">
+    <h2 id="builder-title">Build a report</h2>
+    <app-report-builder [year]="startYear" [month]="startMonth" (periodChange)="onPeriod($event)" />
+  </section>
+
+  <aside class="panel preview-panel" aria-labelledby="preview-title" aria-live="polite">
+    <h2 id="preview-title">Preview</h2>
+    @let p = preview();
+    @if (loading() && !p) {
+      <p class="muted">Loading…</p>
+    } @else if (p) {
+      <p class="period" [class.stale]="loading()">{{ p.label }}</p>
+      <dl class="totals" [class.stale]="loading()">
+        <div>
+          <dt>Income</dt>
+          <dd>{{ p.income | amount }} <small>{{ p.currency }}</small></dd>
+        </div>
+        <div>
+          <dt>Expenses</dt>
+          <dd>{{ p.expense | amount }} <small>{{ p.currency }}</small></dd>
+        </div>
+        <div class="net" [class.neg]="p.net < 0">
+          <dt>Difference</dt>
+          <dd>{{ p.net | amount }} <small>{{ p.currency }}</small></dd>
+        </div>
+      </dl>
+      <p class="muted note">The file also has the budget, spending by category and, if you choose, every transaction.</p>
+    } @else {
+      <p class="muted">No figures for this period yet.</p>
+    }
+  </aside>
+</div>

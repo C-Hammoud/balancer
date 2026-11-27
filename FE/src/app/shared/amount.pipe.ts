@@ -16,7 +16,7 @@ function formatter(digits: number): Intl.NumberFormat {
 /**
  * Money amount with thousands separators: 1234567.5 → "1,234,567.50".
  * Accepts the API's decimal strings; empty values give `fallback`, and text that is not a
- * number is shown unchanged. In privacy mode (the eye in the top bar) numbers show as ••••.
+ * number is shown unchanged. In privacy mode (the eye in the top bar) numbers show as *****.
  */
 export function formatAmount(value: unknown, digits = 2, fallback = '—'): string {
   if (value === null || value === undefined || value === '') return fallback;

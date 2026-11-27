@@ -417,13 +417,18 @@ td small {
 .pill.danger, .pill.critical, .pill.over { background: #fde8e4; color: #8a2f1d; }
 .pill.ok { background: #e4f5ea; color: #1d6b3a; }
 
-.report-intro { margin: 0 0 0.85rem; }
-.report-actions {
+.report-head {
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  gap: 0.55rem;
-  align-items: end;
+  margin-bottom: 1rem;
+
+  h2 { margin: 0; }
+  .more-link { font-weight: 600; white-space: nowrap; margin-right: 2.25rem; }
 }
+.report-intro { margin: 0.25rem 0 0; }
 
 @media (max-width: 900px) {
   .stats,
@@ -459,10 +464,6 @@ td small {
     width: 100%;
   }
 
-  .report-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 
 @media print {

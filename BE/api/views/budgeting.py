@@ -28,7 +28,7 @@ from api.serializers import (
 )
 from api.utils import decimal_to_json, transaction_to_dict, trigger_budget_alerts, user_id
 from api.currency import convert_if_needed, resolve_report_currency
-from budgeting import import_templates
+from budgeting import import_templates, report_export
 from budgeting.alert_state import alert_is_snoozed, alert_state
 from budgeting.category_access import (
     can_edit,
@@ -1329,6 +1329,34 @@ class TransactionImportTemplateView(APIView):
                 {"detail": f"Unknown template. Use one of: {', '.join(import_templates.TEMPLATE_KINDS)}."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        response = HttpResponse(content, content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Cache-Control"] = "no-store"
+        return response
+
+
+class ReportExportView(APIView):
+    """
+    Download a report: GET .../reports/export/?type=xlsx|pdf|csv|json&scope=year|month
+    &year=&month=&transactions=1. Amounts in the main currency (or ?report_currency=); with
+    transactions=1 the period's transactions are added (their own sheet in Excel).
+    """
+
+    def get(self, request):
+        today = date.today()
+        # "type", not "format": DRF reserves ?format= for its own renderers.
+        fmt = (request.query_params.get("type") or "xlsx").strip().lower()
+        scope = (request.query_params.get("scope") or "year").strip().lower()
+        year = _query_int(request, "year", today.year)
+        month = _query_int(request, "month", today.month)
+        include = (request.query_params.get("transactions") or "").lower() in ("1", "true", "yes")
+        currency = resolve_report_currency(request.user, request.query_params.get("report_currency"))
+        try:
+            content, content_type, filename = report_export.export_report(
+                request.user, fmt, scope, year, month, currency, include
+            )
+        except report_export.ReportError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         response = HttpResponse(content, content_type=content_type)
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         response["Cache-Control"] = "no-store"

@@ -1,14 +1,14 @@
 import { signal } from '@angular/core';
 
 /**
- * Privacy mode: the eye in the top bar hides every money amount (•••• instead of the number).
+ * Privacy mode: the eye in the top bar hides every money amount (***** instead of the number).
  * Remembered on this device. A plain signal (not a service) so formatAmount() can read it;
  * templates track the read, so toggling updates the screen at once.
  */
 const STORAGE_KEY = 'ft_hide_amounts';
 const HTML_CLASS = 'amounts-hidden';
 
-export const HIDDEN_AMOUNT = '••••';
+export const HIDDEN_AMOUNT = '*****';
 
 function readStored(): boolean {
   try {

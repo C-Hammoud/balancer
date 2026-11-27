@@ -60,6 +60,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   primary: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', exact: true },
     { label: 'Transactions', path: '/budgeting/transactions' },
+    { label: 'Reports', path: '/reports' },
   ];
 
   groups: NavGroup[] = [

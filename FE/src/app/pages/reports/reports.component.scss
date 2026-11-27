@@ -1,0 +1,85 @@
+.reports-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.panel h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: #0f3d3e;
+}
+
+.preview-panel {
+  position: sticky;
+  top: 5.5rem;
+}
+
+.period {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  color: #0f3d3e;
+}
+
+.totals {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.6rem;
+    background: #f3f7f6;
+  }
+
+  dt {
+    color: #5b6b6b;
+    font-weight: 600;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #0f3d3e;
+
+    small {
+      font-weight: 500;
+      color: #6b7c7c;
+    }
+  }
+
+  .net {
+    background: #e3f0ee;
+  }
+
+  .net.neg dd {
+    color: #b83a2e;
+  }
+}
+
+.stale {
+  opacity: 0.55;
+}
+
+.note {
+  margin: 0.85rem 0 0;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .reports-layout {
+    grid-template-columns: 1fr;
+  }
+
+  // On phones the totals come first, then the options.
+  .preview-panel {
+    position: static;
+    order: -1;
+  }
+}

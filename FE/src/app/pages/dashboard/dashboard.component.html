@@ -333,27 +333,15 @@
 
 @if (shown('reports')) {
 <section class="panel report-panel no-print-hide" appCollapsibleCard="reports">
-  <header>
-    <h2>Reports</h2>
+  <header class="report-head">
+    <div>
+      <h2>Reports</h2>
+      <p class="muted report-intro">Download this dashboard's figures, with your transactions if you like (amounts in {{ reportCurrency }}).</p>
+    </div>
+    <a class="more-link" routerLink="/reports">All report options →</a>
   </header>
-  <p class="muted report-intro">
-    Download a CSV summary or print this dashboard for {{ year }}
-    @if (reportScope === 'month') {
-    / {{ monthLabel() }}
-    }
-    (amounts in {{ reportCurrency }}).
-  </p>
-  <div class="report-actions">
-    <label class="scope">
-      Scope
-      <select [(ngModel)]="reportScope">
-        <option value="year">Full year</option>
-        <option value="month">Selected month</option>
-      </select>
-    </label>
-    <button type="button" class="btn primary" (click)="downloadReport()">Download CSV</button>
-    <button type="button" class="btn ghost" (click)="printReport()">Print</button>
-    <a class="btn ghost" routerLink="/budgeting/utilization">Open utilization</a>
-  </div>
+  <app-report-builder compact [year]="year" [month]="month">
+    <button type="button" class="btn ghost" (click)="printReport()">Print dashboard</button>
+  </app-report-builder>
 </section>
 }

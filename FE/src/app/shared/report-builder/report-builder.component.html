@@ -1,0 +1,106 @@
+<div class="rb" [class.compact]="compact">
+  <div class="rb-row">
+    <div class="rb-field">
+      <span class="rb-label" id="rb-period-label">Period</span>
+      <div class="seg" role="radiogroup" aria-labelledby="rb-period-label">
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="options().scope === 'year'"
+          [class.on]="options().scope === 'year'"
+          (click)="setScope('year')"
+        >Full year</button>
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="options().scope === 'month'"
+          [class.on]="options().scope === 'month'"
+          (click)="setScope('month')"
+        >One month</button>
+      </div>
+    </div>
+
+    @if (!compact) {
+      <label class="rb-field">
+        <span class="rb-label">Year</span>
+        <select [ngModel]="pickedYear()" (ngModelChange)="pickYear($event)">
+          @for (y of years; track y) {
+            <option [ngValue]="y">{{ y }}</option>
+          }
+        </select>
+      </label>
+      @if (options().scope === 'month') {
+        <label class="rb-field">
+          <span class="rb-label">Month</span>
+          <select [ngModel]="pickedMonth()" (ngModelChange)="pickMonth($event)">
+            @for (m of monthNames; track m; let i = $index) {
+              <option [ngValue]="i + 1">{{ m }}</option>
+            }
+          </select>
+        </label>
+      }
+    } @else {
+      <p class="rb-period">
+        <span class="rb-label">Report for</span>
+        <strong>{{ period() }}</strong>
+      </p>
+    }
+  </div>
+
+  <fieldset class="rb-formats">
+    <legend class="rb-label">File type</legend>
+    <div class="cards">
+      @for (f of formats; track f.type) {
+        <label class="card" [class.on]="options().type === f.type" [attr.data-type]="f.type">
+          <input
+            type="radio"
+            name="rb-type-{{ compact ? 'c' : 'p' }}"
+            [value]="f.type"
+            [checked]="options().type === f.type"
+            (change)="setType(f.type)"
+          />
+          <span class="badge" aria-hidden="true">{{ f.badge }}</span>
+          <span class="text">
+            <strong>{{ f.name }}</strong>
+            <small>{{ f.hint }}</small>
+          </span>
+        </label>
+      }
+    </div>
+  </fieldset>
+
+  <label class="rb-switch">
+    <input
+      type="checkbox"
+      role="switch"
+      [checked]="options().transactions"
+      (change)="setTransactions($any($event.target).checked)"
+    />
+    <span class="track" aria-hidden="true"><span class="knob"></span></span>
+    <span class="text">
+      <strong>Include transactions</strong>
+      <small>Every transaction of {{ period() }}, {{ format().transactionsHint }}.</small>
+    </span>
+  </label>
+
+  <div class="rb-inside">
+    <span class="rb-label">What's inside</span>
+    <ul>
+      @for (part of contents(); track part) {
+        <li>{{ part }}</li>
+      }
+    </ul>
+  </div>
+
+  <div class="rb-actions">
+    <button type="button" class="btn primary rb-download" [disabled]="downloading()" (click)="download()">
+      @if (downloading()) {
+        <span class="spinner" aria-hidden="true"></span> Preparing…
+      } @else {
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></svg>
+        Download {{ format().name }}
+      }
+    </button>
+    <ng-content />
+  </div>
+</div>

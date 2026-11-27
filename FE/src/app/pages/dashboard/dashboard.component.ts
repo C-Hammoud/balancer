@@ -35,6 +35,7 @@ import { MonthQuestionsComponent } from '../../shared/month-questions/month-ques
 import { formatAmount } from '../../shared/amount.pipe';
 import { StackCollapseDirective } from '../../shared/stack-collapse.directive';
 import { CollapsibleCardDirective } from '../../shared/collapsible-card.directive';
+import { ReportBuilderComponent } from '../../shared/report-builder/report-builder.component';
 
 const DISMISS_KEY = 'ft_dismiss_accounts_prompt';
 const HIDDEN_WIDGETS_KEY = 'ft_dashboard_hidden';
@@ -79,6 +80,7 @@ export interface TileDelta {
     UpcomingPaymentsWidgetComponent,
     RecentTransactionsWidgetComponent,
     QuickAddWidgetComponent,
+    ReportBuilderComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -111,7 +113,6 @@ export class DashboardComponent implements OnInit {
   loadingYear = signal(true);
   loadingMonth = signal(true);
   showIncomePrompt = signal(false);
-  reportScope: 'year' | 'month' = 'year';
   /** Previous year's overview: only loaded to compare January with December. */
   previousYearly = signal<YearlyOverview | null>(null);
 
@@ -379,74 +380,6 @@ export class DashboardComponent implements OnInit {
     const total = this.spendTotal();
     if (!total) return 0;
     return Math.round(((+row.actual || 0) / total) * 1000) / 10;
-  }
-
-  downloadReport(): void {
-    const cur = this.reportCurrency || this.locale.reportCurrency();
-    const lines: string[] = [];
-    if (this.reportScope === 'year' && this.yearly()) {
-      const y = this.yearly()!;
-      lines.push(`Finance Tracker Report — ${y.year} (${cur})`);
-      lines.push(`Report currency,${cur}`);
-      lines.push(`Income,${y.income_total}`);
-      lines.push(`Expense,${y.expense_total}`);
-      lines.push(`Net,${y.net}`);
-      lines.push('');
-      lines.push('Month,Income,Expense,Net,Budget Util %,Remaining');
-      for (const m of y.months) {
-        lines.push(
-          [
-            m.month_name,
-            m.income_total,
-            m.expense_total,
-            m.net,
-            m.overall_util ?? '',
-            m.remaining,
-          ].join(',')
-        );
-      }
-    } else {
-      const b = this.budget();
-      const spendRows = this.spendByCategory();
-      lines.push(`Finance Tracker Report — ${this.monthLabel()} ${this.year} (${cur})`);
-      lines.push(`Report currency,${cur}`);
-      lines.push(`Income,${b?.income_total ?? ''}`);
-      lines.push(`Expense,${b?.expense_total ?? ''}`);
-      lines.push(`Utilization,${b?.report?.overall_util ?? ''}%`);
-      lines.push(`Remaining,${b?.report?.remaining ?? ''}`);
-      lines.push('');
-      lines.push('Category,Forecast,Actual,Util %,Status');
-      for (const r of this.categoryRows()) {
-        lines.push(
-          [
-            `"${r.category_name.replace(/"/g, '""')}"`,
-            r.forecast,
-            r.actual,
-            r.utilization_pct ?? '',
-            r.status,
-          ].join(',')
-        );
-      }
-      if (spendRows.length) {
-        lines.push('');
-        lines.push(`Spend by category (${cur}),Amount,Percent`);
-        for (const row of spendRows) {
-          lines.push(`${row.category_name},${row.actual},${this.spendPercent(row)}`);
-        }
-      }
-    }
-
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download =
-      this.reportScope === 'year'
-        ? `finance-report-${this.year}.csv`
-        : `finance-report-${this.year}-${String(this.month).padStart(2, '0')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    this.toast.success('Report downloaded.');
   }
 
   printReport(): void {

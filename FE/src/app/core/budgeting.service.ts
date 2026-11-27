@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
@@ -168,6 +168,15 @@ export class BudgetingService {
   /** Same change (status, account and/or merchant) on several transactions. */
   bulkUpdateTransactions(ids: string[], changes: TransactionBulkChanges): Observable<TransactionBulkResult> {
     return this.http.post<TransactionBulkResult>(`${this.api}/transactions/bulk/`, { ids, action: 'update', changes });
+  }
+
+  /** Report file (Excel / PDF / CSV / JSON); the response keeps the headers for the filename. */
+  exportReport(params: Record<string, string>): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.api}/reports/export/`, {
+      params: new HttpParams({ fromObject: params }),
+      responseType: 'blob',
+      observe: 'response',
+    });
   }
 
   /** Starting file for the import: headers plus one example expense and one example income. */
